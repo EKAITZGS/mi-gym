@@ -11,9 +11,12 @@ export const getAi = () => {
     return { key: '', model: DEFAULT_MODEL }
   }
 }
+// Quita espacios, saltos de línea, comillas y caracteres invisibles que se cuelan al copiar en el móvil
+export const cleanKey = (k) => String(k || '').replace(/[\s\u200B-\u200D\uFEFF"'“”‘’]/g, '')
+
 export const setAi = ({ key, model }) => {
   try {
-    localStorage.setItem(KEY, (key || '').trim())
+    localStorage.setItem(KEY, cleanKey(key))
     localStorage.setItem(MODEL, (model || '').trim() || DEFAULT_MODEL)
   } catch {}
 }
@@ -141,4 +144,26 @@ export async function analyzeLabel(file) {
   if (!(Number(o.kcal) >= 0)) throw new Error('No veo una tabla nutricional en la foto')
   const n = (v) => (v == null || v === '' || isNaN(Number(v)) ? '' : String(Math.round(Number(v) * 10) / 10))
   return { kcal: n(o.kcal), p: n(o.proteina), c: n(o.hidratos), s: n(o.azucares), f: n(o.grasa), sf: n(o.saturadas), unitG: n(o.racion_g) }
+}
+
+// Comprueba la clave y si el modelo configurado existe
+export async function testKey() {
+  const { key, model } = getAi()
+  if (!key) return { ok: false, msg: 'No hay ninguna clave puesta.' }
+  if (!key.startsWith('gsk_')) return { ok: false, msg: 'La clave debe empezar por "gsk_". Parece que has copiado otra cosa (por ejemplo el nombre de la clave).' }
+  let res
+  try {
+    res = await fetch('https://api.groq.com/openai/v1/models', { headers: { Authorization: `Bearer ${key}` } })
+  } catch {
+    return { ok: false, msg: 'No se pudo conectar con Groq (¿sin conexión?).' }
+  }
+  if (res.status === 401) return { ok: false, msg: `Groq dice que la clave no es válida. Crea una nueva en console.groq.com → API Keys y pégala entera (empieza por gsk_ y tiene unos ${56} caracteres; la tuya tiene ${key.length}).` }
+  if (!res.ok) return { ok: false, msg: `Groq respondió con error ${res.status}. Prueba más tarde.` }
+  const j = await res.json()
+  const ids = (j.data || []).map((m) => m.id)
+  if (!ids.includes(model)) {
+    const vision = ids.filter((id) => /vision|qwen|llama-4|scout|maverick|vl/i.test(id))
+    return { ok: false, keyOk: true, msg: `La clave funciona, pero el modelo "${model}" no está disponible.${vision.length ? ' Modelos que podrían tener visión: ' + vision.slice(0, 5).join(', ') + '.' : ''}`, models: vision }
+  }
+  return { ok: true, msg: `Todo bien: la clave funciona y el modelo "${model}" está disponible.` }
 }
