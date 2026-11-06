@@ -1684,3 +1684,12 @@ body.modal-open .savebar { display: none; }
 .push-opt .chk-l input { margin-top: 2px; flex-shrink: 0; }
 .push-opt .inp.time { width: 104px; margin: 0; padding: 8px 10px; flex-shrink: 0; text-align: center; }
 .push-next { background: var(--card2); border-radius: 12px; padding: 10px 12px; margin: 8px 0 4px; display: grid; gap: 4px; }
+
+/* ---- Resumen del mes / día tipo ---- */
+.month-link { display: inline-flex !important; gap: 6px; margin: -4px 0 6px; padding-left: 2px; color: var(--accent); }
+.month-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; text-transform: capitalize; }
+.polar-sum + .polar-sum { margin-top: 8px; }
+.dp-btn { margin-bottom: 14px; }
+.dp-meal { border-top: 1px solid var(--line); padding: 10px 0; }
+.dp-head { display: flex; justify-content: space-between; margin-bottom: 4px; }
+.dp-item { padding: 2px 0; }

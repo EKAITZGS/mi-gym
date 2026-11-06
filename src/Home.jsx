@@ -9,6 +9,7 @@ import WeeklyReview from './Review'
 import Setup from './Setup'
 import PolarSession from './PolarSession'
 import BodyCard from './Body'
+import MonthModal from './Month'
 import { ProteinTip, MuscleSets, StepsBar } from './Extras'
 import { Generator } from './Workout'
 import { generatePlan } from './plans'
@@ -23,6 +24,7 @@ export default function Home({ data, setData, onStart, go }) {
   const [setup, setSetup] = useState(false)
   const [gen, setGen] = useState(false)
   const [polarEx, setPolarEx] = useState(null)
+  const [month, setMonth] = useState(false)
   const wd = new Date().getDay()
   const todays = data.plan.filter((d) => d.weekday === wd)
   const others = data.plan.filter((d) => d.weekday !== wd)
@@ -246,6 +248,10 @@ export default function Home({ data, setData, onStart, go }) {
           ))}
         </div>
       </div>
+      <button className="link small month-link" onClick={() => setMonth(true)}>
+        <Icon name="trend" size={15} /> Ver resumen del mes
+      </button>
+      {month && <MonthModal data={data} onClose={() => setMonth(false)} />}
 
       <MuscleSets data={data} />
       <BodyCard data={data} setData={setData} />
