@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { FOODS, MEALS } from './data/foods'
+import { FOODS, MEALS, CATS } from './data/foods'
 import { addDays, dayTotals, macros, todayStr, uid, num, parseDate } from './store'
 import { Bar, Modal, Ring } from './ui'
 import Icon from './icons'
@@ -117,6 +117,7 @@ function AddFood({ data, setData, date, meal, onClose }) {
   const [amount, setAmount] = useState('100')
   const [mode, setMode] = useState('g')
   const [quick, setQuick] = useState({ name: '', kcal: '', p: '' })
+  const [cat, setCat] = useState(meal === 'Picoteo / gym' ? 'calle' : null)
   const [nf, setNf] = useState({ name: '', kcal: '', p: '', c: '', f: '', s: '', sf: '' })
   const [code, setCode] = useState('')
   const [scan, setScan] = useState({ loading: false, msg: '' })
@@ -132,7 +133,7 @@ function AddFood({ data, setData, date, meal, onClose }) {
       for (const e of [...data.food[d]].reverse()) {
         if (e.quick || seen.has(e.name)) continue
         seen.add(e.name)
-        out.push({ id: 'r-' + e.id, name: e.name, kcal: e.kcal, p: e.p, c: e.c, f: e.f, unitG: e.unitG, unitName: e.unitName, s: e.s, sf: e.sf, ns: e.ns, natural: e.natural })
+        out.push({ id: 'r-' + e.id, name: e.name, kcal: e.kcal, p: e.p, c: e.c, f: e.f, unitG: e.unitG, unitName: e.unitName, s: e.s, sf: e.sf, ns: e.ns, natural: e.natural, alcohol: e.alcohol, fastfood: e.fastfood })
         if (out.length >= 8) return out
       }
     }
@@ -284,6 +285,8 @@ function AddFood({ data, setData, date, meal, onClose }) {
               sf: food.sf,
               ns: food.ns,
               natural: food.natural,
+              alcohol: food.alcohol,
+              fastfood: food.fastfood,
               label: mode === 'u' ? `${num(amount)} ${food.unitName}` : undefined,
             })
           }
@@ -458,7 +461,23 @@ function AddFood({ data, setData, date, meal, onClose }) {
         <Icon name="camera" size={18} /> Foto del alimento (IA)
       </button>
       <input className="inp" placeholder="Buscar alimento…" value={q} onChange={(e) => setQ(e.target.value)} />
-      {!q.trim() && recents.length > 0 && (
+      {!q.trim() && (
+        <div className="chips">
+          {CATS.map((c) => (
+            <button key={c.id} className={'chip' + (cat === c.id ? ' on' : '')} onClick={() => setCat(cat === c.id ? null : c.id)}>
+              {c.label}
+            </button>
+          ))}
+        </div>
+      )}
+      {!q.trim() && cat && (
+        <div className="list">
+          {[...(data.myFoods || []), ...FOODS].filter((f) => f.cat === cat).map((f) => (
+            <FoodLine key={f.id} f={f} onClick={() => pick(f)} />
+          ))}
+        </div>
+      )}
+      {!q.trim() && !cat && recents.length > 0 && (
         <>
           <h4>Recientes</h4>
           <div className="list">
