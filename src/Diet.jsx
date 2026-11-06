@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { FOODS, MEALS, CATS } from './data/foods'
+import { ProteinTip } from './Extras'
 import { addDays, dayTotals, macros, todayStr, uid, num, parseDate } from './store'
 import { Bar, Modal, Ring } from './ui'
 import Icon from './icons'
@@ -670,6 +671,22 @@ export default function Diet({ data, setData }) {
 
   const remove = (id) =>
     setData((d) => ({ ...d, food: { ...d.food, [date]: (d.food[date] || []).filter((e) => e.id !== id) } }))
+  const [favs, setFavs] = useState(false)
+  const kcalOf = (items) => Math.round(items.reduce((n, e) => n + macros(e).kcal, 0))
+  // copia comidas (de ayer o favoritas) al día y comida que estás viendo
+  const copyIn = (items, meal) =>
+    setData((d) => ({
+      ...d,
+      food: { ...d.food, [date]: [...(d.food[date] || []), ...items.map(({ id, meal: _m, ...e }) => ({ ...e, id: uid(), meal }))] },
+    }))
+  const saveFav = (meal, items) => {
+    const name = prompt('Nombre para esta comida favorita', `${meal} de siempre`)
+    if (!name?.trim()) return
+    setData((d) => ({
+      ...d,
+      favMeals: [...(d.favMeals || []), { id: uid(), name: name.trim(), meal, items: items.map(({ id, ...e }) => e) }],
+    }))
+  }
 
   return (
     <div className="page">
@@ -722,8 +739,12 @@ export default function Diet({ data, setData }) {
         </div>
       </div>
 
+      {date === todayStr() && <ProteinTip data={data} setData={setData} />}
+
       {MEALS.map((m) => {
         const list = entries.filter((e) => e.meal === m)
+        const yday = (data.food[addDays(date, -1)] || []).filter((e) => e.meal === m)
+        const favList = [...(data.favMeals || [])].sort((a, b) => (b.meal === m) - (a.meal === m)).slice(0, 4)
         const mk = list.reduce((s, e) => s + macros(e).kcal, 0)
         return (
           <div className="card" key={m}>
@@ -751,9 +772,55 @@ export default function Diet({ data, setData }) {
                 </div>
               )
             })}
+            {list.length === 0 && (yday.length > 0 || favList.length > 0) && (
+              <div className="chips wrap meal-quick">
+                {yday.length > 0 && (
+                  <button className="chip" onClick={() => copyIn(yday, m)}>
+                    ↺ Repetir de ayer · {kcalOf(yday)} kcal
+                  </button>
+                )}
+                {favList.map((f) => (
+                  <button className="chip" key={f.id} onClick={() => copyIn(f.items, m)}>
+                    ★ {f.name} · {kcalOf(f.items)} kcal
+                  </button>
+                ))}
+              </div>
+            )}
+            {list.length > 0 && (
+              <button className="link small fav-save" onClick={() => saveFav(m, list)}>
+                ☆ Guardar como favorita
+              </button>
+            )}
           </div>
         )
       })}
+      {(data.favMeals || []).length > 0 && (
+        <button className="link small" onClick={() => setFavs(true)}>
+          Gestionar comidas favoritas ({data.favMeals.length})
+        </button>
+      )}
+      {favs && (
+        <Modal title="Comidas favoritas" onClose={() => setFavs(false)}>
+          {(data.favMeals || []).length === 0 && <p className="muted">No tienes favoritas.</p>}
+          {(data.favMeals || []).map((f) => (
+            <div className="row nob li" key={f.id}>
+              <div className="grow">
+                <div className="li-t">★ {f.name}</div>
+                <div className="muted small">
+                  {f.items.map((e) => e.name.replace(/ \(.*\)/, '')).join(', ')} · {kcalOf(f.items)} kcal
+                </div>
+              </div>
+              <button
+                className="icon-btn"
+                aria-label="Borrar favorita"
+                onClick={() => confirm(`¿Borrar "${f.name}"?`) && setData((d) => ({ ...d, favMeals: d.favMeals.filter((x) => x.id !== f.id) }))}
+              >
+                <Icon name="trash" size={16} />
+              </button>
+            </div>
+          ))}
+        </Modal>
+      )}
       {adding && <AddFood data={data} setData={setData} date={date} meal={adding} onClose={() => setAdding(null)} />}
     </div>
   )

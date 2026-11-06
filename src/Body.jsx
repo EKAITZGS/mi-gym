@@ -1,0 +1,220 @@
+import { useEffect, useRef, useState } from 'react'
+import { Modal, LineChart } from './ui'
+import Icon from './icons'
+import { todayStr, uid, num, fmtKg, addDays, fmtDate } from './store'
+import { savePhoto, loadPhoto, deletePhoto, compressImage } from './photos'
+
+const fmtD = (s) => `${s.slice(8)}/${s.slice(5, 7)}`
+const daysSince = (s) => (s ? Math.round((Date.parse(todayStr()) - Date.parse(s)) / 864e5) : Infinity)
+
+function Photo({ id, className, onClick }) {
+  const [src, setSrc] = useState(null)
+  useEffect(() => {
+    let alive = true
+    loadPhoto(id)
+      .then((d) => alive && setSrc(d || null))
+      .catch(() => {})
+    return () => {
+      alive = false
+    }
+  }, [id])
+  return src ? <img src={src} alt="" className={className} onClick={onClick} /> : <div className={className + ' ph-empty'} />
+}
+
+function WaistModal({ data, setData, onClose }) {
+  const waist = data.body?.waist || []
+  const last = waist[waist.length - 1]
+  const [cm, setCm] = useState(last ? String(last.cm).replace('.', ',') : '')
+  const save = () => {
+    const v = num(cm)
+    if (v < 40 || v > 200) return
+    const d = todayStr()
+    setData((x) => {
+      const w = (x.body?.waist || []).filter((e) => e.date !== d)
+      return { ...x, body: { ...(x.body || {}), waist: [...w, { date: d, cm: v }].sort((a, b) => a.date.localeCompare(b.date)) } }
+    })
+    onClose()
+  }
+  return (
+    <Modal title="Medir cintura" onClose={onClose}>
+      <p className="muted small">
+        Una vez por semana, el mismo día y por la mañana antes de desayunar. Cinta a la altura del ombligo, de pie, relajado y sin apretar.
+      </p>
+      <label className="lbl">Cintura (cm)</label>
+      <input className="inp" inputMode="decimal" value={cm} onChange={(e) => setCm(e.target.value)} placeholder="Ej. 92" autoFocus />
+      <button className="btn primary full" disabled={!(num(cm) >= 40 && num(cm) <= 200)} onClick={save}>
+        Guardar
+      </button>
+      {waist.length > 0 && (
+        <>
+          <h4>Historial</h4>
+          {[...waist].reverse().slice(0, 8).map((e) => (
+            <div className="row nob li" key={e.date}>
+              <span className="grow">{fmtD(e.date)}</span>
+              <b>{fmtKg(e.cm)} cm</b>
+              <button
+                className="icon-btn ghost"
+                aria-label="Borrar medida"
+                onClick={() =>
+                  setData((x) => ({ ...x, body: { ...x.body, waist: (x.body?.waist || []).filter((w) => w.date !== e.date) } }))
+                }
+              >
+                <Icon name="x" size={14} />
+              </button>
+            </div>
+          ))}
+        </>
+      )}
+    </Modal>
+  )
+}
+
+function PhotosModal({ data, setData, onClose }) {
+  const photos = data.body?.photos || []
+  const fileRef = useRef()
+  const galRef = useRef()
+  const [busy, setBusy] = useState(false)
+  const [view, setView] = useState(null)
+  // Cámara o galería (varias a la vez). De la galería se usa la fecha de la foto si es anterior a hoy.
+  const add = async (e) => {
+    const files = [...(e.target.files || [])]
+    e.target.value = ''
+    if (!files.length) return
+    setBusy(true)
+    const added = []
+    for (const f of files) {
+      try {
+        const url = await compressImage(f)
+        const id = uid()
+        await savePhoto(id, url)
+        const taken = f.lastModified ? fmtDate(new Date(f.lastModified)) : todayStr()
+        added.push({ id, date: taken < todayStr() ? taken : todayStr() })
+      } catch {}
+    }
+    if (added.length < files.length) alert('Alguna foto no se pudo guardar.')
+    setData((x) => ({
+      ...x,
+      body: { ...(x.body || {}), photos: [...(x.body?.photos || []), ...added].sort((a, b) => a.date.localeCompare(b.date)) },
+    }))
+    setBusy(false)
+  }
+  const del = async (p) => {
+    if (!confirm('¿Borrar esta foto?')) return
+    await deletePhoto(p.id).catch(() => {})
+    setData((x) => ({ ...x, body: { ...x.body, photos: (x.body?.photos || []).filter((y) => y.id !== p.id) } }))
+    setView(null)
+  }
+  const first = photos[0]
+  const last = photos[photos.length - 1]
+  return (
+    <Modal title="Fotos de progreso" onClose={onClose}>
+      <p className="muted small">
+        Una al mes: misma luz, mismo sitio, de frente y de perfil. Se guardan solo en este móvil y no salen en ningún sitio.
+      </p>
+      <input type="file" accept="image/*" capture="user" ref={fileRef} onChange={add} hidden />
+      <input type="file" accept="image/*" multiple ref={galRef} onChange={add} hidden />
+      <div className="btns">
+        <button className="btn primary" disabled={busy} onClick={() => fileRef.current?.click()}>
+          <Icon name="camera" size={16} /> {busy ? 'Guardando…' : 'Hacer foto'}
+        </button>
+        <button className="btn" disabled={busy} onClick={() => galRef.current?.click()}>
+          <Icon name="plus" size={16} /> De la galería
+        </button>
+      </div>
+      {photos.length >= 2 && (
+        <>
+          <h4>Antes y ahora</h4>
+          <div className="ph-compare">
+            <figure>
+              <Photo id={first.id} className="ph-img" />
+              <figcaption>{fmtD(first.date)}</figcaption>
+            </figure>
+            <figure>
+              <Photo id={last.id} className="ph-img" />
+              <figcaption>{fmtD(last.date)}</figcaption>
+            </figure>
+          </div>
+        </>
+      )}
+      {photos.length > 0 && (
+        <>
+          <h4>Todas</h4>
+          <div className="ph-grid">
+            {[...photos].reverse().map((p) => (
+              <figure key={p.id}>
+                <Photo id={p.id} className="ph-img sm" onClick={() => setView(p)} />
+                <figcaption>{fmtD(p.date)}</figcaption>
+              </figure>
+            ))}
+          </div>
+        </>
+      )}
+      {view && (
+        <div className="ph-full" onClick={() => setView(null)}>
+          <Photo id={view.id} className="ph-big" />
+          <div className="ph-full-bar" onClick={(e) => e.stopPropagation()}>
+            <span>{fmtD(view.date)}</span>
+            <button className="btn danger" onClick={() => del(view)}>
+              Borrar
+            </button>
+            <button className="btn" onClick={() => setView(null)}>
+              Cerrar
+            </button>
+          </div>
+        </div>
+      )}
+    </Modal>
+  )
+}
+
+export default function BodyCard({ data, setData }) {
+  const [modal, setModal] = useState(null)
+  const waist = data.body?.waist || []
+  const photos = data.body?.photos || []
+  const last = waist[waist.length - 1]
+  const first = waist[0]
+  const diff = last && first && last.date !== first.date ? Math.round((last.cm - first.cm) * 10) / 10 : null
+  const dueW = daysSince(last?.date) >= 7
+  const dueP = daysSince(photos[photos.length - 1]?.date) >= 28
+  const recent = waist.filter((w) => w.date >= addDays(todayStr(), -120))
+  return (
+    <div className="card body-card">
+      <div className="sec-head nm">
+        <b>Tu cuerpo</b>
+        <span className="muted small">sin báscula</span>
+      </div>
+      <div className="body-row">
+        <div className="grow">
+          {last ? (
+            <>
+              <div className="body-num">
+                {fmtKg(last.cm)} <span>cm de cintura</span>
+              </div>
+              {diff != null && (
+                <div className={'delta ' + (diff <= 0 ? 'up' : 'down')}>
+                  {diff > 0 ? '+' : ''}
+                  {fmtKg(diff)} cm desde el {fmtD(first.date)}
+                </div>
+              )}
+            </>
+          ) : (
+            <p className="muted small" style={{ margin: 0 }}>
+              Mide tu cintura una vez por semana: si baja, estás perdiendo grasa aunque la báscula no se mueva.
+            </p>
+          )}
+        </div>
+      </div>
+      {recent.length >= 2 && <LineChart points={recent.map((w) => ({ label: w.date, v: w.cm }))} unit="cm" />}
+      <div className="btns">
+        <button className={'btn' + (dueW ? ' primary' : '')} onClick={() => setModal('waist')}>
+          <Icon name="edit" size={15} /> {dueW ? 'Toca medir' : 'Cintura'}
+        </button>
+        <button className={'btn' + (dueP ? ' primary' : '')} onClick={() => setModal('photos')}>
+          <Icon name="camera" size={15} /> {dueP ? 'Toca foto' : `Fotos (${photos.length})`}
+        </button>
+      </div>
+      {modal === 'waist' && <WaistModal data={data} setData={setData} onClose={() => setModal(null)} />}
+      {modal === 'photos' && <PhotosModal data={data} setData={setData} onClose={() => setModal(null)} />}
+    </div>
+  )
+}
