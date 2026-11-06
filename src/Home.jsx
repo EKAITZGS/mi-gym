@@ -58,7 +58,7 @@ export default function Home({ data, setData, onStart, go }) {
       <div className="eyebrow cap">{dateTxt}</div>
       <h1 className="title">{greeting()}</h1>
 
-      {!data.setupDone && (
+      {!data.setupDone && data.sessions.length === 0 && (
         <div className="card onboard">
           <b>Antes de nada: configura tu entrenamiento</b>
           <p className="muted small">Dime qué días entrenas y qué haces cada día, o deja que te haga un plan según tu nivel.</p>
@@ -88,6 +88,32 @@ export default function Home({ data, setData, onStart, go }) {
 
       {todays.map((d) => {
         const cover = EX_BY_ID[d.items[0]?.ex]
+        const doneToday = data.active?.dayId !== d.id && data.sessions.filter((x) => x.date === todayStr() && x.dayId === d.id).pop()
+        if (doneToday) {
+          const sets = Object.values(doneToday.entries || {}).reduce((n, ss) => n + ss.length, 0)
+          const nEx = Object.keys(doneToday.entries || {}).length
+          const watch = polarExercisesOn(data, todayStr()).pop()
+          return (
+            <div className="hero done" key={d.id}>
+              {cover?.imgs?.[0] && <img src={cover.imgs[0]} alt="" />}
+              <div className="hero-shade" />
+              <div className="hero-txt">
+                <span className="daypill ok">
+                  <Icon name="check" size={13} /> Hecho hoy
+                </span>
+                <h2>{d.name}</h2>
+                <p className="hero-sum">
+                  {nEx} {nEx === 1 ? 'ejercicio' : 'ejercicios'} · {sets} series
+                  {watch ? ` · ${watch.min} min · ${watch.kcal} kcal` : ''}
+                </p>
+                <p className="small hero-note">¡Buen trabajo! Ahora toca comer bien y descansar.</p>
+                <button className="link small hero-again" onClick={() => onStart(d.id)}>
+                  Entrenar otra vez hoy
+                </button>
+              </div>
+            </div>
+          )
+        }
         return (
           <div className="hero" key={d.id}>
             {cover?.imgs?.[0] && <img src={cover.imgs[0]} alt="" />}

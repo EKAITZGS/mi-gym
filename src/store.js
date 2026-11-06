@@ -181,7 +181,10 @@ export function suggestion(sessions, exId, repsTarget, setsPlanned, equip) {
   const sets = ses.entries[exId].filter((x) => num(x.w) > 0 && num(x.r) > 0)
   if (!sets.length) return null
   const from = Math.min(...sets.map((x) => num(x.w)))
-  const inc = equip === 'Mancuernas' ? (from >= 20 ? 2 : 1) : equip === 'Polea' || equip === 'Máquina' ? 2.5 : 2.5
+  // Salto de peso: en polea/máquina el escalón de la pila; en pesos libres nunca más de ~12 % (7 kg → 8 kg, no 9,5)
+  const base = equip === 'Mancuernas' ? (from >= 20 ? 2 : 1) : 2.5
+  const inc =
+    equip === 'Polea' || equip === 'Máquina' ? 2.5 : Math.min(base, Math.max(1, Math.round(from * 0.12 * 2) / 2))
   const up = (reps, why) => ({ w: Math.round((from + inc) * 100) / 100, reps, from, inc, why, action: 'up' })
   const minReps = Math.min(...sets.map((x) => num(x.r)))
   if (!m) {
