@@ -1676,3 +1676,11 @@ body.modal-open .savebar { display: none; }
 .meal-quick .chip { font-size: 13px; }
 .fav-save { padding-left: 0; color: var(--muted); margin-top: 4px; }
 .steps .steps-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+
+/* ---- Avisos ---- */
+.push-opt { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); }
+.push-opt:first-child { border-top: 0; padding-top: 0; }
+.push-opt .chk-l { display: flex; align-items: flex-start; gap: 10px; font-size: 14px; color: var(--text); }
+.push-opt .chk-l input { margin-top: 2px; flex-shrink: 0; }
+.push-opt .inp.time { width: 104px; margin: 0; padding: 8px 10px; flex-shrink: 0; text-align: center; }
+.push-next { background: var(--card2); border-radius: 12px; padding: 10px 12px; margin: 8px 0 4px; display: grid; gap: 4px; }

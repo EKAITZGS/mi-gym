@@ -7,6 +7,7 @@ import Diet from './Diet'
 import Settings from './Settings'
 import Icon from './icons'
 import { readPolarReturn, getPolar, syncPolar } from './polar'
+import { syncPush } from './push'
 
 const TABS = [
   { id: 'home', label: 'Hoy', icon: 'home' },
@@ -58,6 +59,11 @@ export default function App() {
     return () => document.removeEventListener('visibilitychange', onVis)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+  // Avisos: cuando cambian tus datos, se recalcula la lista de avisos programados (con un pequeño retraso)
+  useEffect(() => {
+    const t = setTimeout(() => syncPush(data).catch(() => {}), 3000)
+    return () => clearTimeout(t)
+  }, [data.food, data.sessions, data.plan, data.body, data.pushPrefs, data.polar, data.goals])
   useEffect(() => {
     if (!notice) return
     const t = setTimeout(() => setNotice(null), 5000)
