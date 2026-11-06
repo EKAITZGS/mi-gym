@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { FOODS, MEALS, CATS } from './data/foods'
 import { ProteinTip } from './Extras'
+import DayPlanModal from './DayPlan'
 import { addDays, dayTotals, macros, todayStr, uid, num, parseDate } from './store'
 import { Bar, Modal, Ring } from './ui'
 import Icon from './icons'
@@ -672,6 +673,7 @@ export default function Diet({ data, setData }) {
   const remove = (id) =>
     setData((d) => ({ ...d, food: { ...d.food, [date]: (d.food[date] || []).filter((e) => e.id !== id) } }))
   const [favs, setFavs] = useState(false)
+  const [dayPlan, setDayPlan] = useState(false)
   const kcalOf = (items) => Math.round(items.reduce((n, e) => n + macros(e).kcal, 0))
   // copia comidas (de ayer o favoritas) al día y comida que estás viendo
   const copyIn = (items, meal) =>
@@ -740,6 +742,10 @@ export default function Diet({ data, setData }) {
       </div>
 
       {date === todayStr() && <ProteinTip data={data} setData={setData} />}
+      <button className="btn full dp-btn" onClick={() => setDayPlan(true)}>
+        <Icon name="sparkle" size={16} /> Día tipo sugerido
+      </button>
+      {dayPlan && <DayPlanModal data={data} setData={setData} onClose={() => setDayPlan(false)} />}
 
       {MEALS.map((m) => {
         const list = entries.filter((e) => e.meal === m)
