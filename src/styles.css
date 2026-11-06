@@ -1416,3 +1416,5 @@ textarea.inp {
 body.modal-open .tabbar { visibility: hidden; pointer-events: none; }
 .two.labeled label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); font-weight: 600; }
 .two.labeled { row-gap: 10px; }
+
+.quick-actions.two-col { grid-template-columns: 1fr 1fr; }

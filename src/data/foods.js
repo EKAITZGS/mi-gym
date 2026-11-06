@@ -47,6 +47,7 @@ export const FOODS = [
   { id: 'f-agua', cat: 'bebida', name: 'Agua', kcal: 0, p: 0, c: 0, f: 0, s: 0, sf: 0, unitG: 500, unitName: 'botella' },
   { id: 'f-cafeina', cat: 'bebida', name: 'Café solo', kcal: 2, p: 0.1, c: 0, f: 0, s: 0, sf: 0, unitG: 60, unitName: 'taza' },
   { id: 'f-cafeleche', cat: 'bebida', name: 'Café con leche (sin azúcar)', kcal: 33, p: 2.3, c: 3.2, f: 1.1, s: 3.2, sf: 0.7, natural: true, unitG: 200, unitName: 'taza' },
+  { id: 'f-colacao-energy', cat: 'bebida', name: 'ColaCao Energy (botella)', kcal: 65, p: 3.3, c: 11, f: 0.8, s: 11, sf: 0.6, unitG: 188, unitName: 'botella (188 ml)' },
   { id: 'f-colacao', cat: 'bebida', name: 'Cacao soluble con leche', kcal: 75, p: 3.3, c: 11, f: 1.8, s: 10, sf: 1.1, unitG: 250, unitName: 'vaso' },
   { id: 'f-cocacola', cat: 'bebida', name: 'Coca-Cola (aprox.)', kcal: 42, p: 0, c: 10.6, f: 0, s: 10.6, sf: 0, unitG: 330, unitName: 'lata' },
   { id: 'f-cocazero', cat: 'bebida', name: 'Coca-Cola Zero (aprox.)', kcal: 0.3, p: 0, c: 0, f: 0, s: 0, sf: 0, unitG: 330, unitName: 'lata' },

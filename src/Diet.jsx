@@ -19,45 +19,79 @@ function dateLabel(s) {
 }
 
 
-// Lee códigos de barras con la cámara (ZXing se carga solo al abrir el escáner)
+// Cámara compartida: en las apps de pantalla de inicio de iOS el permiso no se recuerda,
+// así que mantenemos la cámara abierta un rato para no volver a pedirlo en cada escaneo.
+const cam = { stream: null, timer: null }
+async function getCam() {
+  clearTimeout(cam.timer)
+  if (cam.stream && cam.stream.getVideoTracks().some((t) => t.readyState === 'live')) return cam.stream
+  cam.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false })
+  return cam.stream
+}
+function releaseCamSoon() {
+  clearTimeout(cam.timer)
+  cam.timer = setTimeout(() => {
+    cam.stream?.getTracks().forEach((t) => t.stop())
+    cam.stream = null
+  }, 3 * 60 * 1000)
+}
+
+async function makeReader() {
+  const { BrowserMultiFormatReader } = await import('@zxing/browser')
+  const { DecodeHintType, BarcodeFormat } = await import('@zxing/library')
+  const hints = new Map()
+  hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.EAN_13, BarcodeFormat.EAN_8, BarcodeFormat.UPC_A, BarcodeFormat.UPC_E])
+  hints.set(DecodeHintType.TRY_HARDER, true)
+  return new BrowserMultiFormatReader(hints)
+}
+
+// Lee el código de barras de una foto (cámara normal del iPhone, sin pedir permiso)
+export async function decodeBarcodeFile(file) {
+  const reader = await makeReader()
+  const url = URL.createObjectURL(file)
+  try {
+    const r = await reader.decodeFromImageUrl(url)
+    return r.getText()
+  } catch {
+    return null
+  } finally {
+    URL.revokeObjectURL(url)
+  }
+}
+
 function Scanner({ onCode }) {
   const videoRef = useRef(null)
   const [err, setErr] = useState('')
   useEffect(() => {
     let controls = null
     let stopped = false
+    const v = videoRef.current
     ;(async () => {
       try {
-        const { BrowserMultiFormatReader } = await import('@zxing/browser')
-        const { DecodeHintType, BarcodeFormat } = await import('@zxing/library')
-        const hints = new Map()
-        hints.set(DecodeHintType.POSSIBLE_FORMATS, [
-          BarcodeFormat.EAN_13,
-          BarcodeFormat.EAN_8,
-          BarcodeFormat.UPC_A,
-          BarcodeFormat.UPC_E,
-        ])
-        const reader = new BrowserMultiFormatReader(hints)
-        const c = await reader.decodeFromConstraints(
-          { video: { facingMode: { ideal: 'environment' } } },
-          videoRef.current,
-          (result) => {
-            if (result && !stopped) {
-              stopped = true
-              controls?.stop()
-              onCode(result.getText())
-            }
+        const reader = await makeReader()
+        const stream = await getCam()
+        if (stopped) return
+        v.srcObject = stream
+        v.setAttribute('playsinline', 'true')
+        v.muted = true
+        await v.play().catch(() => {})
+        controls = reader.scan(v, (result) => {
+          if (result && !stopped) {
+            stopped = true
+            controls?.stop()
+            onCode(result.getText())
           }
-        )
-        controls = c
-        if (stopped) c.stop()
+        })
+        if (stopped) controls.stop()
       } catch {
-        setErr('No se pudo abrir la cámara. Revisa el permiso del navegador o escribe el número debajo.')
+        setErr('No se pudo abrir la cámara. Usa "Foto al código" o escribe el número debajo.')
       }
     })()
     return () => {
       stopped = true
       controls?.stop()
+      if (v) v.srcObject = null
+      releaseCamSoon()
     }
   }, [])
   return (
@@ -125,6 +159,33 @@ function AddFood({ data, setData, date, meal, onClose }) {
   const labelRef = useRef(null)
   const [nc, setNc] = useState(null) // producto nuevo por código: {code, name, kcal, p, c, f, s, sf, unitG}
   const [lbl, setLbl] = useState({ loading: false, err: '' })
+  const codePhotoRef = useRef(null)
+  const emptyNc = (code = '', name = '', found = false) => ({ code, name, kcal: '', p: '', c: '', f: '', s: '', sf: '', unitG: '', found })
+  const onLabel = async (e) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setStep('newcode')
+    setNc((x) => x || emptyNc())
+    setLbl({ loading: true, err: '' })
+    try {
+      const v = await analyzeLabel(file)
+      setNc((x) => ({ ...(x || emptyNc()), ...Object.fromEntries(Object.entries(v).filter(([, val]) => val !== '')) }))
+      setLbl({ loading: false, err: '', ok: true })
+    } catch (err) {
+      setLbl({ loading: false, err: err.message === 'NO_KEY' ? 'Para leer la tabla con la cámara necesitas la clave de Groq (Ajustes). Puedes escribir los datos a mano.' : err.message })
+    }
+  }
+  const onCodePhoto = async (e) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setScan({ loading: true, msg: '' })
+    const c = await decodeBarcodeFile(file)
+    if (c) lookupCode(c)
+    else setScan({ loading: false, msg: 'No he encontrado un código de barras en la foto. Prueba más cerca, recto y con luz, o escribe el número.' })
+  }
+  const labelInput = <input type="file" accept="image/*" capture="environment" ref={labelRef} onChange={onLabel} hidden />
   const [photo, setPhoto] = useState({ loading: false, err: '' })
   const [rv, setRv] = useState({ name: '', kcal: '', p: '', c: '', f: '', conf: '' })
 
@@ -206,7 +267,7 @@ function AddFood({ data, setData, date, meal, onClose }) {
       if (j.status !== 1 || !n || n['energy-kcal_100g'] == null) {
         const nm = j.product?.product_name ? j.product.product_name + (j.product.brands ? ` (${j.product.brands.split(',')[0].trim()})` : '') : ''
         setScan({ loading: false, msg: '' })
-        setNc({ code: c, name: nm, kcal: '', p: '', c: '', f: '', s: '', sf: '', unitG: '', found: !!nm })
+        setNc(emptyNc(c, nm, !!nm))
         return setStep('newcode')
       }
       const sq = Number(j.product.serving_quantity)
@@ -379,24 +440,13 @@ function AddFood({ data, setData, date, meal, onClose }) {
 
   if (step === 'newcode' && nc) {
     const set = (k) => (e) => setNc({ ...nc, [k]: e.target.value })
-    const onLabel = async (e) => {
-      const file = e.target.files?.[0]
-      e.target.value = ''
-      if (!file) return
-      setLbl({ loading: true, err: '' })
-      try {
-        const v = await analyzeLabel(file)
-        setNc((x) => ({ ...x, ...Object.fromEntries(Object.entries(v).filter(([, val]) => val !== '')) }))
-        setLbl({ loading: false, err: '', ok: true })
-      } catch (err) {
-        setLbl({ loading: false, err: err.message === 'NO_KEY' ? 'Para leer la tabla con la cámara necesitas la clave de Groq (Ajustes). Puedes escribir los datos a mano.' : err.message })
-      }
-    }
     const ok = nc.name.trim() && nc.kcal !== '' && num(nc.kcal) >= 0
     const save = () => {
+      const code = nc.code || (nc.code2 && nc.code2.length >= 8 ? nc.code2 : '')
+      nc.code = code
       const f = {
-        id: 'bc-' + nc.code,
-        barcode: nc.code,
+        id: nc.code ? 'bc-' + nc.code : 'm-' + uid(),
+        ...(nc.code ? { barcode: nc.code } : {}),
         name: nc.name.trim(),
         kcal: num(nc.kcal),
         p: num(nc.p),
@@ -406,18 +456,22 @@ function AddFood({ data, setData, date, meal, onClose }) {
         ...(nc.sf !== '' ? { sf: num(nc.sf) } : {}),
         ...(num(nc.unitG) > 0 ? { unitG: num(nc.unitG), unitName: 'ración' } : {}),
       }
-      setData((d) => ({ ...d, myFoods: [...(d.myFoods || []).filter((x) => x.barcode !== nc.code), f] }))
+      setData((d) => ({ ...d, myFoods: [...(d.myFoods || []).filter((x) => !nc.code || x.barcode !== nc.code), f] }))
       pick(f)
     }
     return (
-      <Modal title="Producto nuevo" onClose={onClose}>
-        <input type="file" accept="image/*" capture="environment" ref={labelRef} onChange={onLabel} hidden />
-        <div className="advice yellow sm" style={{ marginTop: 0 }}>
-          {nc.found
-            ? `El código ${nc.code} existe pero no tiene datos nutricionales.`
-            : `No conozco el código ${nc.code}.`}{' '}
-          Créalo una vez y la próxima vez que lo escanees te saldrá directamente.
-        </div>
+      <Modal title={nc.code ? 'Producto nuevo' : 'Crear producto'} onClose={onClose}>
+        {labelInput}
+        {nc.code ? (
+          <div className="advice yellow sm" style={{ marginTop: 0 }}>
+            {nc.found ? `El código ${nc.code} existe pero no tiene datos nutricionales.` : `No conozco el código ${nc.code}.`}{' '}
+            Créalo una vez y la próxima vez que lo escanees te saldrá directamente.
+          </div>
+        ) : (
+          <p className="muted small" style={{ marginTop: 0 }}>
+            Haz una foto a la tabla nutricional del envase y relleno los datos, o escríbelos tú.
+          </p>
+        )}
         <button className="btn primary full" disabled={lbl.loading} onClick={() => labelRef.current?.click()}>
           <Icon name="camera" size={18} /> {lbl.loading ? 'Leyendo la tabla…' : 'Foto de la tabla nutricional (IA)'}
         </button>
@@ -438,8 +492,14 @@ function AddFood({ data, setData, date, meal, onClose }) {
         <button className="btn primary full" disabled={!ok} onClick={save}>
           <Icon name="check" size={18} /> Guardar producto y poner cantidad
         </button>
-        <button className="link" onClick={() => setStep('scan')}>
-          <Icon name="left" size={18} /> Volver al escáner
+        {!nc.code && (
+          <>
+            <label className="lbl">Código de barras (opcional, para escanearlo luego)</label>
+            <input className="inp" inputMode="numeric" value={nc.code2 || ''} onChange={(e) => setNc({ ...nc, code2: e.target.value.replace(/\D/g, '') })} />
+          </>
+        )}
+        <button className="link" onClick={() => setStep(nc.code ? 'scan' : 'search')}>
+          <Icon name="left" size={18} /> Volver
         </button>
       </Modal>
     )
@@ -456,6 +516,10 @@ function AddFood({ data, setData, date, meal, onClose }) {
             {scan.msg && <p className="toast warn">{scan.msg}</p>}
           </>
         )}
+        <input type="file" accept="image/*" capture="environment" ref={codePhotoRef} onChange={onCodePhoto} hidden />
+        <button className="btn full" onClick={() => codePhotoRef.current?.click()}>
+          <Icon name="camera" size={18} /> Foto al código (sin permisos)
+        </button>
         <label className="lbl">O escribe el número del código</label>
         <div className="qty">
           <input className="inp" inputMode="numeric" placeholder="8410000000000" value={code} onChange={(e) => setCode(e.target.value)} />
@@ -463,9 +527,6 @@ function AddFood({ data, setData, date, meal, onClose }) {
             Buscar
           </button>
         </div>
-        <button className="btn full" onClick={() => setStep('manual')}>
-          Crear alimento propio
-        </button>
         <button className="link" onClick={() => setStep('search')}>
           <Icon name="left" size={18} /> Volver
         </button>
@@ -475,7 +536,19 @@ function AddFood({ data, setData, date, meal, onClose }) {
 
   if (step === 'manual') {
     return (
-      <Modal title="Alimento propio" onClose={onClose}>
+      <Modal title="Crear o añadir rápido" onClose={onClose}>
+        {labelInput}
+        <h4 style={{ marginTop: 0 }}>Crear un producto</h4>
+        <div className="quick-actions two-col">
+          <button className="qa primary" onClick={() => { setNc(emptyNc()); setLbl({ loading: false, err: '' }); labelRef.current?.click() }}>
+            <Icon name="camera" size={24} />
+            <span>Foto de la tabla nutricional</span>
+          </button>
+          <button className="qa" onClick={() => { setNc(emptyNc()); setLbl({ loading: false, err: '' }); setStep('newcode') }}>
+            <Icon name="edit" size={22} />
+            <span>Escribir los datos</span>
+          </button>
+        </div>
         <h4>Añadir rápido (solo calorías)</h4>
         <input className="inp" placeholder="Nombre (opcional)" value={quick.name} onChange={(e) => setQuick({ ...quick, name: e.target.value })} />
         <div className="two">
@@ -498,27 +571,6 @@ function AddFood({ data, setData, date, meal, onClose }) {
           }
         >
           Añadir
-        </button>
-        <h4>Crear alimento (valores por 100 g)</h4>
-        <input className="inp" placeholder="Nombre" value={nf.name} onChange={(e) => setNf({ ...nf, name: e.target.value })} />
-        <div className="two">
-          <input className="inp" inputMode="decimal" placeholder="kcal" value={nf.kcal} onChange={(e) => setNf({ ...nf, kcal: e.target.value })} />
-          <input className="inp" inputMode="decimal" placeholder="proteína" value={nf.p} onChange={(e) => setNf({ ...nf, p: e.target.value })} />
-          <input className="inp" inputMode="decimal" placeholder="hidratos" value={nf.c} onChange={(e) => setNf({ ...nf, c: e.target.value })} />
-          <input className="inp" inputMode="decimal" placeholder="grasa" value={nf.f} onChange={(e) => setNf({ ...nf, f: e.target.value })} />
-          <input className="inp" inputMode="decimal" placeholder="azúcares (opc.)" value={nf.s} onChange={(e) => setNf({ ...nf, s: e.target.value })} />
-          <input className="inp" inputMode="decimal" placeholder="saturadas (opc.)" value={nf.sf} onChange={(e) => setNf({ ...nf, sf: e.target.value })} />
-        </div>
-        <button
-          className="btn primary full"
-          disabled={!nf.name.trim() || num(nf.kcal) <= 0}
-          onClick={() => {
-            const f = { id: 'm-' + uid(), name: nf.name.trim(), kcal: num(nf.kcal), p: num(nf.p), c: num(nf.c), f: num(nf.f), ...(nf.s !== '' ? { s: num(nf.s) } : {}), ...(nf.sf !== '' ? { sf: num(nf.sf) } : {}) }
-            setData((d) => ({ ...d, myFoods: [...(d.myFoods || []), f] }))
-            pick(f)
-          }}
-        >
-          Guardar y elegir cantidad
         </button>
         <button className="link" onClick={() => setStep('search')}>
           <Icon name="left" size={18} /> Volver
