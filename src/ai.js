@@ -103,3 +103,42 @@ export async function analyzeFood(file) {
   if (out.kcal <= 0) throw new Error('No he reconocido comida en la foto, prueba otra')
   return out
 }
+
+const LABEL_PROMPT = `Esta foto es la tabla de información nutricional de un producto envasado.
+Lee los valores POR 100 g (o por 100 ml). Si solo aparece por ración, conviértelos a 100 g usando el tamaño de la ración.
+Responde SOLO con JSON: {"kcal": numero, "proteina": numero, "hidratos": numero, "azucares": numero, "grasa": numero, "saturadas": numero, "racion_g": numero o null}
+Si no ves una tabla nutricional, pon kcal en -1.`
+
+export async function analyzeLabel(file) {
+  const { key, model } = getAi()
+  if (!key) throw new Error('NO_KEY')
+  const dataUri = await resizeImage(file, 1280)
+  let res
+  try {
+    res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: 'user', content: [{ type: 'text', text: LABEL_PROMPT }, { type: 'image_url', image_url: { url: dataUri } }] }],
+        response_format: { type: 'json_object' },
+        temperature: 0,
+        max_completion_tokens: 400,
+      }),
+    })
+  } catch {
+    throw new Error('No se pudo conectar con Groq (¿sin conexión?)')
+  }
+  if (!res.ok) throw new Error(res.status === 401 ? 'La clave de Groq no es válida' : res.status === 429 ? 'Has llegado al límite de Groq. Prueba más tarde' : `Error de Groq (${res.status})`)
+  const j = await res.json()
+  const txt = (j.choices?.[0]?.message?.content || '').replace(/<think>[\s\S]*?<\/think>/g, '')
+  let o
+  try {
+    o = JSON.parse(txt.match(/\{[\s\S]*\}/)?.[0] || txt)
+  } catch {
+    throw new Error('No pude leer la tabla, prueba con otra foto más cerca y con luz')
+  }
+  if (!(Number(o.kcal) >= 0)) throw new Error('No veo una tabla nutricional en la foto')
+  const n = (v) => (v == null || v === '' || isNaN(Number(v)) ? '' : String(Math.round(Number(v) * 10) / 10))
+  return { kcal: n(o.kcal), p: n(o.proteina), c: n(o.hidratos), s: n(o.azucares), f: n(o.grasa), sf: n(o.saturadas), unitG: n(o.racion_g) }
+}

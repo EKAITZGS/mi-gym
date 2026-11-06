@@ -163,17 +163,37 @@ export function exStats(sessions, exId) {
 }
 
 // Doble progresión: si la última vez llegaste al tope de reps en todas las series, sube peso.
+// Última sesión con este ejercicio (con su check-in)
+export function lastSession(sessions, exId) {
+  for (let i = sessions.length - 1; i >= 0; i--) {
+    const sets = sessions[i].entries?.[exId]
+    if (sets && sets.some((x) => num(x.w) > 0 && num(x.r) > 0)) return sessions[i]
+  }
+  return null
+}
+
+// ¿Toca subir peso? Doble progresión + repeticiones en reserva (rir: 0 = al límite, 2 = 1-2, 3 = 3 o más)
 export function suggestion(sessions, exId, repsTarget, setsPlanned, equip) {
-  const last = lastSets(sessions, exId)
-  if (!last) return null
+  const ses = lastSession(sessions, exId)
+  if (!ses) return null
   const m = String(repsTarget || '').trim().match(/^(\d+)(?:\s*-\s*(\d+))?$/)
-  if (!m) return null
+  const rir = ses.checkin?.rir?.[exId]
+  const sets = ses.entries[exId].filter((x) => num(x.w) > 0 && num(x.r) > 0)
+  if (!sets.length) return null
+  const from = Math.min(...sets.map((x) => num(x.w)))
+  const inc = equip === 'Mancuernas' ? (from >= 20 ? 2 : 1) : equip === 'Polea' || equip === 'Máquina' ? 2.5 : 2.5
+  const up = (reps, why) => ({ w: Math.round((from + inc) * 100) / 100, reps, from, inc, why, action: 'up' })
+  const minReps = Math.min(...sets.map((x) => num(x.r)))
+  if (!m) {
+    // objetivo no numérico (p. ej. "Al fallo"): solo las reservas deciden
+    if (rir >= 3) return up(minReps, `te sobraban 3 o más repeticiones con ${fmtKg(from)} kg`)
+    return null
+  }
   const lo = Number(m[1])
   const hi = Number(m[2] || m[1])
-  const sets = last.sets.filter((s) => num(s.w) > 0 && num(s.r) > 0)
-  if (sets.length < Math.max(1, setsPlanned)) return null
-  if (!sets.every((s) => num(s.r) >= hi)) return null
-  const from = Math.min(...sets.map((s) => num(s.w)))
-  const inc = equip === 'Mancuernas' ? (from >= 20 ? 2 : 1) : 2.5
-  return { w: Math.round((from + inc) * 100) / 100, reps: lo, hi, from, inc }
+  const enough = sets.length >= Math.max(1, setsPlanned)
+  if (rir === 0 && minReps < lo) return { action: 'hold', from, why: `la última vez ibas al límite; sigue con este peso hasta llegar a ${lo} repeticiones` }
+  if (rir >= 3 && minReps >= lo) return up(lo, `te sobraban 3 o más repeticiones con ${fmtKg(from)} kg`)
+  if (enough && minReps >= hi) return up(lo, `hiciste ${hi}+ repeticiones en todas las series con ${fmtKg(from)} kg`)
+  return null
 }
