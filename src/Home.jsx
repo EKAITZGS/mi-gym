@@ -4,6 +4,7 @@ import { EX_BY_ID } from './data/exercises'
 import { Ring, Thumb } from './ui'
 import { ExerciseModal } from './Workout'
 import Icon from './icons'
+import WeeklyReview from './Review'
 import Setup from './Setup'
 import { Generator } from './Workout'
 import { generatePlan } from './plans'
@@ -134,6 +135,8 @@ export default function Home({ data, setData, onStart, go }) {
           </div>
         </div>
       )}
+
+      <WeeklyReview data={data} setData={setData} />
 
       <div className="grid2">
         <button className="card tile" onClick={() => go('diet')}>

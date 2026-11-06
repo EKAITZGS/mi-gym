@@ -1371,3 +1371,35 @@ textarea.inp {
   .setrow .x { font-size: 12px; }
   .title { font-size: 28px; }
 }
+/* ---- Check-in y entrenador ---- */
+.feels { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.feel {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 10px 2px; min-height: 70px; border-radius: 14px;
+  background: var(--card2); border: 1px solid var(--line);
+  font-size: 11px; font-weight: 600; color: var(--text2); text-align: center;
+}
+.feel .fe { font-size: 24px; line-height: 1; }
+.feel.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.seg { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: var(--bg); padding: 4px; border-radius: 14px; border: 1px solid var(--line); margin-bottom: 8px; }
+.seg button { min-height: 42px; border: 0; border-radius: 10px; background: none; font-weight: 600; color: var(--muted); }
+.seg button.on { background: var(--card2); color: var(--text); }
+.seg button.on.warn { color: var(--amber); }
+.advice { border-radius: 14px; padding: 12px 14px; margin-bottom: 10px; font-size: 14px; line-height: 1.45; border: 1px solid; }
+.advice.sm { font-size: 13px; padding: 8px 10px; margin: 6px 0 0; }
+.advice.green { background: rgba(62, 224, 143, 0.1); border-color: rgba(62, 224, 143, 0.35); color: var(--text); }
+.advice.yellow { background: rgba(255, 181, 71, 0.1); border-color: rgba(255, 181, 71, 0.4); color: var(--text); }
+.advice.red { background: rgba(255, 93, 93, 0.1); border-color: rgba(255, 93, 93, 0.45); color: var(--text); }
+.tips-list { margin: 0 0 8px; padding-left: 20px; color: var(--text2); font-size: 14px; }
+.tips-list li { margin-bottom: 6px; }
+.coach-btn { margin-top: 0; border-color: rgba(62, 224, 143, 0.4); color: var(--accent); }
+.daypill { white-space: nowrap; }
+
+.review { border-color: rgba(90, 169, 255, 0.35); }
+.ico.inl { display: inline-block; vertical-align: -2px; margin-right: 4px; color: var(--blue); }
+.prop { border-top: 1px solid var(--line); padding-top: 12px; margin-top: 12px; }
+.prop-head { display: flex; gap: 6px; align-items: center; margin-bottom: 8px; }
+.prop p { margin: 8px 0 0; }
+.swap-row { display: flex; align-items: center; gap: 8px; color: var(--muted); }
+.swap-ex { flex: 1; display: flex; align-items: center; gap: 8px; min-width: 0; color: var(--text); font-size: 14px; font-weight: 600; }
+.swap-ex span { min-width: 0; }
