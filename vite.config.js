@@ -10,9 +10,11 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: false,
-      includeAssets: ['apple-touch-icon.png', 'favicon.png', 'logo.svg', 'ex/**/*.webp'],
+      includeManifestIcons: false,
+      includeAssets: ['favicon.png', 'logo.svg', 'ex/**/*.webp'],
       workbox: {
-        globPatterns: ['**/*.{js,css,html,png,jpg,webp,svg}'],
+        globPatterns: ['**/*.{js,css,html,jpg,webp,svg}', 'favicon.png'],
+        globIgnores: ['**/ios-icon-*.png', '**/app-icon-*.png'],
         navigateFallback: 'index.html',
         cleanupOutdatedCaches: true,
         clientsClaim: true,
@@ -30,8 +32,11 @@ export default defineConfig({
         background_color: '#0a0b0e',
         theme_color: '#0a0b0e',
         icons: [
-          { src: 'icon-192.png', sizes: '192x192', type: 'image/png' },
-          { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+          { src: 'ios-icon-180.png', sizes: '180x180', type: 'image/png', purpose: 'any' },
+          { src: 'app-icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: 'app-icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: 'app-icon-1024.png', sizes: '1024x1024', type: 'image/png', purpose: 'any' },
+          { src: 'app-icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
     }),
