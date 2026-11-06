@@ -438,6 +438,15 @@ function Session({ data, setData, onExit }) {
   const newSets = (n, drop) =>
     Array.from({ length: n }, () => ({ w: '', r: '', done: false, drops: drop ? [{ w: '', r: '' }] : [] }))
   const setActive = (fn) => setData((d) => (d.active ? { ...d, active: fn(d.active) } : d))
+  const uniOf = (it) => it.uni ?? !!data.uniEx?.[it.ex]
+  const toggleUni = (it) => {
+    const v = !uniOf(it)
+    setData((d) => ({
+      ...d,
+      uniEx: { ...(d.uniEx || {}), [it.ex]: v },
+      active: d.active ? { ...d.active, items: (d.active.items || day?.items || []).map((i) => (i.id === it.id ? { ...i, uni: v } : i)) } : d.active,
+    }))
+  }
   const curItems = (act) => act.items || day?.items || []
   const removeItem = (itemId) =>
     setActive((act) => {
@@ -563,9 +572,17 @@ function Session({ data, setData, onExit }) {
     const sid = uid()
     const entries = {}
     for (const [k, sets] of Object.entries(a.entries)) {
+      const uni = uniOf(items.find((i) => i.ex === k) || { ex: k })
       const kept = sets
-        .filter((s) => s.done || s.w || s.r || s.drops.some((x) => x.w || x.r))
-        .map((s) => ({ w: s.w, r: s.r, drops: s.drops.filter((x) => x.w || x.r) }))
+        .filter((s) => s.done || s.w || s.r || s.r2 || s.drops.some((x) => x.w || x.r))
+        .map((s) => {
+          const base = { w: s.w, r: s.r, drops: s.drops.filter((x) => x.w || x.r) }
+          if (!uni || !(s.r || s.r2)) return base
+          // unilateral: cuenta el lado más flojo para progresar; se guardan los dos
+          const l = num(s.r), rr = num(s.r2)
+          const weak = l && rr ? Math.min(l, rr) : l || rr
+          return { ...base, r: String(weak), rl: s.r, rr: s.r2 }
+        })
       if (kept.length) entries[k] = kept
     }
     // récords: mejor 1RM estimado frente a todos los entrenos anteriores
@@ -615,13 +632,21 @@ function Session({ data, setData, onExit }) {
         const ex = EX_BY_ID[it.ex]
         const sets = a.entries[it.ex] || []
         const last = lastSets(data.sessions, it.ex)
+        const uni = uniOf(it)
+        const imb = (() => {
+          if (!last) return null
+          let d = 0
+          for (const x of last.sets) if (x.rl && x.rr) d += num(x.rl) - num(x.rr)
+          return d <= -2 ? 'izquierdo' : d >= 2 ? 'derecho' : null
+        })()
         const pain = painFor(data.sessions, it.ex)
         const s0 = pain ? null : suggestion(data.sessions, it.ex, it.reps, it.sets, ex?.equip)
         const sug = s0?.action === 'up' ? s0 : null
         const hold = s0?.action === 'hold' ? s0 : null
         const phOf = (i) => {
-          const base = last?.sets[i] || last?.sets[last.sets.length - 1] || {}
-          return sug ? { ...base, w: fmtKg(sug.w), r: String(sug.reps) } : base
+          const b0 = last?.sets[i] || last?.sets[last.sets.length - 1] || {}
+          const base = b0.rl || b0.rr ? { ...b0, r: b0.rl || b0.r, r2: b0.rr || b0.r } : { ...b0, r2: b0.r }
+          return sug ? { ...base, w: fmtKg(sug.w), r: String(sug.reps), r2: String(sug.reps) } : base
         }
         return (
           <div className="card" key={it.id}>
@@ -648,7 +673,7 @@ function Session({ data, setData, onExit }) {
                 </div>
                 {last && (
                   <div className="muted small">
-                    Última vez: {last.sets.map((s) => `${s.w || '?'}×${s.r || '?'}`).join(', ')}
+                    Última vez: {last.sets.map((s) => `${s.w || '?'}×${s.rl || s.rr ? `${s.rl || '?'}/${s.rr || '?'}` : s.r || '?'}`).join(', ')}
                   </div>
                 )}
                 {pain && (
@@ -667,8 +692,26 @@ function Session({ data, setData, onExit }) {
                     <Icon name="trend" size={15} /> Sube a {fmtKg(sug.w)} kg: {sug.why}
                   </div>
                 )}
+                {uni && imb && (
+                  <div className="tip hold">
+                    <Icon name="swap" size={15} /> El lado {imb} va por detrás: empieza por él y con el otro haz las mismas reps, no más.
+                  </div>
+                )}
               </div>
             </div>
+            <button className={'uni-tg' + (uni ? ' on' : '')} onClick={() => toggleUni(it)}>
+              <span className="uni-dot" /> {uni ? 'Por lados: izquierdo / derecho' : 'Unilateral (un lado y luego otro)'}
+            </button>
+            {uni && sets.length > 0 && (
+              <div className="setrow uni-head">
+                <span className="setn" />
+                <span className="uh">kg</span>
+                <span className="x" style={{ visibility: 'hidden' }}>kg</span>
+                <span className="uh">Izq</span>
+                <span className="uh">Der</span>
+                <span className="chk-sp" />
+              </div>
+            )}
             {sets.map((s, i) => {
               const ph = phOf(i)
               return (
@@ -682,14 +725,25 @@ function Session({ data, setData, onExit }) {
                       value={s.w}
                       onChange={(e) => patchSet(it.ex, i, (x) => ({ ...x, w: e.target.value }))}
                     />
-                    <span className="x">kg ×</span>
+                    <span className="x">{uni ? 'kg' : 'kg ×'}</span>
                     <input
                       className="inp sm"
                       inputMode="numeric"
-                      placeholder={ph.r || 'reps'}
+                      aria-label={uni ? 'Reps izquierdo' : 'Reps'}
+                      placeholder={ph.r || (uni ? 'izq' : 'reps')}
                       value={s.r}
                       onChange={(e) => patchSet(it.ex, i, (x) => ({ ...x, r: e.target.value }))}
                     />
+                    {uni && (
+                      <input
+                        className="inp sm"
+                        inputMode="numeric"
+                        aria-label="Reps derecho"
+                        placeholder={ph.r2 || 'der'}
+                        value={s.r2 || ''}
+                        onChange={(e) => patchSet(it.ex, i, (x) => ({ ...x, r2: e.target.value }))}
+                      />
+                    )}
                     <button
                       className={'chk' + (s.done ? ' on' : '')}
                       onClick={() =>
@@ -701,6 +755,7 @@ function Session({ data, setData, onExit }) {
                                 done: true,
                                 w: x.w || ph.w || '',
                                 r: x.r || ph.r || '',
+                                r2: uni ? x.r2 || ph.r2 || x.r || ph.r || '' : x.r2,
                                 drops: x.drops.map((dr, j) => ({
                                   w: dr.w || ph.drops?.[j]?.w || '',
                                   r: dr.r || ph.drops?.[j]?.r || '',
