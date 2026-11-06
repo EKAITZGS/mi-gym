@@ -68,10 +68,25 @@ export const sportName = (e) => SPORTS[e.detailed_sport_info] || SPORTS[e.sport]
 const STEP = 15
 function hrDetail(e) {
   const out = {}
-  const hs = (e.samples || []).find((x) => String(x['sample-type']) === '0')
+  const pick = (o, ...ks) => ks.map((k) => o?.[k]).find((v) => v != null)
+  const nums = (d) => (Array.isArray(d) ? d : String(d || '').split(',')).map(Number)
+  const samples = Array.isArray(e.samples) ? e.samples : []
+  const typeOf = (x) => String(pick(x, 'sample-type', 'sample_type', 'sampleType', 'type') ?? '').toUpperCase()
+  // muestra de pulso: tipo 0 / HEART_RATE; si Polar no dice el tipo, la que tenga valores típicos de pulso
+  let hs = samples.find((x) => ['0', 'HEART_RATE', 'HR'].includes(typeOf(x)) || typeOf(x).includes('HEART'))
+  if (!hs) {
+    hs = samples.find((x) => {
+      const v = nums(x.data).filter((n) => n > 0)
+      if (v.length < 10) return false
+      const sorted = [...v].sort((a, b) => a - b)
+      const med = sorted[Math.floor(sorted.length / 2)]
+      const rising = v.every((n, i) => !i || n >= v[i - 1])
+      return med >= 55 && med <= 200 && !rising
+    })
+  }
   if (hs?.data) {
-    const rate = Number(hs['recording-rate']) || 1
-    const vals = String(hs.data).split(',').map(Number)
+    const rate = Number(pick(hs, 'recording-rate', 'recording_rate', 'recordingRate')) || 1
+    const vals = nums(hs.data)
     const per = Math.max(1, Math.round(STEP / rate))
     const v = []
     for (let i = 0; i < vals.length; i += per) {
@@ -80,10 +95,15 @@ function hrDetail(e) {
     }
     if (v.some((n) => n > 0)) out.hr = { step: per * rate, v }
   }
-  const z = e.heart_rate_zones
+  const z = pick(e, 'heart_rate_zones', 'heart-rate-zones', 'heartRateZones')
   if (Array.isArray(z) && z.length)
     out.zones = z
-      .map((x) => ({ i: x.index, lo: x['lower-limit'], hi: x['upper-limit'], s: isoSeconds(x['in-zone']) }))
+      .map((x, k) => ({
+        i: Number(pick(x, 'index', 'zone_index')) || k + 1,
+        lo: Number(pick(x, 'lower-limit', 'lower_limit', 'lowerLimit')) || 0,
+        hi: Number(pick(x, 'upper-limit', 'upper_limit', 'upperLimit')) || 0,
+        s: isoSeconds(pick(x, 'in-zone', 'in_zone', 'inZone')),
+      }))
       .sort((a, b) => a.i - b.i)
   return out
 }
@@ -129,7 +149,7 @@ export async function syncPolar(setData) {
   // Si la lista no trae la curva de pulso, se pide el detalle de cada entreno (solo los que aún no la tienes)
   const prev = loadPrevEx()
   for (const e of Object.values(exercises).slice(-10)) {
-    if (e.hr || prev[e.id]?.hr) continue
+    if ((e.hr && e.zones?.some((z) => z.s)) || (prev[e.id]?.hr && prev[e.id]?.zones?.some((z) => z.s))) continue
     try {
       const det = await get(`/exercise?id=${encodeURIComponent(e.id)}`, p.token)
       Object.assign(e, hrDetail(Array.isArray(det) ? det[0] || {} : det))
