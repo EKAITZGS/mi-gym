@@ -2,6 +2,21 @@ import { EXERCISES, EX_BY_ID } from './data/exercises'
 import { getAi } from './ai'
 import { uid, todayStr, addDays, suggestion, fmtKg } from './store'
 
+// Resumen del reloj Polar de los últimos 7 días (para la revisión y para la IA)
+export function polarWeek(data) {
+  const since = addDays(todayStr(), -7)
+  const ex = Object.values(data.polar?.exercises || {}).filter((e) => e.date >= since)
+  const days = Object.entries(data.polar?.days || {}).filter(([d]) => d >= since && d < todayStr())
+  const steps = days.length ? Math.round(days.reduce((a, [, x]) => a + (x.steps || 0), 0) / days.length) : null
+  const sessions = ex.map((e) => {
+    const tot = (e.zones || []).reduce((a, z) => a + z.s, 0)
+    const share = (ids) => (tot ? Math.round(((e.zones || []).filter((z) => ids.includes(z.i)).reduce((a, z) => a + z.s, 0) / tot) * 100) : null)
+    return { fecha: e.date, deporte: e.sport, min: e.min, kcal: e.kcal, pulsoMedio: e.hrAvg, pulsoMax: e.hrMax, pctZonasAltas: share([4, 5]), pctZonaModerada: share([3]) }
+  })
+  if (!sessions.length && steps == null) return null
+  return { sessions, pasosMediosDia: steps }
+}
+
 export const FEELINGS = [
   { id: 1, label: 'Muy fácil', emoji: '😴' },
   { id: 2, label: 'Bien', emoji: '🙂' },
@@ -124,6 +139,7 @@ Objetivo: perder grasa y ganar músculo. Días por semana que quiere: ${days}. E
 Notas del usuario: ${notes || 'ninguna'}.
 Rutina actual (dia: 0=domingo,1=lunes...6=sábado): ${JSON.stringify(plan)}
 Últimos entrenos con sensaciones y molestias: ${JSON.stringify(last)}
+Datos del reloj Polar de la última semana (puede ser null; en pesas el pulso es orientativo): ${JSON.stringify(polarWeek(data))}
 
 Reglas:
 - Respeta lo que ya hace y le funciona; cambia solo lo necesario. Si añades días, mantén los suyos y añade los nuevos con sentido (no entrenar el mismo grupo dos días seguidos).
@@ -321,6 +337,24 @@ export function weeklyReview(data) {
         ready.push(`${EX_BY_ID[it.ex]?.name} (${fmtKg(sg.from)} → ${fmtKg(sg.w)} kg)`)
     }
   if (ready.length) findings.push(`Listos para subir peso: ${ready.join(', ')}`)
+  const pw = polarWeek(data)
+  if (pw) {
+    const ss = pw.sessions
+    if (ss.length) {
+      const kcal = ss.reduce((a, x) => a + (x.kcal || 0), 0)
+      const hrs = ss.filter((x) => x.pulsoMedio)
+      const avgHr = hrs.length ? Math.round(hrs.reduce((a, x) => a + x.pulsoMedio, 0) / hrs.length) : null
+      findings.push(`Reloj: ${ss.length} ${ss.length === 1 ? 'entreno' : 'entrenos'}, ${kcal} kcal gastadas entrenando${avgHr ? `, pulso medio ${avgHr} ppm` : ''}`)
+      const intense = ss.filter((x) => x.pctZonasAltas > 35).length
+      const soft = ss.filter((x) => x.pctZonasAltas != null && x.pctZonasAltas + (x.pctZonaModerada || 0) < 10).length
+      if (intense >= 2) findings.push(`${intense} entrenos con mucho tiempo en pulso alto: cuida el descanso y el sueño`)
+      else if (soft >= 2 && soft === ss.length) findings.push('El pulso estuvo bajo en tus entrenos: puedes acortar descansos o apretar más la última serie')
+      const long = ss.filter((x) => x.min > 100).length
+      if (long) findings.push(`${long} ${long === 1 ? 'entreno pasó' : 'entrenos pasaron'} de 100 min: con 60–75 bien aprovechados es suficiente`)
+    }
+    if (pw.pasosMediosDia != null && pw.pasosMediosDia < 6000)
+      findings.push(`Pasos: media de ${pw.pasosMediosDia.toLocaleString('es-ES')} al día. Llegar a 7.000–8.000 te ayuda mucho a bajar grasa sin esfuerzo`)
+  }
   const decided = data.reviews || {}
   const pending = props.map((p) => ({ ...p, key: propKey(p) })).filter((p) => !decided[p.key])
   return {
@@ -369,6 +403,7 @@ export async function aiWeeklyReview(data) {
   const prompt = `Eres un entrenador personal. Revisa la semana de entrenamiento de este usuario (objetivo: perder grasa y ganar músculo).
 Plan actual: ${JSON.stringify(plan)}
 Entrenos de la última semana: ${JSON.stringify(week)}
+Datos del reloj Polar de la última semana (puede ser null; en pesas el pulso es orientativo): ${JSON.stringify(polarWeek(data))}
 Valora cómo ha ido y propone como mucho 4 cambios concretos y prudentes SOLO si hacen falta (molestias, fatiga, estancamiento). Si todo va bien, no propongas cambios.
 Cada cambio: sustituir un ejercicio del plan por otro del catálogo, o cambiar el número de series.
 Catálogo (id|nombre|grupo):
