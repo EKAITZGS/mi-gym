@@ -7,6 +7,7 @@ import Icon from './icons'
 import { polarExercisesOn } from './polar'
 import WeeklyReview from './Review'
 import Setup from './Setup'
+import PolarSession from './PolarSession'
 import { Generator } from './Workout'
 import { generatePlan } from './plans'
 
@@ -19,6 +20,7 @@ export default function Home({ data, setData, onStart, go }) {
   const [open, setOpen] = useState(null)
   const [setup, setSetup] = useState(false)
   const [gen, setGen] = useState(false)
+  const [polarEx, setPolarEx] = useState(null)
   const wd = new Date().getDay()
   const todays = data.plan.filter((d) => d.weekday === wd)
   const others = data.plan.filter((d) => d.weekday !== wd)
@@ -181,7 +183,7 @@ export default function Home({ data, setData, onStart, go }) {
             </div>
             {show.length === 0 && <p className="muted small">Aún no hay entrenos del reloj. Sube uno a Polar Flow y aparecerá aquí.</p>}
             {show.map((e) => (
-              <div className="polar-ex" key={e.id}>
+              <button className="polar-ex" key={e.id} onClick={() => setPolarEx(e)}>
                 <div className="grow">
                   <div className="li-t">
                     {e.sport} · {e.min} min
@@ -192,8 +194,10 @@ export default function Home({ data, setData, onStart, go }) {
                   <span><b>{e.kcal}</b> kcal</span>
                   {e.hrAvg && <span><b>{e.hrAvg}</b>/{e.hrMax} ppm</span>}
                 </div>
-              </div>
+                <Icon name="right" size={16} className="muted" />
+              </button>
             ))}
+            {polarEx && <PolarSession ex={polarEx} onClose={() => setPolarEx(null)} />}
           </div>
         )
       })()}

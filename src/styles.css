@@ -1588,3 +1588,20 @@ body.modal-open .tabbar { visibility: hidden; pointer-events: none; }
 .hero-sum { margin: 6px 0 2px; font-weight: 700; font-size: 16px; color: #fff; }
 .hero-note { color: rgba(255, 255, 255, 0.75); margin: 0; }
 .hero-again { display: inline-flex !important; width: auto; margin: 4px 0 0; padding: 0 !important; justify-content: flex-start; color: rgba(255, 255, 255, 0.85); text-decoration: underline; text-underline-offset: 3px; }
+
+/* ---- Detalle de entreno del reloj ---- */
+button.polar-ex { width: 100%; background: none; border: 0; border-top: 1px solid var(--line); color: inherit; text-align: left; font: inherit; padding: 10px 0; }
+button.polar-ex:first-of-type { border-top: 0; }
+.polar-sum { display: grid; grid-template-columns: repeat(auto-fit, minmax(68px, 1fr)); gap: 8px; margin-bottom: 4px; }
+.polar-sum div { background: var(--card2); border: 1px solid var(--line); border-radius: 14px; padding: 10px 6px; text-align: center; }
+.polar-sum b { display: block; font-size: 20px; }
+.polar-sum span { font-size: 11px; color: var(--muted); }
+.hr-chart { width: 100%; height: auto; color: var(--text); display: block; }
+.hr-chart .ax { font-size: 10px; fill: var(--muted); }
+.zone-row { display: grid; grid-template-columns: 146px 1fr 58px; align-items: center; gap: 8px; margin: 8px 0; font-size: 13px; }
+.zone-n { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.zone-n i { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.zone-n em { font-style: normal; color: var(--muted); font-size: 11px; }
+.zone-bar { height: 8px; background: var(--card2); border-radius: 99px; overflow: hidden; }
+.zone-bar span { display: block; height: 100%; border-radius: 99px; min-width: 2px; }
+.zone-t { text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
