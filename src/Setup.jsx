@@ -134,9 +134,17 @@ export default function Setup({ data, setData, onClose }) {
               </div>
             )
           })}
-          <button className="btn primary full" disabled={active.length === 0} onClick={() => goStep(1)}>
-            Siguiente: elegir ejercicios ({active.length} {active.length === 1 ? 'día' : 'días'})
-          </button>
+          <p className="muted small">
+            ¿Aún no sabes los ejercicios de algún día? Guarda solo los días y los vas añadiendo cuando entrenes.
+          </p>
+          <div className="wizard-nav">
+            <button className="btn" disabled={active.length === 0} onClick={finish}>
+              Guardar días
+            </button>
+            <button className="btn primary" disabled={active.length === 0} onClick={() => goStep(1)}>
+              Elegir ejercicios <Icon name="right" size={16} />
+            </button>
+          </div>
         </>
       )}
 
@@ -148,6 +156,7 @@ export default function Setup({ data, setData, onClose }) {
           <h2 style={{ marginTop: 2 }}>{days[cur].name || WEEKDAYS[cur]}</h2>
           <p className="muted small">
             Marca los ejercicios que haces este día ({days[cur].exs.length} elegidos). El orden es el que vayas marcando.
+            Si aún no lo sabes, déjalo vacío y los añades el día que entrenes.
           </p>
           <input className="inp" placeholder="Buscar cualquier ejercicio…" value={q} onChange={(e) => setQ(e.target.value)} />
           {days[cur].parts.length > 0 && !q && (
@@ -180,6 +189,9 @@ export default function Setup({ data, setData, onClose }) {
               {step === active.length ? 'Ver resumen' : 'Siguiente día'} <Icon name="right" size={16} />
             </button>
           </div>
+          <button className="link" onClick={finish}>
+            Guardar ya y seguir otro día
+          </button>
         </>
       )}
 
@@ -190,7 +202,9 @@ export default function Setup({ data, setData, onClose }) {
             <div key={w} className="sum-row">
               <b>{WEEKDAYS[w]}</b>
               <span className="muted small">
-                {days[w].on ? `${days[w].name || WEEKDAYS[w]} · ${days[w].exs.length} ejercicios` : 'Descanso'}
+                {days[w].on
+                  ? `${days[w].name || WEEKDAYS[w]} · ${days[w].exs.length ? days[w].exs.length + ' ejercicios' : 'ejercicios al entrenar'}`
+                  : 'Descanso'}
               </span>
             </div>
           ))}
