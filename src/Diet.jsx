@@ -4,6 +4,7 @@ import { addDays, dayTotals, macros, todayStr, uid, num, parseDate } from './sto
 import { Bar, Modal, Ring } from './ui'
 import Icon from './icons'
 import { analyzeFood } from './ai'
+import { rateFood } from './rating'
 
 const r0 = (n) => Math.round(n)
 const r1 = (n) => Math.round(n * 10) / 10
@@ -68,9 +69,35 @@ function Scanner({ onCode }) {
   )
 }
 
+export function RateDot({ food }) {
+  const r = rateFood(food)
+  if (!r) return null
+  return <span className={'rdot ' + r.level} title={r.label} />
+}
+
+function RateCard({ food }) {
+  const r = rateFood(food)
+  if (!r) return null
+  return (
+    <div className={'ratecard ' + r.level}>
+      <div className="light">
+        <span className="l red" />
+        <span className="l yellow" />
+        <span className="l green" />
+      </div>
+      <div className="grow">
+        <b>{r.label}</b>
+        {r.why.length > 0 && <div className="small">{r.why.join(' · ')}</div>}
+        {r.ns && <div className="small muted">Nutri-Score {r.ns.toUpperCase()}</div>}
+      </div>
+    </div>
+  )
+}
+
 function FoodLine({ f, onClick }) {
   return (
     <button className="row" onClick={onClick}>
+      <RateDot food={f} />
       <div className="grow">
         <div>{f.name}</div>
         <div className="muted small">
@@ -90,7 +117,7 @@ function AddFood({ data, setData, date, meal, onClose }) {
   const [amount, setAmount] = useState('100')
   const [mode, setMode] = useState('g')
   const [quick, setQuick] = useState({ name: '', kcal: '', p: '' })
-  const [nf, setNf] = useState({ name: '', kcal: '', p: '', c: '', f: '' })
+  const [nf, setNf] = useState({ name: '', kcal: '', p: '', c: '', f: '', s: '', sf: '' })
   const [code, setCode] = useState('')
   const [scan, setScan] = useState({ loading: false, msg: '' })
   const fileRef = useRef(null)
@@ -105,7 +132,7 @@ function AddFood({ data, setData, date, meal, onClose }) {
       for (const e of [...data.food[d]].reverse()) {
         if (e.quick || seen.has(e.name)) continue
         seen.add(e.name)
-        out.push({ id: 'r-' + e.id, name: e.name, kcal: e.kcal, p: e.p, c: e.c, f: e.f, unitG: e.unitG, unitName: e.unitName })
+        out.push({ id: 'r-' + e.id, name: e.name, kcal: e.kcal, p: e.p, c: e.c, f: e.f, unitG: e.unitG, unitName: e.unitName, s: e.s, sf: e.sf, ns: e.ns, natural: e.natural })
         if (out.length >= 8) return out
       }
     }
@@ -124,7 +151,7 @@ function AddFood({ data, setData, date, meal, onClose }) {
     try {
       const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(
         q
-      )}&search_simple=1&action=process&json=1&page_size=20&fields=product_name,brands,nutriments&lc=es&cc=es`
+      )}&search_simple=1&action=process&json=1&page_size=20&fields=product_name,brands,nutriments,nutriscore_grade&lc=es&cc=es`
       const res = await fetch(url)
       const j = await res.json()
       const items = (j.products || [])
@@ -136,6 +163,9 @@ function AddFood({ data, setData, date, meal, onClose }) {
           p: Number(p.nutriments.proteins_100g) || 0,
           c: Number(p.nutriments.carbohydrates_100g) || 0,
           f: Number(p.nutriments.fat_100g) || 0,
+          s: p.nutriments.sugars_100g != null ? Number(p.nutriments.sugars_100g) : undefined,
+          sf: p.nutriments['saturated-fat_100g'] != null ? Number(p.nutriments['saturated-fat_100g']) : undefined,
+          ns: p.nutriscore_grade,
         }))
       setOnline({ loading: false, items, err: items.length ? '' : 'Sin resultados en Open Food Facts' })
     } catch {
@@ -163,7 +193,7 @@ function AddFood({ data, setData, date, meal, onClose }) {
     setStep('scan')
     try {
       const res = await fetch(
-        `https://world.openfoodfacts.org/api/v2/product/${c}.json?fields=product_name,brands,nutriments,serving_quantity`
+        `https://world.openfoodfacts.org/api/v2/product/${c}.json?fields=product_name,brands,nutriments,serving_quantity,nutriscore_grade`
       )
       const j = await res.json()
       const n = j.product?.nutriments
@@ -178,6 +208,9 @@ function AddFood({ data, setData, date, meal, onClose }) {
         p: Number(n.proteins_100g) || 0,
         c: Number(n.carbohydrates_100g) || 0,
         f: Number(n.fat_100g) || 0,
+        s: n.sugars_100g != null ? Number(n.sugars_100g) : undefined,
+        sf: n['saturated-fat_100g'] != null ? Number(n['saturated-fat_100g']) : undefined,
+        ns: j.product.nutriscore_grade,
         ...(sq > 0 ? { unitG: sq, unitName: 'ración' } : {}),
       }
       setScan({ loading: false, msg: '' })
@@ -215,6 +248,7 @@ function AddFood({ data, setData, date, meal, onClose }) {
   if (step === 'qty' && food) {
     return (
       <Modal title={food.name} onClose={onClose}>
+        <RateCard food={food} />
         <p className="muted">
           Por 100 g: {r0(food.kcal)} kcal · {r1(food.p)} P · {r1(food.c)} H · {r1(food.f)} G
         </p>
@@ -246,6 +280,10 @@ function AddFood({ data, setData, date, meal, onClose }) {
               f: food.f,
               unitG: food.unitG,
               unitName: food.unitName,
+              s: food.s,
+              sf: food.sf,
+              ns: food.ns,
+              natural: food.natural,
               label: mode === 'u' ? `${num(amount)} ${food.unitName}` : undefined,
             })
           }
@@ -389,12 +427,14 @@ function AddFood({ data, setData, date, meal, onClose }) {
           <input className="inp" inputMode="decimal" placeholder="proteína" value={nf.p} onChange={(e) => setNf({ ...nf, p: e.target.value })} />
           <input className="inp" inputMode="decimal" placeholder="hidratos" value={nf.c} onChange={(e) => setNf({ ...nf, c: e.target.value })} />
           <input className="inp" inputMode="decimal" placeholder="grasa" value={nf.f} onChange={(e) => setNf({ ...nf, f: e.target.value })} />
+          <input className="inp" inputMode="decimal" placeholder="azúcares (opc.)" value={nf.s} onChange={(e) => setNf({ ...nf, s: e.target.value })} />
+          <input className="inp" inputMode="decimal" placeholder="saturadas (opc.)" value={nf.sf} onChange={(e) => setNf({ ...nf, sf: e.target.value })} />
         </div>
         <button
           className="btn primary full"
           disabled={!nf.name.trim() || num(nf.kcal) <= 0}
           onClick={() => {
-            const f = { id: 'm-' + uid(), name: nf.name.trim(), kcal: num(nf.kcal), p: num(nf.p), c: num(nf.c), f: num(nf.f) }
+            const f = { id: 'm-' + uid(), name: nf.name.trim(), kcal: num(nf.kcal), p: num(nf.p), c: num(nf.c), f: num(nf.f), ...(nf.s !== '' ? { s: num(nf.s) } : {}), ...(nf.sf !== '' ? { sf: num(nf.sf) } : {}) }
             setData((d) => ({ ...d, myFoods: [...(d.myFoods || []), f] }))
             pick(f)
           }}
@@ -526,6 +566,7 @@ export default function Diet({ data, setData }) {
               const mm = macros(e)
               return (
                 <div className="row nob food" key={e.id}>
+                  <RateDot food={e} />
                   <div className="grow">
                     <div>{e.name}</div>
                     <div className="muted small">

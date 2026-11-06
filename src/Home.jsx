@@ -4,14 +4,19 @@ import { EX_BY_ID } from './data/exercises'
 import { Ring, Thumb } from './ui'
 import { ExerciseModal } from './Workout'
 import Icon from './icons'
+import Setup from './Setup'
+import { Generator } from './Workout'
+import { generatePlan } from './plans'
 
 const greeting = () => {
   const h = new Date().getHours()
   return h < 13 ? 'Buenos días' : h < 21 ? 'Buenas tardes' : 'Buenas noches'
 }
 
-export default function Home({ data, onStart, go }) {
+export default function Home({ data, setData, onStart, go }) {
   const [open, setOpen] = useState(null)
+  const [setup, setSetup] = useState(false)
+  const [gen, setGen] = useState(false)
   const wd = new Date().getDay()
   const todays = data.plan.filter((d) => d.weekday === wd)
   const others = data.plan.filter((d) => d.weekday !== wd)
@@ -50,6 +55,34 @@ export default function Home({ data, onStart, go }) {
     <div className="page">
       <div className="eyebrow cap">{dateTxt}</div>
       <h1 className="title">{greeting()}</h1>
+
+      {!data.setupDone && (
+        <div className="card onboard">
+          <b>Antes de nada: configura tu entrenamiento</b>
+          <p className="muted small">Dime qué días entrenas y qué haces cada día, o deja que te haga un plan según tu nivel.</p>
+          <div className="btns">
+            <button className="btn primary" onClick={() => setSetup(true)}>
+              <Icon name="calendar" size={16} /> Configurar
+            </button>
+            <button className="btn" onClick={() => setGen(true)}>
+              <Icon name="sparkle" size={16} /> Automático
+            </button>
+          </div>
+          <button className="link small" style={{ paddingLeft: 0 }} onClick={() => setData((d) => ({ ...d, setupDone: true }))}>
+            Usar el plan de ejemplo
+          </button>
+        </div>
+      )}
+      {setup && <Setup data={data} setData={setData} onClose={() => setSetup(false)} />}
+      {gen && (
+        <Generator
+          onClose={() => setGen(false)}
+          onGenerate={(days, level) => {
+            setData((d) => ({ ...d, plan: generatePlan(days, level), active: null, setupDone: true }))
+            setGen(false)
+          }}
+        />
+      )}
 
       {todays.map((d) => {
         const cover = EX_BY_ID[d.items[0]?.ex]
