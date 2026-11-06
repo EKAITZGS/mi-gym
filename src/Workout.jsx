@@ -315,6 +315,21 @@ function DayEditor({ data, setData, dayId, onBack }) {
                 Drop set
               </label>
             </div>
+            <label className="chk-l uni-l">
+              <input
+                type="checkbox"
+                checked={!!(it.uni ?? data.uniEx?.[it.ex])}
+                onChange={(e) => {
+                  const v = e.target.checked
+                  setData((d) => ({
+                    ...d,
+                    uniEx: { ...(d.uniEx || {}), [it.ex]: v },
+                    plan: d.plan.map((x) => (x.id === dayId ? { ...x, items: x.items.map((i) => (i.id === it.id ? { ...i, uni: v } : i)) } : x)),
+                  }))
+                }}
+              />
+              Unilateral (reps de cada lado)
+            </label>
           </div>
         )
       })}
