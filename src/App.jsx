@@ -36,8 +36,18 @@ export default function App() {
           drops: it.drop ? [{ w: '', r: '' }] : [],
         }))
       }
-      setData((d) => ({ ...d, active: { dayId, date: todayStr(), entries } }))
+      setData((d) => ({
+        ...d,
+        active: { dayId, name: day.name, date: todayStr(), items: day.items.map((i) => ({ ...i })), entries },
+      }))
     }
+    setTab('train')
+    setView({ name: 'session' })
+  }
+
+  const startFree = () => {
+    if (data.active && !confirm('Tienes otro entreno en curso. ¿Empezar uno libre y descartar el otro?')) return
+    setData((d) => ({ ...d, active: { dayId: 'free', name: 'Entreno libre', date: todayStr(), items: [], entries: {} } }))
     setTab('train')
     setView({ name: 'session' })
   }
@@ -51,7 +61,7 @@ export default function App() {
     <div className="app">
       <main className="main">
         {tab === 'home' && <Home data={data} onStart={start} go={goTab} />}
-        {tab === 'train' && <Workout data={data} setData={setData} view={view} setView={setView} onStart={start} />}
+        {tab === 'train' && <Workout data={data} setData={setData} view={view} setView={setView} onStart={start} onStartFree={startFree} />}
         {tab === 'diet' && <Diet data={data} setData={setData} />}
         {tab === 'settings' && <Settings data={data} setData={setData} />}
       </main>
