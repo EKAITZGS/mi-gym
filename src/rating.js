@@ -25,7 +25,7 @@ export function rateFood(f) {
       cons.push(`algo de azúcar (${round(s)} g/100 g)`)
     }
   }
-  const share = kcal > 0 ? (p * 4) / kcal : 0
+  const share = kcal > 0 && p >= 3 ? (p * 4) / kcal : 0
   if (share >= 0.3) {
     score -= 2
     pros.push('alto en proteína')
@@ -36,7 +36,7 @@ export function rateFood(f) {
   if (kcal >= 450) {
     score += 1
     cons.push('muy calórico, controla la cantidad')
-  } else if (kcal <= 60 && (s == null || s < 5 || f.natural)) {
+  } else if (kcal <= 60 && !f.alcohol && (s == null || s < 5 || f.natural)) {
     score -= 1
     pros.push(kcal <= 5 ? 'casi sin calorías' : 'pocas calorías')
   }
@@ -48,6 +48,14 @@ export function rateFood(f) {
       score += 1
       cons.push('bastante grasa saturada')
     }
+  }
+  if (f.alcohol) {
+    score += 3
+    cons.push('alcohol: frena la recuperación y la pérdida de grasa')
+  }
+  if (f.fastfood) {
+    score += 2
+    cons.push('comida rápida: mucha grasa y sal')
   }
   if (ns === 'a' || ns === 'b') score -= 1
   else if (ns === 'd') score += 1

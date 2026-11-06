@@ -38,12 +38,49 @@ export const FOODS = [
   { id: 'f-lechuga', name: 'Lechuga', kcal: 15, p: 1.4, c: 2.9, f: 0.2, s: 1, sf: 0, natural: true },
   { id: 'f-aguacate', name: 'Aguacate', kcal: 160, p: 2, c: 9, f: 15, s: 0.7, sf: 2.1 },
   // Suplementos
-  { id: 'f-creatina', name: 'Creatina monohidrato', kcal: 0, p: 0, c: 0, f: 0, s: 0, sf: 0, unitG: 5, unitName: 'dosis (5 g)' },
-  { id: 'f-caseina', name: 'Proteína caseína (aprox.)', kcal: 360, p: 75, c: 8, f: 2, s: 4, sf: 1, unitG: 30, unitName: 'cacito' },
-  { id: 'f-barrita', name: 'Barrita de proteína (aprox.)', kcal: 350, p: 33, c: 35, f: 10, s: 5, sf: 5, unitG: 55, unitName: 'barrita' },
-  { id: 'f-cafeina', name: 'Café solo', kcal: 2, p: 0.1, c: 0, f: 0, s: 0, sf: 0, unitG: 60, unitName: 'taza' },
-  { id: 'f-cocacola', name: 'Coca-Cola (aprox.)', kcal: 42, p: 0, c: 10.6, f: 0, s: 10.6, sf: 0, unitG: 330, unitName: 'lata' },
-  { id: 'f-cocazero', name: 'Coca-Cola Zero (aprox.)', kcal: 0.3, p: 0, c: 0, f: 0, s: 0, sf: 0, unitG: 330, unitName: 'lata' },
+  { id: 'f-creatina', cat: 'sup', name: 'Creatina monohidrato', kcal: 0, p: 0, c: 0, f: 0, s: 0, sf: 0, unitG: 5, unitName: 'dosis (5 g)' },
+  { id: 'f-caseina', cat: 'sup', name: 'Proteína caseína (aprox.)', kcal: 360, p: 75, c: 8, f: 2, s: 4, sf: 1, unitG: 30, unitName: 'cacito' },
+  { id: 'f-barrita', cat: 'sup', name: 'Barrita de proteína (aprox.)', kcal: 350, p: 33, c: 35, f: 10, s: 5, sf: 5, unitG: 55, unitName: 'barrita' },
+  { id: 'f-batido', cat: 'sup', name: 'Batido de proteína listo para beber', kcal: 60, p: 8, c: 4, f: 1, s: 3, sf: 0.6, unitG: 330, unitName: 'botella' },
+  { id: 'f-postrepro', cat: 'sup', name: 'Yogur / postre proteico', kcal: 70, p: 10, c: 5, f: 1, s: 4, sf: 0.6, natural: true, unitG: 200, unitName: 'unidad' },
+  // Bebidas
+  { id: 'f-agua', cat: 'bebida', name: 'Agua', kcal: 0, p: 0, c: 0, f: 0, s: 0, sf: 0, unitG: 500, unitName: 'botella' },
+  { id: 'f-cafeina', cat: 'bebida', name: 'Café solo', kcal: 2, p: 0.1, c: 0, f: 0, s: 0, sf: 0, unitG: 60, unitName: 'taza' },
+  { id: 'f-cafeleche', cat: 'bebida', name: 'Café con leche (sin azúcar)', kcal: 33, p: 2.3, c: 3.2, f: 1.1, s: 3.2, sf: 0.7, natural: true, unitG: 200, unitName: 'taza' },
+  { id: 'f-colacao', cat: 'bebida', name: 'Cacao soluble con leche', kcal: 75, p: 3.3, c: 11, f: 1.8, s: 10, sf: 1.1, unitG: 250, unitName: 'vaso' },
+  { id: 'f-cocacola', cat: 'bebida', name: 'Coca-Cola (aprox.)', kcal: 42, p: 0, c: 10.6, f: 0, s: 10.6, sf: 0, unitG: 330, unitName: 'lata' },
+  { id: 'f-cocazero', cat: 'bebida', name: 'Coca-Cola Zero (aprox.)', kcal: 0.3, p: 0, c: 0, f: 0, s: 0, sf: 0, unitG: 330, unitName: 'lata' },
+  { id: 'f-monster', cat: 'bebida', name: 'Monster Energy (aprox.)', kcal: 47, p: 0, c: 11, f: 0, s: 11, sf: 0, unitG: 500, unitName: 'lata' },
+  { id: 'f-monsterzero', cat: 'bebida', name: 'Monster Ultra sin azúcar (aprox.)', kcal: 2, p: 0, c: 0.9, f: 0, s: 0, sf: 0, unitG: 500, unitName: 'lata' },
+  { id: 'f-redbull', cat: 'bebida', name: 'Red Bull (aprox.)', kcal: 46, p: 0, c: 11, f: 0, s: 11, sf: 0, unitG: 250, unitName: 'lata' },
+  { id: 'f-redbullsf', cat: 'bebida', name: 'Red Bull Sugarfree (aprox.)', kcal: 3, p: 0, c: 0, f: 0, s: 0, sf: 0, unitG: 250, unitName: 'lata' },
+  { id: 'f-aquarius', cat: 'bebida', name: 'Aquarius (aprox.)', kcal: 24, p: 0, c: 6, f: 0, s: 6, sf: 0, unitG: 500, unitName: 'botella' },
+  { id: 'f-aquariuszero', cat: 'bebida', name: 'Aquarius Zero (aprox.)', kcal: 1, p: 0, c: 0, f: 0, s: 0, sf: 0, unitG: 500, unitName: 'botella' },
+  { id: 'f-zumo', cat: 'bebida', name: 'Zumo de naranja envasado', kcal: 45, p: 0.6, c: 10, f: 0.1, s: 9, sf: 0, unitG: 200, unitName: 'brick' },
+  { id: 'f-cerveza', cat: 'bebida', name: 'Cerveza', kcal: 43, p: 0.5, c: 3.6, f: 0, s: 0, sf: 0, alcohol: true, unitG: 330, unitName: 'lata/caña' },
+  { id: 'f-cervezasin', cat: 'bebida', name: 'Cerveza sin alcohol', kcal: 21, p: 0.3, c: 4.6, f: 0, s: 2.5, sf: 0, unitG: 330, unitName: 'lata' },
+  // Snacks y comer fuera
+  { id: 'f-bocjamon', cat: 'calle', name: 'Bocadillo de jamón serrano', kcal: 260, p: 15, c: 33, f: 7, s: 2, sf: 2.5, unitG: 200, unitName: 'bocadillo' },
+  { id: 'f-bocpollo', cat: 'calle', name: 'Bocadillo de pechuga de pollo', kcal: 220, p: 17, c: 28, f: 4, s: 2, sf: 1, unitG: 220, unitName: 'bocadillo' },
+  { id: 'f-boctortilla', cat: 'calle', name: 'Bocadillo de tortilla de patata', kcal: 245, p: 8, c: 30, f: 10, s: 2, sf: 2, unitG: 220, unitName: 'bocadillo' },
+  { id: 'f-kebab', cat: 'calle', name: 'Kebab / durum', kcal: 215, p: 11, c: 20, f: 10, s: 2, sf: 4, fastfood: true, unitG: 400, unitName: 'unidad' },
+  { id: 'f-burger', cat: 'calle', name: 'Hamburguesa de cadena', kcal: 250, p: 13, c: 27, f: 10, s: 6, sf: 4, fastfood: true, unitG: 200, unitName: 'hamburguesa' },
+  { id: 'f-pizza', cat: 'calle', name: 'Pizza', kcal: 266, p: 11, c: 33, f: 10, s: 3.6, sf: 4.5, fastfood: true, unitG: 120, unitName: 'porción' },
+  { id: 'f-fritas', cat: 'calle', name: 'Patatas fritas (restaurante)', kcal: 312, p: 3.4, c: 41, f: 15, s: 0.3, sf: 2.3, fastfood: true, unitG: 120, unitName: 'ración' },
+  { id: 'f-chips', cat: 'calle', name: 'Patatas fritas de bolsa', kcal: 536, p: 6.6, c: 53, f: 34, s: 0.5, sf: 3, fastfood: true, unitG: 40, unitName: 'bolsa pequeña' },
+  { id: 'f-croissant', cat: 'calle', name: 'Croissant', kcal: 406, p: 8, c: 46, f: 21, s: 11, sf: 12, unitG: 60, unitName: 'unidad' },
+  { id: 'f-napolitana', cat: 'calle', name: 'Napolitana de chocolate', kcal: 420, p: 7, c: 48, f: 22, s: 16, sf: 11, unitG: 90, unitName: 'unidad' },
+  { id: 'f-donut', cat: 'calle', name: 'Donut', kcal: 420, p: 5, c: 50, f: 22, s: 22, sf: 10, unitG: 55, unitName: 'unidad' },
+  { id: 'f-chocolatina', cat: 'calle', name: 'Chocolatina', kcal: 490, p: 5, c: 62, f: 24, s: 50, sf: 9, unitG: 50, unitName: 'unidad' },
+  { id: 'f-galletas', cat: 'calle', name: 'Galletas', kcal: 470, p: 6, c: 68, f: 19, s: 22, sf: 9, unitG: 10, unitName: 'galleta' },
+  { id: 'f-barcereal', cat: 'calle', name: 'Barrita de cereales', kcal: 400, p: 6, c: 70, f: 11, s: 28, sf: 5, unitG: 25, unitName: 'barrita' },
+  { id: 'f-mixfrutos', cat: 'calle', name: 'Frutos secos naturales (bolsa)', kcal: 600, p: 20, c: 15, f: 52, s: 4, sf: 6, unitG: 30, unitName: 'puñado' },
 ]
 
-export const MEALS = ['Desayuno', 'Comida', 'Merienda', 'Cena']
+export const MEALS = ['Desayuno', 'Comida', 'Merienda', 'Cena', 'Picoteo / gym']
+
+export const CATS = [
+  { id: 'calle', label: 'Snacks y comer fuera' },
+  { id: 'bebida', label: 'Bebidas' },
+  { id: 'sup', label: 'Suplementos' },
+]
