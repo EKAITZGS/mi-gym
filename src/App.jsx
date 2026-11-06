@@ -21,6 +21,7 @@ export default function App() {
   const [tab, setTab] = useState('home')
   const [view, setView] = useState({ name: 'list' })
   const [notice, setNotice] = useState(null)
+  const storedPolarEx = () => { try { return JSON.parse(localStorage.getItem('migym.v1') || '{}').polar?.exercises || {} } catch { return {} } }
 
   // Polar: al volver de dar permiso, y sincronización automática al abrir (cada 30 min como mucho)
   useEffect(() => {
@@ -29,13 +30,30 @@ export default function App() {
       setTab('settings')
       setNotice(ret.ok ? 'Polar conectado. Sincronizando…' : `No se pudo conectar Polar (${ret.error}).`)
     }
-    const p = getPolar()
-    const last = data.polar?.lastSync ? Date.parse(data.polar.lastSync) : 0
-    if (p?.token && (ret?.ok || Date.now() - last > 30 * 60 * 1000)) {
+    let lastTry = 0
+    const auto = (force) => {
+      const p = getPolar()
+      if (!p?.token) return
+      if (!force && Date.now() - lastTry < 3 * 60 * 1000) return
+      lastTry = Date.now()
+      const before = new Set(Object.keys(storedPolarEx()))
+      const hadSync = (() => { try { return !!JSON.parse(localStorage.getItem('migym.v1') || '{}').polar?.lastSync } catch { return false } })()
       syncPolar(setData)
-        .then((r) => ret?.ok && setNotice(`Polar conectado: ${r.exercises} entrenos de los últimos 30 días.`))
+        .then((r) => {
+          if (ret?.ok && force) return setNotice(`Polar conectado: ${r.exercises} entrenos de los últimos 30 días.`)
+          const fresh = r.list.filter((e) => !before.has(String(e.id)))
+          if (fresh.length && hadSync) {
+            const e = fresh.sort((a, b) => (a.date + a.time < b.date + b.time ? 1 : -1))[0]
+            setNotice(`Entreno del reloj recibido: ${e.min} min · ${e.kcal} kcal${e.hrAvg ? ` · ${e.hrAvg} ppm` : ''}`)
+          }
+        })
         .catch((e) => ret && setNotice(e.message === 'AUTH' ? 'Polar ha rechazado el acceso. Vuelve a conectar.' : 'No se pudo sincronizar con Polar ahora.'))
     }
+    auto(!!ret?.ok)
+    // Al volver a la app (iOS la deja dormida en segundo plano) vuelve a mirar si hay entreno nuevo
+    const onVis = () => document.visibilityState === 'visible' && auto(false)
+    document.addEventListener('visibilitychange', onVis)
+    return () => document.removeEventListener('visibilitychange', onVis)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
   useEffect(() => {

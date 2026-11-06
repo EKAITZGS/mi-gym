@@ -101,7 +101,7 @@ export async function syncPolar(setData) {
       days: { ...(d.polar?.days || {}), ...days },
     },
   }))
-  return { exercises: Object.keys(exercises).length, days: Object.keys(days).length }
+  return { exercises: Object.keys(exercises).length, days: Object.keys(days).length, list: Object.values(exercises) }
 }
 
 export const polarExercisesOn = (data, date) =>
