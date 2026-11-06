@@ -88,6 +88,14 @@ function hrDetail(e) {
   return out
 }
 
+function loadPrevEx() {
+  try {
+    return JSON.parse(localStorage.getItem('migym.v1') || '{}').polar?.exercises || {}
+  } catch {
+    return {}
+  }
+}
+
 async function get(path, token) {
   const r = await fetch(POLAR_WORKER + path, { headers: { Authorization: `Bearer ${token}` } })
   if (r.status === 401 || r.status === 403) throw new Error('AUTH')
@@ -118,6 +126,17 @@ export async function syncPolar(setData) {
       ...hrDetail(e),
     }
   }
+  // Si la lista no trae la curva de pulso, se pide el detalle de cada entreno (solo los que aún no la tienes)
+  const prev = loadPrevEx()
+  for (const e of Object.values(exercises).slice(-10)) {
+    if (e.hr || prev[e.id]?.hr) continue
+    try {
+      const det = await get(`/exercise?id=${encodeURIComponent(e.id)}`, p.token)
+      Object.assign(e, hrDetail(Array.isArray(det) ? det[0] || {} : det))
+    } catch (err) {
+      if (err.message === 'AUTH') throw err
+    }
+  }
   const days = {}
   for (const a of Array.isArray(act) ? act : []) {
     const d = String(a.date || a.start_time || '').slice(0, 10)
@@ -127,7 +146,12 @@ export async function syncPolar(setData) {
     ...d,
     polar: {
       lastSync: new Date().toISOString(),
-      exercises: { ...(d.polar?.exercises || {}), ...exercises },
+      exercises: Object.fromEntries(
+        Object.entries({ ...(d.polar?.exercises || {}), ...exercises }).map(([k, e]) => {
+          const old = d.polar?.exercises?.[k]
+          return [k, old?.hr && !e.hr ? { ...e, hr: old.hr, zones: e.zones || old.zones } : e]
+        })
+      ),
       days: { ...(d.polar?.days || {}), ...days },
     },
   }))
