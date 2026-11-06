@@ -90,7 +90,9 @@ export default function Home({ data, setData, onStart, go }) {
 
       {todays.map((d) => {
         const cover = EX_BY_ID[d.items[0]?.ex]
-        const doneToday = data.active?.dayId !== d.id && data.sessions.filter((x) => x.date === todayStr() && x.dayId === d.id).pop()
+        const todayS = data.sessions.filter((x) => x.date === todayStr())
+        // cuenta como hecho si hoy ya entrenaste, aunque fuera un entreno libre u otro día del plan
+        const doneToday = data.active?.dayId !== d.id && (todayS.filter((x) => x.dayId === d.id).pop() || todayS.pop())
         if (doneToday) {
           const sets = Object.values(doneToday.entries || {}).reduce((n, ss) => n + ss.length, 0)
           const nEx = Object.keys(doneToday.entries || {}).length
@@ -103,9 +105,9 @@ export default function Home({ data, setData, onStart, go }) {
                 <span className="daypill ok">
                   <Icon name="check" size={13} /> Hecho hoy
                 </span>
-                <h2>{d.name}</h2>
+                <h2>{doneToday.dayId === d.id ? d.name : doneToday.dayName || d.name}</h2>
                 <p className="hero-sum">
-                  {nEx} {nEx === 1 ? 'ejercicio' : 'ejercicios'} · {sets} series
+                  {nEx} {nEx === 1 ? 'ejercicio' : 'ejercicios'} · {sets} {sets === 1 ? 'serie' : 'series'}
                   {watch ? ` · ${watch.min} min · ${watch.kcal} kcal` : ''}
                 </p>
                 <p className="small hero-note">¡Buen trabajo! Ahora toca comer bien y descansar.</p>
