@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useStore, todayStr } from './store'
 import { setCustomExercises } from './data/exercises'
 import Home from './Home'
-import Workout from './Workout'
+import Workout, { editGuard } from './Workout'
 import Diet from './Diet'
 import Settings from './Settings'
 import Icon from './icons'
@@ -97,6 +97,8 @@ export default function App() {
   }
 
   const goTab = (id) => {
+    if (editGuard.dirty && !confirm('Tienes cambios sin guardar en el día que estás editando. ¿Salir sin guardar?')) return
+    editGuard.dirty = false
     setTab(id)
     if (id === 'train' && view.name !== 'session') setView({ name: 'list' })
   }

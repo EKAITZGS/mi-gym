@@ -104,7 +104,9 @@ function hrDetail(e) {
         hi: Number(pick(x, 'upper-limit', 'upper_limit', 'upperLimit')) || 0,
         s: isoSeconds(pick(x, 'in-zone', 'in_zone', 'inZone')),
       }))
-      .sort((a, b) => a.i - b.i)
+      // Polar a veces numera desde 0: se ordenan por límite y se numeran 1–5
+      .sort((a, b) => a.lo - b.lo || a.i - b.i)
+      .map((z, k) => ({ ...z, i: k + 1 }))
   return out
 }
 

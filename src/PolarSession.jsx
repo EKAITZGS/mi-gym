@@ -109,7 +109,8 @@ function HrChart({ hr, zones }) {
   )
 }
 
-export default function PolarSession({ ex, onClose }) {
+export default function PolarSession({ ex: raw, onClose }) {
+  const ex = raw.zones?.length ? { ...raw, zones: [...raw.zones].sort((a, b) => a.lo - b.lo).map((z, k) => ({ ...z, i: k + 1 })) } : raw
   const total = (ex.zones || []).reduce((a, z) => a + z.s, 0)
   const peaks = hrPeaks(ex.hr)
   const tips = polarVerdict(ex)

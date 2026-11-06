@@ -1606,3 +1606,29 @@ button.polar-ex:first-of-type { border-top: 0; }
 .zone-bar span { display: block; height: 100%; border-radius: 99px; min-width: 2px; }
 .zone-t { text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
 .chk-l.uni-l { display: flex; flex-direction: row; align-items: center; gap: 10px; margin-top: 12px; font-size: 14px; color: var(--text); }
+
+/* Barra de guardar en el editor de día */
+.page.has-savebar { padding-bottom: 170px; }
+.savebar {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(var(--tab) + env(safe-area-inset-bottom) + 10px);
+  width: min(560px, calc(100% - 28px));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 10px 10px 16px;
+  border-radius: 18px;
+  background: rgba(24, 27, 34, 0.92);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--accent);
+  box-shadow: 0 12px 30px -12px rgba(0, 0, 0, 0.7);
+  z-index: 40;
+  animation: savebar-in 0.25s ease-out;
+}
+.savebar .btn { min-height: 44px; padding: 0 18px; }
+@keyframes savebar-in { from { opacity: 0; transform: translate(-50%, 12px); } }
+body.modal-open .savebar { display: none; }
