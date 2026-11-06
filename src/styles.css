@@ -1581,3 +1581,10 @@ body.modal-open .tabbar { visibility: hidden; pointer-events: none; }
   color: var(--muted);
 }
 .setrow .chk-sp { width: 46px; flex-shrink: 0; margin-left: auto; }
+
+/* Entreno de hoy ya hecho */
+.hero.done img { filter: grayscale(0.6) brightness(0.7); }
+.daypill.ok { display: inline-flex; align-items: center; gap: 5px; }
+.hero-sum { margin: 6px 0 2px; font-weight: 700; font-size: 16px; color: #fff; }
+.hero-note { color: rgba(255, 255, 255, 0.75); margin: 0; }
+.hero-again { display: inline-flex !important; width: auto; margin: 4px 0 0; padding: 0 !important; justify-content: flex-start; color: rgba(255, 255, 255, 0.85); text-decoration: underline; text-underline-offset: 3px; }
