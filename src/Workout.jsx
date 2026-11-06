@@ -3,8 +3,11 @@ import { EXERCISES, EX_BY_ID, GROUPS } from './data/exercises'
 import { WEEKDAYS, uid, lastSets, exStats, suggestion, fmtKg, num } from './store'
 import { Modal, Thumb, LineChart, ExPhoto } from './ui'
 import Icon from './icons'
+import WeeklyReview from './Review'
 import { generatePlan, PLAN_OPTIONS, LEVELS } from './plans'
 import Setup from './Setup'
+import { FEELINGS, ZONES, adviceFor, painFor, needsDeload } from './coach'
+import Coach from './Coach'
 
 const ORDER = [1, 2, 3, 4, 5, 6, 0] // lunes primero
 
@@ -326,6 +329,77 @@ function DayEditor({ data, setData, dayId, onBack }) {
   )
 }
 
+/* ---------- Check-in al terminar ---------- */
+function CheckIn({ onSave, onSkip }) {
+  const [feel, setFeel] = useState(null)
+  const [hasPain, setHasPain] = useState(false)
+  const [zone, setZone] = useState(null)
+  const [level, setLevel] = useState('leve')
+  const [note, setNote] = useState('')
+  return (
+    <Modal title="¿Cómo ha ido?" onClose={onSkip}>
+      <p className="muted small" style={{ marginTop: 0 }}>
+        Con esto ajusto los consejos y te aviso en los próximos entrenos.
+      </p>
+      <h4>Sensación del entreno</h4>
+      <div className="feels">
+        {FEELINGS.map((f) => (
+          <button key={f.id} className={'feel' + (feel === f.id ? ' on' : '')} onClick={() => setFeel(f.id)}>
+            <span className="fe">{f.emoji}</span>
+            <span>{f.label}</span>
+          </button>
+        ))}
+      </div>
+      <h4>¿Alguna molestia o incidente?</h4>
+      <div className="seg">
+        <button className={!hasPain ? 'on' : ''} onClick={() => setHasPain(false)}>
+          No, todo bien
+        </button>
+        <button className={hasPain ? 'on warn' : ''} onClick={() => setHasPain(true)}>
+          Sí
+        </button>
+      </div>
+      {hasPain && (
+        <>
+          <div className="chips wrap">
+            {ZONES.map((z) => (
+              <button key={z.id} className={'chip sm' + (zone === z.id ? ' on' : '')} onClick={() => setZone(z.id)}>
+                {z.id}
+              </button>
+            ))}
+          </div>
+          <div className="seg" style={{ marginTop: 10 }}>
+            <button className={level === 'leve' ? 'on' : ''} onClick={() => setLevel('leve')}>
+              Leve
+            </button>
+            <button className={level === 'fuerte' ? 'on warn' : ''} onClick={() => setLevel('fuerte')}>
+              Fuerte / punzante
+            </button>
+          </div>
+        </>
+      )}
+      <h4>Notas (opcional)</h4>
+      <textarea
+        className="inp"
+        rows={2}
+        placeholder="Ej: me quedé sin fuerza en el tríceps, dormí poco…"
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+      />
+      <button
+        className="btn primary full"
+        disabled={!feel || (hasPain && !zone)}
+        onClick={() => onSave({ feel, pain: hasPain && zone ? { zone, level } : null, note: note.trim() })}
+      >
+        Guardar y ver consejos
+      </button>
+      <button className="link" onClick={onSkip}>
+        Saltar
+      </button>
+    </Modal>
+  )
+}
+
 /* ---------- Entreno en curso ---------- */
 function Session({ data, setData, onExit }) {
   const a = data.active
@@ -378,10 +452,33 @@ function Session({ data, setData, onExit }) {
     setDone({ ...done, changed: false, saved: true })
   }
 
+  if (done && done.step === 'checkin')
+    return (
+      <div className="page">
+        <CheckIn
+          onSkip={() => setDone({ ...done, step: 'summary', tips: [] })}
+          onSave={(ck) => {
+            setData((d) => ({ ...d, sessions: d.sessions.map((x) => (x.id === done.sid ? { ...x, checkin: ck } : x)) }))
+            setDone({ ...done, step: 'summary', tips: adviceFor(ck, data.sessions) })
+          }}
+        />
+      </div>
+    )
+
   if (done)
     return (
       <div className="page">
         <Modal title="Entreno guardado" onClose={onExit}>
+          {done.tips?.length > 0 && (
+            <>
+              <h4 style={{ marginTop: 0 }}>Para tu próximo entreno</h4>
+              {done.tips.map((t, i) => (
+                <div key={i} className={'advice ' + t.tone}>
+                  {t.text}
+                </div>
+              ))}
+            </>
+          )}
           {done.prs.length > 0 ? (
             <>
               <h4>Récords nuevos</h4>
@@ -437,6 +534,7 @@ function Session({ data, setData, onExit }) {
     }))
 
   const finish = () => {
+    const sid = uid()
     const entries = {}
     for (const [k, sets] of Object.entries(a.entries)) {
       const kept = sets
@@ -458,12 +556,12 @@ function Session({ data, setData, onExit }) {
     setData((d) => ({
       ...d,
       active: null,
-      sessions: [...d.sessions, { id: uid(), date: a.date, dayId: a.dayId, dayName: name, entries }],
+      sessions: [...d.sessions, { id: sid, date: a.date, dayId: a.dayId, dayName: name, entries }],
     }))
     const before = (day?.items || []).map((i) => i.ex).join('|')
     const after = items.map((i) => i.ex).join('|')
     const changed = items.length > 0 && (a.dayId === 'free' || (day && before !== after))
-    setDone({ prs, changed, items, dayId: a.dayId, name })
+    setDone({ prs, changed, items, dayId: a.dayId, name, sid, step: 'checkin' })
   }
   const discard = () => {
     if (!confirm('¿Descartar este entreno sin guardar?')) return
@@ -476,6 +574,11 @@ function Session({ data, setData, onExit }) {
         <Icon name="left" size={18} /> Salir (se queda guardado)
       </button>
       <h1 className="title">{name}</h1>
+      {needsDeload(data.sessions) && (
+        <div className="advice yellow">
+          Tus últimos entrenos fueron muy duros. Hoy te propongo descarga: un 30% menos de peso y sin llegar al fallo.
+        </div>
+      )}
       {items.length === 0 && (
         <div className="empty-state">
           <Icon name="dumbbell" size={28} />
@@ -486,7 +589,8 @@ function Session({ data, setData, onExit }) {
         const ex = EX_BY_ID[it.ex]
         const sets = a.entries[it.ex] || []
         const last = lastSets(data.sessions, it.ex)
-        const sug = suggestion(data.sessions, it.ex, it.reps, it.sets, ex?.equip)
+        const pain = painFor(data.sessions, it.ex)
+        const sug = pain ? null : suggestion(data.sessions, it.ex, it.reps, it.sets, ex?.equip)
         const phOf = (i) => {
           const base = last?.sets[i] || last?.sets[last.sets.length - 1] || {}
           return sug ? { ...base, w: fmtKg(sug.w), r: String(sug.reps) } : base
@@ -517,6 +621,12 @@ function Session({ data, setData, onExit }) {
                 {last && (
                   <div className="muted small">
                     Última vez: {last.sets.map((s) => `${s.w || '?'}×${s.r || '?'}`).join(', ')}
+                  </div>
+                )}
+                {pain && (
+                  <div className={'advice ' + (pain.level === 'fuerte' ? 'red' : 'yellow') + ' sm'}>
+                    Molestia {pain.level} en {pain.zone.toLowerCase()} el {pain.date.slice(8)}/{pain.date.slice(5, 7)}.{' '}
+                    {pain.level === 'fuerte' ? 'Mejor cámbialo por otro o sáltalo hoy.' : 'Baja el peso y no llegues al fallo.'}
                   </div>
                 )}
                 {sug && (
@@ -644,6 +754,7 @@ function Session({ data, setData, onExit }) {
 export default function Workout({ data, setData, view, setView, onStart, onStartFree }) {
   const [gen, setGen] = useState(false)
   const [setup, setSetup] = useState(false)
+  const [coach, setCoach] = useState(false)
 
   if (view.name === 'session') return <Session data={data} setData={setData} onExit={() => setView({ name: 'list' })} />
   if (view.name === 'edit') return <DayEditor data={data} setData={setData} dayId={view.id} onBack={() => setView({ name: 'list' })} />
@@ -695,6 +806,8 @@ export default function Workout({ data, setData, view, setView, onStart, onStart
           <Icon name="right" size={18} />
         </button>
       )}
+
+      <WeeklyReview data={data} setData={setData} />
 
       <div className="week">
         {ORDER.map((w) => {
@@ -764,6 +877,9 @@ export default function Workout({ data, setData, view, setView, onStart, onStart
       <button className="btn full free-btn" onClick={onStartFree}>
         <Icon name="play" size={14} fill="currentColor" stroke={0} /> Entreno libre (a tu aire)
       </button>
+      <button className="btn full coach-btn" onClick={() => setCoach(true)}>
+        <Icon name="sparkle" size={18} /> Mejorar mi rutina con IA
+      </button>
       <button className="btn full" onClick={() => setSetup(true)}>
         <Icon name="calendar" size={18} /> Configurar entrenamiento
       </button>
@@ -777,6 +893,7 @@ export default function Workout({ data, setData, view, setView, onStart, onStart
       </div>
       {gen && <Generator onClose={() => setGen(false)} onGenerate={generate} />}
       {setup && <Setup data={data} setData={setData} onClose={() => setSetup(false)} />}
+      {coach && <Coach data={data} setData={setData} onClose={() => setCoach(false)} />}
     </div>
   )
 }

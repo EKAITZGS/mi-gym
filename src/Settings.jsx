@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { DEFAULT, todayStr, num } from './store'
 import { getAi, setAi, DEFAULT_MODEL } from './ai'
 import Setup from './Setup'
+import Coach from './Coach'
 import { Generator } from './Workout'
 import { generatePlan } from './plans'
 import Icon from './icons'
@@ -12,6 +13,7 @@ export default function Settings({ data, setData }) {
   const [ai, setAiState] = useState(getAi())
   const [setup, setSetup] = useState(false)
   const [gen, setGen] = useState(false)
+  const [coach, setCoach] = useState(false)
   const flash = (m) => {
     setMsg(m)
     setTimeout(() => setMsg(''), 3500)
@@ -87,6 +89,14 @@ export default function Settings({ data, setData }) {
           </div>
           <Icon name="right" size={18} />
         </button>
+        <button className="row nob li" onClick={() => setCoach(true)}>
+          <span className="rest-ic"><Icon name="trend" size={20} /></span>
+          <div className="grow">
+            <div className="li-t">Mejorar mi rutina con IA</div>
+            <div className="muted small">Propone cambios o más días según tus entrenos y molestias</div>
+          </div>
+          <Icon name="right" size={18} />
+        </button>
         <button className="row nob li" onClick={() => setGen(true)}>
           <span className="rest-ic"><Icon name="sparkle" size={20} /></span>
           <div className="grow">
@@ -97,6 +107,7 @@ export default function Settings({ data, setData }) {
         </button>
       </div>
       {setup && <Setup data={data} setData={setData} onClose={() => setSetup(false)} />}
+      {coach && <Coach data={data} setData={setData} onClose={() => setCoach(false)} />}
       {gen && (
         <Generator
           onClose={() => setGen(false)}
@@ -117,10 +128,10 @@ export default function Settings({ data, setData }) {
         <p className="muted small">Ponlos tú como quieras. Son solo una guía para las barras de progreso.</p>
       </div>
 
-      <h4>IA para fotos (Groq)</h4>
+      <h4>IA (Groq): fotos y entrenador</h4>
       <div className="card">
         <p className="muted small">
-          Para reconocer alimentos por foto. Crea una clave gratis en console.groq.com (API Keys) y pégala aquí. Se
+          Para reconocer alimentos por foto y para el entrenador que mejora tu rutina. Crea una clave gratis en console.groq.com (API Keys) y pégala aquí. Se
           guarda solo en este móvil y no entra en las copias de seguridad. Las fotos se envían a Groq para analizarlas.
         </p>
         <label className="lbl">Clave de Groq</label>
