@@ -60,7 +60,7 @@ export default function App() {
   return (
     <div className="app">
       <main className="main">
-        {tab === 'home' && <Home data={data} onStart={start} go={goTab} />}
+        {tab === 'home' && <Home data={data} setData={setData} onStart={start} go={goTab} />}
         {tab === 'train' && <Workout data={data} setData={setData} view={view} setView={setView} onStart={start} onStartFree={startFree} />}
         {tab === 'diet' && <Diet data={data} setData={setData} />}
         {tab === 'settings' && <Settings data={data} setData={setData} />}

@@ -1,11 +1,17 @@
 import { useState } from 'react'
 import { DEFAULT, todayStr, num } from './store'
 import { getAi, setAi, DEFAULT_MODEL } from './ai'
+import Setup from './Setup'
+import { Generator } from './Workout'
+import { generatePlan } from './plans'
+import Icon from './icons'
 
 export default function Settings({ data, setData }) {
   const [msg, setMsg] = useState('')
   const [paste, setPaste] = useState('')
   const [ai, setAiState] = useState(getAi())
+  const [setup, setSetup] = useState(false)
+  const [gen, setGen] = useState(false)
   const flash = (m) => {
     setMsg(m)
     setTimeout(() => setMsg(''), 3500)
@@ -70,6 +76,37 @@ export default function Settings({ data, setData }) {
   return (
     <div className="page">
       <h1 className="title">Ajustes</h1>
+
+      <h4>Entrenamiento</h4>
+      <div className="card">
+        <button className="row nob li" onClick={() => setSetup(true)}>
+          <span className="rest-ic"><Icon name="calendar" size={20} /></span>
+          <div className="grow">
+            <div className="li-t">Configurar entrenamiento</div>
+            <div className="muted small">Qué días entrenas y qué ejercicios haces cada día</div>
+          </div>
+          <Icon name="right" size={18} />
+        </button>
+        <button className="row nob li" onClick={() => setGen(true)}>
+          <span className="rest-ic"><Icon name="sparkle" size={20} /></span>
+          <div className="grow">
+            <div className="li-t">Plan automático</div>
+            <div className="muted small">Según tu nivel, con los días que te recomiendo ir</div>
+          </div>
+          <Icon name="right" size={18} />
+        </button>
+      </div>
+      {setup && <Setup data={data} setData={setData} onClose={() => setSetup(false)} />}
+      {gen && (
+        <Generator
+          onClose={() => setGen(false)}
+          onGenerate={(days, level) => {
+            setData((d) => ({ ...d, plan: generatePlan(days, level), active: null, setupDone: true }))
+            setGen(false)
+            flash('Plan creado. Míralo en Entreno.')
+          }}
+        />
+      )}
 
       <h4>Objetivos diarios</h4>
       <div className="card">

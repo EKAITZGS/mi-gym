@@ -3,7 +3,8 @@ import { EXERCISES, EX_BY_ID, GROUPS } from './data/exercises'
 import { WEEKDAYS, uid, lastSets, exStats, suggestion, fmtKg, num } from './store'
 import { Modal, Thumb, LineChart, ExPhoto } from './ui'
 import Icon from './icons'
-import { generatePlan, PLAN_OPTIONS } from './plans'
+import { generatePlan, PLAN_OPTIONS, LEVELS } from './plans'
+import Setup from './Setup'
 
 const ORDER = [1, 2, 3, 4, 5, 6, 0] // lunes primero
 
@@ -177,27 +178,53 @@ function Library({ data, setData, onPick, onClose, inline, title }) {
 }
 
 /* ---------- Generador de plan ---------- */
-function Generator({ onClose, onGenerate }) {
-  const [days, setDays] = useState(4)
+export function Generator({ onClose, onGenerate }) {
+  const [level, setLevel] = useState('beginner')
+  const lv = LEVELS.find((l) => l.id === level)
+  const [days, setDays] = useState(lv.days)
+  const pickLevel = (l) => {
+    setLevel(l.id)
+    setDays(l.days)
+  }
   return (
-    <Modal title="Generar plan automático" onClose={onClose}>
-      <p className="muted">
-        Elige cuántos días a la semana vas a entrenar. Esto <b>sustituye tu plan actual</b> (luego puedes cambiar
-        cualquier ejercicio, series o día).
-      </p>
+    <Modal title="Plan automático" onClose={onClose}>
+      <h4 style={{ marginTop: 0 }}>1. Tu nivel</h4>
       <div className="list">
-        {PLAN_OPTIONS.map((o) => (
-          <button key={o.days} className={'row opt' + (days === o.days ? ' on' : '')} onClick={() => setDays(o.days)}>
+        {LEVELS.map((l) => (
+          <button key={l.id} className={'row opt' + (level === l.id ? ' on' : '')} onClick={() => pickLevel(l)}>
             <div className="grow">
-              <b>{o.label}</b>
-              <div className="muted small">{o.hint}</div>
+              <b>{l.label}</b>
+              <div className="muted small">{l.hint}</div>
             </div>
-            {days === o.days && <span className="plus"><Icon name="check" size={18} /></span>}
+            {level === l.id && <span className="plus"><Icon name="check" size={18} /></span>}
           </button>
         ))}
       </div>
-      <button className="btn primary full" onClick={() => onGenerate(days)}>
-        Generar plan de {days} días
+      <div className="tip">
+        <Icon name="sparkle" size={15} /> Para tu nivel te recomiendo ir {lv.range} a la semana.
+      </div>
+      <h4>2. Días por semana</h4>
+      <div className="chips wrap">
+        {PLAN_OPTIONS.map((o) => (
+          <button key={o.days} className={'chip' + (days === o.days ? ' on' : '')} onClick={() => setDays(o.days)}>
+            {o.days} días{o.days === lv.days ? ' ★' : ''}
+          </button>
+        ))}
+      </div>
+      <p className="muted small">{PLAN_OPTIONS.find((o) => o.days === days)?.hint}</p>
+      {level === 'beginner' && days >= 5 && (
+        <p className="toast warn small">Siendo principiante, más de 4 días suele ser demasiado: recuperarás peor.</p>
+      )}
+      <p className="muted small">
+        {level === 'beginner'
+          ? 'Principiante: 2-3 series por ejercicio, sin fallo ni drop sets.'
+          : level === 'advanced'
+            ? 'Avanzado: una serie más por ejercicio.'
+            : 'Intermedio: 3 series por ejercicio.'}{' '}
+        Esto sustituye tu plan actual; luego puedes cambiar lo que quieras.
+      </p>
+      <button className="btn primary full" onClick={() => onGenerate(days, level)}>
+        Crear plan de {days} días
       </button>
     </Modal>
   )
@@ -616,6 +643,7 @@ function Session({ data, setData, onExit }) {
 /* ---------- Pantalla Entreno ---------- */
 export default function Workout({ data, setData, view, setView, onStart, onStartFree }) {
   const [gen, setGen] = useState(false)
+  const [setup, setSetup] = useState(false)
 
   if (view.name === 'session') return <Session data={data} setData={setData} onExit={() => setView({ name: 'list' })} />
   if (view.name === 'edit') return <DayEditor data={data} setData={setData} dayId={view.id} onBack={() => setView({ name: 'list' })} />
@@ -639,8 +667,8 @@ export default function Workout({ data, setData, view, setView, onStart, onStart
     setData((d) => ({ ...d, plan: [...d.plan, { id, name: 'Nuevo día', weekday: null, items: [] }] }))
     setView({ name: 'edit', id })
   }
-  const generate = (days) => {
-    setData((d) => ({ ...d, plan: generatePlan(days), active: null }))
+  const generate = (days, level) => {
+    setData((d) => ({ ...d, plan: generatePlan(days, level), active: null, setupDone: true }))
     setGen(false)
   }
   const sorted = [...data.plan].sort((a, b) => ((a.weekday ?? 9) + 6) % 7 - ((b.weekday ?? 9) + 6) % 7)
@@ -736,7 +764,10 @@ export default function Workout({ data, setData, view, setView, onStart, onStart
       <button className="btn full free-btn" onClick={onStartFree}>
         <Icon name="play" size={14} fill="currentColor" stroke={0} /> Entreno libre (a tu aire)
       </button>
-      <div className="actions">
+      <button className="btn full" onClick={() => setSetup(true)}>
+        <Icon name="calendar" size={18} /> Configurar entrenamiento
+      </button>
+      <div className="actions" style={{ marginTop: 10 }}>
         <button className="btn" onClick={addDay}>
           <Icon name="plus" size={18} /> Nuevo día
         </button>
@@ -745,6 +776,7 @@ export default function Workout({ data, setData, view, setView, onStart, onStart
         </button>
       </div>
       {gen && <Generator onClose={() => setGen(false)} onGenerate={generate} />}
+      {setup && <Setup data={data} setData={setData} onClose={() => setSetup(false)} />}
     </div>
   )
 }

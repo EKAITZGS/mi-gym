@@ -243,6 +243,25 @@ export const PLAN_OPTIONS = [
   { days: 7, label: '7 días', hint: 'Igual que 6 + domingo suave de core. Ojo: sin descanso real' },
 ]
 
-export function generatePlan(days) {
-  return TEMPLATES[days].map((t) => ({ id: uid(), name: t.name, weekday: t.weekday, items: t.items() }))
+export const LEVELS = [
+  { id: 'beginner', label: 'Principiante', hint: 'Empiezas o vuelves tras un parón', days: 3, range: '3 días (máx. 4)' },
+  { id: 'intermediate', label: 'Intermedio', hint: 'Llevas 6-12 meses entrenando con constancia', days: 4, range: '4 días (3 a 5)' },
+  { id: 'advanced', label: 'Avanzado', hint: 'Más de un año entrenando en serio', days: 5, range: '5 días (4 a 6)' },
+]
+
+// Ajusta volumen según el nivel: principiante menos series y sin fallo; avanzado una serie más.
+export function generatePlan(days, level = 'intermediate') {
+  return TEMPLATES[days].map((t) => ({
+    id: uid(),
+    name: t.name,
+    weekday: t.weekday,
+    items: t.items().map((i) => {
+      if (level === 'beginner') {
+        const reps = i.drop ? '10-12' : i.reps
+        return { ...i, sets: Math.max(2, Math.min(3, i.sets)), reps, drop: false }
+      }
+      if (level === 'advanced') return { ...i, sets: Math.min(5, i.sets + 1) }
+      return i
+    }).slice(0, level === 'beginner' ? 5 : 6),
+  }))
 }
