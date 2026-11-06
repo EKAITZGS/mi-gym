@@ -137,12 +137,12 @@ export default function Setup({ data, setData, onClose }) {
           <p className="muted small">
             ¿Aún no sabes los ejercicios de algún día? Guarda solo los días y los vas añadiendo cuando entrenes.
           </p>
-          <div className="wizard-nav">
+          <div className="wizard-nav even">
             <button className="btn" disabled={active.length === 0} onClick={finish}>
               Guardar días
             </button>
             <button className="btn primary" disabled={active.length === 0} onClick={() => goStep(1)}>
-              Elegir ejercicios <Icon name="right" size={16} />
+              Siguiente <Icon name="right" size={16} />
             </button>
           </div>
         </>

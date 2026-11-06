@@ -1360,7 +1360,7 @@ textarea.inp {
 .link.small { min-height: 36px; display: flex; align-items: center; }
 .chip { min-height: 38px; }
 .chk { height: 44px; }
-.btn + .btn, .btn + label.btn, label.btn + .btn { margin-top: 10px; }
+.btn.full + .btn.full, .btn.full + label.btn.full, label.btn.full + .btn.full { margin-top: 10px; }
 
 .btn.full { display: flex; }
 /* filas de series: que nada se encoja en pantallas pequeñas */
@@ -1418,3 +1418,46 @@ body.modal-open .tabbar { visibility: hidden; pointer-events: none; }
 .two.labeled { row-gap: 10px; }
 
 .quick-actions.two-col { grid-template-columns: 1fr 1fr; }
+
+/* ---- Repaso visual: alturas iguales y una sola línea ---- */
+.btn, .tile2-t, .chip, .tool, .seg button, .qa span, .tab-label { white-space: nowrap; }
+.btns .btn, .wizard-nav .btn, .actions .btn { margin-top: 0; min-height: 48px; }
+.btns, .actions { align-items: stretch; margin-top: 10px; }
+.btns .btn { overflow: hidden; text-overflow: ellipsis; }
+.wizard-nav .btn { overflow: hidden; text-overflow: ellipsis; }
+
+/* fila inferior de cada día: todo a 46 px */
+.dayfoot { gap: 8px; }
+.dayfoot .mini-sel, .dayfoot .icon-btn, .dayfoot .sm-btn { height: 46px; min-height: 46px; margin: 0; }
+.dayfoot .icon-btn { min-width: 46px; border-radius: 12px; }
+.dayfoot .sm-btn { padding: 0 18px; border-radius: 12px; }
+.dayfoot .mini-sel { flex: 1; min-width: 0; padding-top: 0; padding-bottom: 0; }
+
+/* portada de día sin ejercicios */
+.daycover.empty { height: 120px; background: linear-gradient(135deg, #12291f 0%, #15171d 70%); }
+.daycover.empty .daycover-shade { background: linear-gradient(180deg, transparent 30%, rgba(10, 11, 14, 0.85)); }
+.cover-empty { position: absolute; inset: 0; display: grid; place-items: center end; padding-right: 24px; color: rgba(62, 224, 143, 0.18); background: none; }
+
+/* cuadrícula de herramientas */
+.tiles { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.tile2 {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+  min-height: 96px; padding: 14px; border-radius: 16px; text-align: left;
+  background: var(--card); border: 1px solid var(--line); overflow: hidden;
+}
+.tile2-ic {
+  width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center;
+  background: var(--card2); color: var(--text2); margin-bottom: 8px;
+}
+.tile2.accent .tile2-ic { background: var(--accent-soft); color: var(--accent); }
+.tile2-t { font-weight: 700; font-size: 15px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.tile2-s { font-size: 12px; color: var(--muted); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.btns .btn, .wizard-nav .btn { padding: 12px 10px; gap: 6px; }
+.wizard-nav.even { grid-template-columns: 1fr 1fr; }
+@media (max-width: 360px) {
+  .tile2 { padding: 12px; min-height: 90px; }
+  .tile2-t { font-size: 14px; }
+  .btns .btn, .wizard-nav .btn { font-size: 15px; }
+  .btns .btn .ico, .wizard-nav .btn .ico { width: 15px; height: 15px; }
+}
