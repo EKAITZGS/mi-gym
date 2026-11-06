@@ -1,0 +1,174 @@
+import { useMemo, useState } from 'react'
+import { dayTotals, fmtDate, todayStr, exStats, fmtKg } from './store'
+import { EX_BY_ID } from './data/exercises'
+import { Ring, Thumb } from './ui'
+import { ExerciseModal } from './Workout'
+import Icon from './icons'
+
+const greeting = () => {
+  const h = new Date().getHours()
+  return h < 13 ? 'Buenos días' : h < 21 ? 'Buenas tardes' : 'Buenas noches'
+}
+
+export default function Home({ data, onStart, go }) {
+  const [open, setOpen] = useState(null)
+  const wd = new Date().getDay()
+  const todays = data.plan.filter((d) => d.weekday === wd)
+  const others = data.plan.filter((d) => d.weekday !== wd)
+  const t = dayTotals(data.food[todayStr()] || [])
+  const monday = (() => {
+    const d = new Date()
+    d.setDate(d.getDate() - ((d.getDay() + 6) % 7))
+    return fmtDate(d)
+  })()
+  const doneDates = new Set(data.sessions.filter((s) => s.date >= monday).map((s) => s.date))
+  const done = data.sessions.filter((s) => s.date >= monday).length
+  const planned = data.plan.filter((d) => d.weekday != null).length
+  const dateTxt = new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })
+
+  const progress = useMemo(() => {
+    const ids = [...new Set(data.sessions.flatMap((s) => Object.keys(s.entries || {})))]
+    return ids
+      .map((id) => {
+        const st = exStats(data.sessions, id)
+        if (!st.length || !EX_BY_ID[id]) return null
+        return { id, n: st.length, first: st[0].best.e, last: st[st.length - 1].best.e }
+      })
+      .filter(Boolean)
+      .sort((a, b) => b.n - a.n)
+      .slice(0, 5)
+  }, [data.sessions])
+
+  const weekDots = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date()
+    d.setDate(d.getDate() - ((d.getDay() + 6) % 7) + i)
+    const s = fmtDate(d)
+    return { s, l: 'LMXJVSD'[i], done: doneDates.has(s), today: s === todayStr() }
+  })
+
+  return (
+    <div className="page">
+      <div className="eyebrow cap">{dateTxt}</div>
+      <h1 className="title">{greeting()}</h1>
+
+      {todays.map((d) => {
+        const cover = EX_BY_ID[d.items[0]?.ex]
+        return (
+          <div className="hero" key={d.id}>
+            {cover?.imgs?.[0] && <img src={cover.imgs[0]} alt="" />}
+            <div className="hero-shade" />
+            <div className="hero-txt">
+              <span className="daypill">Entreno de hoy</span>
+              <h2>{d.name}</h2>
+              <div className="hero-thumbs">
+                {d.items.slice(0, 5).map((i) => (
+                  <Thumb key={i.id} ex={EX_BY_ID[i.ex]} size={34} />
+                ))}
+                <span className="small">{d.items.length} ejercicios</span>
+              </div>
+              <button className="btn primary full" onClick={() => onStart(d.id)}>
+                <Icon name="play" size={14} fill="currentColor" stroke={0} />
+                {data.active?.dayId === d.id ? 'Continuar entreno' : 'Empezar entreno'}
+              </button>
+            </div>
+          </div>
+        )
+      })}
+      {todays.length === 0 && (
+        <div className="card rest">
+          <div className="rest-ic">
+            <Icon name="calendar" size={22} />
+          </div>
+          <div className="grow">
+            <b>{data.plan.length === 0 ? 'Aún no tienes plan' : 'Hoy toca descanso'}</b>
+            <p className="muted small">
+              {data.plan.length === 0
+                ? 'Crea tus días o genera un plan automático.'
+                : 'Recuperar también es entrenar. Si te apetece, elige otro día:'}
+            </p>
+            <div className="chips wrap">
+              {others.map((d) => (
+                <button key={d.id} className="chip" onClick={() => onStart(d.id)}>
+                  {d.name}
+                </button>
+              ))}
+              {data.plan.length === 0 && (
+                <button className="chip on" onClick={() => go('train')}>
+                  Ir a Entreno
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="grid2">
+        <button className="card tile" onClick={() => go('diet')}>
+          <Ring value={t.kcal} max={data.goals.kcal} size={86} stroke={9}>
+            <Icon name="flame" size={20} />
+          </Ring>
+          <div>
+            <b className="tile-num">{Math.round(t.kcal)}</b>
+            <span className="muted small"> / {data.goals.kcal} kcal</span>
+          </div>
+        </button>
+        <button className="card tile" onClick={() => go('diet')}>
+          <Ring value={t.p} max={data.goals.protein} size={86} stroke={9} color="var(--blue)">
+            <b className="ring-p">P</b>
+          </Ring>
+          <div>
+            <b className="tile-num">{Math.round(t.p)}</b>
+            <span className="muted small"> / {data.goals.protein} g prot.</span>
+          </div>
+        </button>
+      </div>
+
+      <div className="card">
+        <div className="sec-head nm">
+          <b>Esta semana</b>
+          <span className="muted small">
+            {done} {done === 1 ? 'entreno' : 'entrenos'}
+            {planned ? ` de ${planned}` : ''}
+          </span>
+        </div>
+        <div className="wdots">
+          {weekDots.map((d) => (
+            <div key={d.s} className={'wdot' + (d.done ? ' done' : '') + (d.today ? ' today' : '')}>
+              <span className="c">{d.done ? <Icon name="check" size={14} stroke={3} /> : ''}</span>
+              <span className="l">{d.l}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {progress.length > 0 && (
+        <>
+          <div className="sec-head">
+            <h4>Tu progreso de fuerza</h4>
+          </div>
+          <div className="card list-card">
+            {progress.map((p) => {
+              const diff = p.last - p.first
+              return (
+                <button key={p.id} className="row nob li" onClick={() => setOpen(EX_BY_ID[p.id])}>
+                  <Thumb ex={EX_BY_ID[p.id]} size={42} />
+                  <div className="grow">
+                    <div className="li-t">{EX_BY_ID[p.id].name}</div>
+                    <div className="muted small">1RM est. {fmtKg(Math.round(p.last * 10) / 10)} kg</div>
+                  </div>
+                  {p.n > 1 && (
+                    <span className={'delta ' + (diff >= 0 ? 'up' : 'down')}>
+                      {diff >= 0 ? '+' : ''}
+                      {fmtKg(Math.round(diff * 10) / 10)} kg
+                    </span>
+                  )}
+                </button>
+              )
+            })}
+          </div>
+        </>
+      )}
+      {open && <ExerciseModal ex={open} data={data} onClose={() => setOpen(null)} />}
+    </div>
+  )
+}
