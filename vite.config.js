@@ -22,6 +22,8 @@ export default defineConfig({
         cleanupOutdatedCaches: true,
         clientsClaim: true,
         skipWaiting: true,
+        // avisos push: muestra la notificación y abre la app al tocarla
+        importScripts: ['push-sw.js?v=1'],
       },
       manifest: {
         name: 'Mi Gym',

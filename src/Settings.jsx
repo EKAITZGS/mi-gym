@@ -6,6 +6,7 @@ import Coach from './Coach'
 import { Generator } from './Workout'
 import { generatePlan } from './plans'
 import Icon from './icons'
+import PushCard from './PushCard'
 import { getPolar, setPolar, connectPolar, syncPolar } from './polar'
 
 export default function Settings({ data, setData }) {
@@ -133,6 +134,9 @@ export default function Settings({ data, setData }) {
         <input className="inp" inputMode="numeric" value={data.goals.steps ?? 7000} onChange={(e) => setGoal('steps', e.target.value)} />
         <p className="muted small">Ponlos tú como quieras. Son solo una guía para las barras de progreso.</p>
       </div>
+
+      <h4>Avisos en el móvil</h4>
+      <PushCard data={data} setData={setData} />
 
       <h4>Reloj Polar</h4>
       <div className="card">
