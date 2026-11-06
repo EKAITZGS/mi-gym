@@ -870,14 +870,22 @@ export default function Workout({ data, setData, view, setView, onStart, onStart
         const sets = d.items.reduce((n, i) => n + Number(i.sets || 0), 0)
         return (
           <div className={'daycard' + (d.weekday === today ? ' is-today' : '')} key={d.id}>
-            <div className="daycover">
-              {cover?.imgs?.[0] ? <img src={cover.imgs[0]} alt="" loading="lazy" /> : <div className="cover-empty" />}
+            <div className={'daycover' + (cover?.imgs?.[0] ? '' : ' empty')}>
+              {cover?.imgs?.[0] ? (
+                <img src={cover.imgs[0]} alt="" loading="lazy" />
+              ) : (
+                <div className="cover-empty">
+                  <Icon name="dumbbell" size={64} stroke={1.5} />
+                </div>
+              )}
               <div className="daycover-shade" />
               <div className="daycover-txt">
                 <span className="daypill">{d.weekday != null ? WEEKDAYS[d.weekday] : 'Sin día'}{d.weekday === today ? ' · Hoy' : ''}</span>
                 <h3>{d.name}</h3>
                 <span className="small">
-                  {d.items.length} ejercicios · {sets} series{groups.length ? ' · ' + groups.join(', ') : ''}
+                  {d.items.length
+                    ? `${d.items.length} ejercicios · ${sets} series${groups.length ? ' · ' + groups.join(', ') : ''}`
+                    : 'Sin ejercicios: añádelos al empezar o en editar'}
                 </span>
               </div>
             </div>
@@ -907,21 +915,39 @@ export default function Workout({ data, setData, view, setView, onStart, onStart
         )
       })}
 
-      <button className="btn full free-btn" onClick={onStartFree}>
-        <Icon name="play" size={14} fill="currentColor" stroke={0} /> Entreno libre (a tu aire)
-      </button>
-      <button className="btn full coach-btn" onClick={() => setCoach(true)}>
-        <Icon name="sparkle" size={18} /> Mejorar mi rutina con IA
-      </button>
-      <button className="btn full" onClick={() => setSetup(true)}>
-        <Icon name="calendar" size={18} /> Configurar entrenamiento
-      </button>
-      <div className="actions" style={{ marginTop: 10 }}>
-        <button className="btn" onClick={addDay}>
-          <Icon name="plus" size={18} /> Nuevo día
+      <div className="sec-head">
+        <h4>Herramientas</h4>
+      </div>
+      <div className="tiles">
+        <button className="tile2 accent" onClick={onStartFree}>
+          <span className="tile2-ic"><Icon name="play" size={18} fill="currentColor" stroke={0} /></span>
+          <span className="tile2-t">Entreno libre</span>
+          <span className="tile2-s">Sin plan, a tu aire</span>
         </button>
-        <button className="btn" onClick={() => setGen(true)}>
-          <Icon name="sparkle" size={18} /> Plan automático
+        <button className="tile2 accent" onClick={() => setCoach(true)}>
+          <span className="tile2-ic"><Icon name="sparkle" size={18} /></span>
+          <span className="tile2-t">Mejorar con IA</span>
+          <span className="tile2-s">Ajusta tu rutina</span>
+        </button>
+        <button className="tile2" onClick={() => setSetup(true)}>
+          <span className="tile2-ic"><Icon name="calendar" size={18} /></span>
+          <span className="tile2-t">Configurar</span>
+          <span className="tile2-s">Días y ejercicios</span>
+        </button>
+        <button className="tile2" onClick={() => setGen(true)}>
+          <span className="tile2-ic"><Icon name="trend" size={18} /></span>
+          <span className="tile2-t">Plan automático</span>
+          <span className="tile2-s">Según tu nivel</span>
+        </button>
+        <button className="tile2" onClick={addDay}>
+          <span className="tile2-ic"><Icon name="plus" size={18} /></span>
+          <span className="tile2-t">Nuevo día</span>
+          <span className="tile2-s">Crear uno vacío</span>
+        </button>
+        <button className="tile2" onClick={() => setView({ name: 'library' })}>
+          <span className="tile2-ic"><Icon name="book" size={18} /></span>
+          <span className="tile2-t">Ejercicios</span>
+          <span className="tile2-s">Fotos y progreso</span>
         </button>
       </div>
       {gen && <Generator onClose={() => setGen(false)} onGenerate={generate} />}
