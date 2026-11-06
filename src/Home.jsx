@@ -8,6 +8,8 @@ import { polarExercisesOn } from './polar'
 import WeeklyReview from './Review'
 import Setup from './Setup'
 import PolarSession from './PolarSession'
+import BodyCard from './Body'
+import { ProteinTip, MuscleSets, StepsBar } from './Extras'
 import { Generator } from './Workout'
 import { generatePlan } from './plans'
 
@@ -181,8 +183,8 @@ export default function Home({ data, setData, onStart, go }) {
               <b>
                 <Icon name="trend" size={16} className="inl" /> Reloj Polar
               </b>
-              <span className="muted small">{day?.steps ? `${day.steps.toLocaleString('es-ES')} pasos hoy` : ''}</span>
             </div>
+            {day?.steps != null && <StepsBar steps={day.steps} goal={data.goals.steps || 7000} />}
             {show.length === 0 && <p className="muted small">Aún no hay entrenos del reloj. Sube uno a Polar Flow y aparecerá aquí.</p>}
             {show.map((e) => (
               <button className="polar-ex" key={e.id} onClick={() => setPolarEx(e)}>
@@ -225,6 +227,8 @@ export default function Home({ data, setData, onStart, go }) {
         </button>
       </div>
 
+      <ProteinTip data={data} setData={setData} />
+
       <div className="card">
         <div className="sec-head nm">
           <b>Esta semana</b>
@@ -242,6 +246,9 @@ export default function Home({ data, setData, onStart, go }) {
           ))}
         </div>
       </div>
+
+      <MuscleSets data={data} />
+      <BodyCard data={data} setData={setData} />
 
       {progress.length > 0 && (
         <>

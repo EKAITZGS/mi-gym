@@ -129,6 +129,8 @@ export default function Settings({ data, setData }) {
         <input className="inp" inputMode="numeric" value={data.goals.kcal} onChange={(e) => setGoal('kcal', e.target.value)} />
         <label className="lbl">Proteína (g)</label>
         <input className="inp" inputMode="numeric" value={data.goals.protein} onChange={(e) => setGoal('protein', e.target.value)} />
+        <label className="lbl">Pasos al día</label>
+        <input className="inp" inputMode="numeric" value={data.goals.steps ?? 7000} onChange={(e) => setGoal('steps', e.target.value)} />
         <p className="muted small">Ponlos tú como quieras. Son solo una guía para las barras de progreso.</p>
       </div>
 

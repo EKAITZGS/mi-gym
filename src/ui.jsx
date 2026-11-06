@@ -155,7 +155,7 @@ export function LineChart({ points, unit = 'kg' }) {
     <div className="chart-wrap">
       <div className="chart-head">
         <b>
-          {Math.round(ap.v * 10) / 10} {unit}
+          {String(Math.round(ap.v * 10) / 10).replace('.', ',')} {unit}
         </b>
         <span className="muted small">{fmtD(ap.label)}</span>
       </div>
@@ -170,7 +170,7 @@ export function LineChart({ points, unit = 'kg' }) {
           <g key={i}>
             <line x1={L} x2={W - R} y1={y(t)} y2={y(t)} stroke="var(--line)" strokeDasharray={i ? '3 4' : ''} />
             <text x={L - 6} y={y(t) + 3.5} textAnchor="end" className="ct">
-              {Math.round(t)}
+              {hi - lo < 6 ? String(Math.round(t * 10) / 10).replace('.', ',') : Math.round(t)}
             </text>
           </g>
         ))}

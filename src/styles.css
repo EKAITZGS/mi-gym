@@ -1632,3 +1632,47 @@ button.polar-ex:first-of-type { border-top: 0; }
 .savebar .btn { min-height: 44px; padding: 0 18px; }
 @keyframes savebar-in { from { opacity: 0; transform: translate(-50%, 12px); } }
 body.modal-open .savebar { display: none; }
+
+/* ---- Pasos ---- */
+.steps { margin: 4px 0 8px; }
+.steps-top { display: flex; justify-content: space-between; align-items: baseline; font-size: 14px; margin-bottom: 6px; }
+.steps-bar { display: block; height: 8px; border-radius: 99px; background: var(--card2); overflow: hidden; }
+.steps-bar span { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--blue), var(--accent)); transition: width 0.6s ease; }
+.steps-bar span.ok { background: var(--accent); }
+
+/* ---- Proteína que falta ---- */
+.prot-tip { border-color: rgba(78, 168, 255, 0.35); }
+.prot-tip .li { padding: 8px 0; }
+.prot-tip .sm-btn { min-height: 38px; padding: 0 14px; }
+
+/* ---- Series por músculo ---- */
+.msets { display: grid; gap: 8px; margin-top: 8px; }
+.mset { display: grid; grid-template-columns: 64px 1fr 26px; align-items: center; gap: 10px; font-size: 13px; }
+.mset-bar { position: relative; height: 10px; border-radius: 99px; background: var(--card2); overflow: hidden; }
+.mset-band { position: absolute; top: 0; bottom: 0; background: rgba(62, 224, 143, 0.12); }
+.mset-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 99px; transition: width 0.6s ease; }
+.mset-fill.low { background: var(--amber); }
+.mset-fill.ok { background: var(--accent); }
+.mset-fill.high { background: var(--danger); }
+.mset-v { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* ---- Tu cuerpo ---- */
+.body-row { display: flex; align-items: center; gap: 10px; margin: 6px 0 4px; }
+.body-num { font-size: 28px; font-weight: 800; letter-spacing: -0.02em; }
+.body-num span { font-size: 14px; font-weight: 500; color: var(--muted); letter-spacing: 0; }
+.body-card .btns { margin-top: 10px; }
+.ph-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.ph-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.ph-compare figure, .ph-grid figure { margin: 0; text-align: center; }
+.ph-compare figcaption, .ph-grid figcaption { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.ph-img { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; border-radius: 12px; background: var(--card2); display: block; }
+.ph-full { position: fixed; inset: 0; z-index: 3000; background: rgba(0, 0, 0, 0.92); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+.ph-big { max-width: 100%; max-height: 78vh; border-radius: 14px; }
+.ph-full-bar { display: flex; gap: 10px; align-items: center; margin-top: 14px; color: #fff; }
+.ph-full-bar .btn { min-height: 42px; padding: 0 16px; }
+
+/* ---- Repetir comidas / favoritas ---- */
+.meal-quick { margin-top: 10px; }
+.meal-quick .chip { font-size: 13px; }
+.fav-save { padding-left: 0; color: var(--muted); margin-top: 4px; }
+.steps .steps-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
