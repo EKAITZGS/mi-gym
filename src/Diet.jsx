@@ -383,7 +383,7 @@ function AddFood({ data, setData, date, meal, onClose }) {
         <label className="lbl">O escribe el número del código</label>
         <div className="qty">
           <input className="inp" inputMode="numeric" placeholder="8410000000000" value={code} onChange={(e) => setCode(e.target.value)} />
-          <button className="btn" style={{ marginTop: 0 }} disabled={code.length < 8} onClick={() => lookupCode(code)}>
+          <button className="btn qty-btn" disabled={code.length < 8} onClick={() => lookupCode(code)}>
             Buscar
           </button>
         </div>
@@ -454,12 +454,23 @@ function AddFood({ data, setData, date, meal, onClose }) {
   return (
     <Modal title={`Añadir a ${meal.toLowerCase()}`} onClose={onClose}>
       {fileInput}
-      <button className="btn primary full" style={{ marginTop: 0, marginBottom: 10 }} onClick={() => { setScan({ loading: false, msg: '' }); setCode(''); setStep('scan') }}>
-        <Icon name="barcode" size={18} /> Escanear código de barras
-      </button>
-      <button className="btn full" style={{ marginTop: 0, marginBottom: 10 }} onClick={() => fileRef.current?.click()}>
-        <Icon name="camera" size={18} /> Foto del alimento (IA)
-      </button>
+      <div className="quick-actions">
+        <button
+          className="qa primary"
+          onClick={() => {
+            setScan({ loading: false, msg: '' })
+            setCode('')
+            setStep('scan')
+          }}
+        >
+          <Icon name="barcode" size={26} />
+          <span>Escanear código</span>
+        </button>
+        <button className="qa" onClick={() => fileRef.current?.click()}>
+          <Icon name="camera" size={26} />
+          <span>Foto (IA)</span>
+        </button>
+      </div>
       <input className="inp" placeholder="Buscar alimento…" value={q} onChange={(e) => setQ(e.target.value)} />
       {!q.trim() && (
         <div className="chips">

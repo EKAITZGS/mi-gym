@@ -44,6 +44,7 @@ body {
 }
 button {
   cursor: pointer;
+  touch-action: manipulation;
   font: inherit;
   color: inherit;
 }
@@ -1304,7 +1305,11 @@ textarea.inp {
   position: sticky;
   bottom: -22px;
   background: var(--bg2);
-  padding: 8px 0 4px;
+  padding: 12px 0 8px;
+  margin-top: 8px;
+  border-top: 1px solid var(--line);
+  box-shadow: 0 -14px 18px -6px var(--bg2);
+  z-index: 2;
 }
 .wizard-nav .btn { margin-top: 0; }
 .link.small-left { font-size: 14px; padding: 0 0 8px; }
@@ -1314,4 +1319,55 @@ textarea.inp {
   align-items: baseline;
   padding: 10px 0;
   border-bottom: 1px solid var(--line);
+}
+
+/* ---- Botones táctiles: tamaño mínimo y separación ---- */
+.quick-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.qa {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 92px;
+  padding: 14px 8px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: var(--card2);
+  font-weight: 700;
+  font-size: 15px;
+  text-align: center;
+}
+.qa.primary {
+  background: linear-gradient(180deg, var(--accent), var(--accent2));
+  color: var(--accent-ink);
+  border-color: transparent;
+}
+.qty-btn { margin-top: 0; min-height: 46px; }
+.btn { min-height: 48px; }
+.btn.sm-btn { min-height: 42px; }
+.tool { min-height: 38px; padding: 8px 12px; }
+.icon-btn { min-width: 44px; height: 44px; }
+.icon-btn.ghost { min-width: 36px; height: 36px; }
+.link { min-height: 40px; }
+.link.small { min-height: 36px; display: flex; align-items: center; }
+.chip { min-height: 38px; }
+.chk { height: 44px; }
+.btn + .btn, .btn + label.btn, label.btn + .btn { margin-top: 10px; }
+
+.btn.full { display: flex; }
+/* filas de series: que nada se encoja en pantallas pequeñas */
+.setrow .inp.sm { flex: 1 1 0; min-width: 52px; max-width: 84px; width: auto; }
+.setrow .chk, .setrow .icon-btn, .setrow .setn { flex-shrink: 0; }
+.setrow .x { flex-shrink: 0; }
+@media (max-width: 350px) {
+  .page { padding-left: 14px; padding-right: 14px; }
+  .setrow { gap: 6px; }
+  .setrow .x { font-size: 12px; }
+  .title { font-size: 28px; }
 }
