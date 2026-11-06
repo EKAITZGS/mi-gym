@@ -1521,3 +1521,63 @@ body.modal-open .tabbar { visibility: hidden; pointer-events: none; }
 .polar-ex:first-of-type { border-top: 0; }
 .polar-stats { display: flex; flex-direction: column; align-items: flex-end; font-size: 13px; color: var(--muted); }
 .polar-stats b { color: var(--text); font-size: 15px; }
+
+/* ---- Ejercicios unilaterales (izquierdo / derecho) ---- */
+.uni-tg {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 40px;
+  margin-top: 10px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px dashed var(--line);
+  background: transparent;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+}
+.uni-tg .uni-dot {
+  width: 30px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--card2);
+  border: 1px solid var(--line);
+  position: relative;
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+.uni-tg .uni-dot::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--muted);
+  transition: transform 0.2s, background 0.2s;
+}
+.uni-tg.on {
+  border-style: solid;
+  border-color: var(--accent);
+  color: var(--text);
+}
+.uni-tg.on .uni-dot { background: var(--accent-soft); border-color: var(--accent); }
+.uni-tg.on .uni-dot::after { transform: translateX(12px); background: var(--accent); }
+.setrow.uni-head { margin-top: 8px; }
+.setrow.uni-head .setn { background: none; }
+.setrow .uh {
+  flex: 1 1 0;
+  min-width: 52px;
+  max-width: 84px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.setrow .chk-sp { width: 46px; flex-shrink: 0; margin-left: auto; }

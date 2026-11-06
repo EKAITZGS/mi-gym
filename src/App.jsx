@@ -18,8 +18,10 @@ const TABS = [
 export default function App() {
   const [data, setData] = useStore()
   setCustomExercises(data.myExercises || [])
-  const [tab, setTab] = useState('home')
-  const [view, setView] = useState({ name: 'list' })
+  // Si hay un entreno de hoy a medias (p. ej. la app se recargó por una actualización), vuelve directo a él
+  const resume = data.active && data.active.date === todayStr()
+  const [tab, setTab] = useState(resume ? 'train' : 'home')
+  const [view, setView] = useState(resume ? { name: 'session' } : { name: 'list' })
   const [notice, setNotice] = useState(null)
   const storedPolarEx = () => { try { return JSON.parse(localStorage.getItem('migym.v1') || '{}').polar?.exercises || {} } catch { return {} } }
 
