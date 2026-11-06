@@ -110,7 +110,7 @@ function Library({ data, setData, onPick, onClose, inline, title }) {
   const [open, setOpen] = useState(null)
   const list = EXERCISES.filter(
     (e) =>
-      (group === 'Todos' || e.group === group) && (!q || e.name.toLowerCase().includes(q.toLowerCase()))
+      (group === 'Todos' || e.group === group) && (!q || q.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').split(/\s+/).filter(Boolean).every((w) => e.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(w)))
   )
   const body = (
     <>

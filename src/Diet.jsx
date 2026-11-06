@@ -207,8 +207,12 @@ function AddFood({ data, setData, date, meal, onClose }) {
   const local = useMemo(() => {
     const all = [...(data.myFoods || []), ...FOODS]
     if (!q.trim()) return []
-    const nq = norm(q)
-    return all.filter((f) => norm(f.name).includes(nq))
+    // cada palabra por separado y en cualquier orden ("danone limon" encuentra "Yogur Danone sabor limón")
+    const words = norm(q).split(/\s+/).filter(Boolean)
+    return all.filter((f) => {
+      const n = norm(f.name)
+      return words.every((w) => n.includes(w))
+    })
   }, [q, data.myFoods])
 
   const searchOnline = async () => {
