@@ -11,6 +11,7 @@ export default defineConfig({
       registerType: 'autoUpdate',
       injectRegister: false,
       includeManifestIcons: false,
+      manifestFilename: 'manifest-v4.webmanifest',
       includeAssets: ['favicon.png', 'logo.svg', 'ex/**/*.webp'],
       workbox: {
         globPatterns: ['**/*.{js,css,html,jpg,webp,svg}', 'favicon.png'],
@@ -34,8 +35,8 @@ export default defineConfig({
         background_color: '#0a0b0e',
         theme_color: '#0a0b0e',
         icons: [
-          { src: 'icon-192.png', sizes: '192x192', type: 'image/png' },
-          { src: 'icon-512.png', sizes: '512x512', type: 'image/png' },
+          { src: 'icon-192.png?v=4', sizes: '192x192', type: 'image/png' },
+          { src: 'icon-512.png?v=4', sizes: '512x512', type: 'image/png' },
         ],
       },
     }),
