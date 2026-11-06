@@ -1,4 +1,5 @@
 import { useEffect, useId, useState } from 'react'
+import { createPortal } from 'react-dom'
 import Icon from './icons'
 
 export function Modal({ title, onClose, children }) {
@@ -8,7 +9,9 @@ export function Modal({ title, onClose, children }) {
       document.body.style.overflow = ''
     }
   }, [])
-  return (
+  // Portal al <body>: en Safari iOS el contenedor con scroll atrapa los position:fixed
+  // y la barra inferior quedaba por encima de la ventana.
+  return createPortal(
     <div className="overlay" onClick={onClose}>
       <div className="sheet" onClick={(e) => e.stopPropagation()}>
         <div className="grabber" />
@@ -20,7 +23,8 @@ export function Modal({ title, onClose, children }) {
         </div>
         <div className="sheet-body">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 

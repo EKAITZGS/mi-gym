@@ -64,7 +64,6 @@ button:active {
 .main {
   flex: 1;
   overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
   padding-top: env(safe-area-inset-top);
 }
 .page {
@@ -1065,6 +1064,7 @@ textarea.inp {
 .overlay {
   position: fixed;
   inset: 0;
+  z-index: 1000;
   background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
@@ -1086,7 +1086,8 @@ textarea.inp {
   border-radius: 24px 24px 0 0;
   width: 100%;
   max-width: 640px;
-  max-height: 92%;
+  max-height: calc(100% - env(safe-area-inset-top) - 24px);
+  max-height: calc(100dvh - env(safe-area-inset-top) - 24px);
   display: flex;
   flex-direction: column;
   padding-bottom: env(safe-area-inset-bottom);

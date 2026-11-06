@@ -98,7 +98,7 @@ export default function Home({ data, setData, onStart, go }) {
                 {d.items.slice(0, 5).map((i) => (
                   <Thumb key={i.id} ex={EX_BY_ID[i.ex]} size={34} />
                 ))}
-                <span className="small">{d.items.length} ejercicios</span>
+                <span className="small">{d.items.length ? `${d.items.length} ejercicios` : 'Sin ejercicios aún: añádelos mientras entrenas'}</span>
               </div>
               <button className="btn primary full" onClick={() => onStart(d.id)}>
                 <Icon name="play" size={14} fill="currentColor" stroke={0} />
