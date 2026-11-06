@@ -1325,8 +1325,8 @@ textarea.inp {
 /* ---- Botones táctiles: tamaño mínimo y separación ---- */
 .quick-actions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
   margin-bottom: 14px;
 }
 .qa {
@@ -1335,13 +1335,14 @@ textarea.inp {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 92px;
-  padding: 14px 8px;
+  min-height: 88px;
+  padding: 12px 4px;
   border-radius: 16px;
   border: 1px solid var(--line);
   background: var(--card2);
   font-weight: 700;
-  font-size: 15px;
+  font-size: 13px;
+  line-height: 1.2;
   text-align: center;
 }
 .qa.primary {
@@ -1404,3 +1405,14 @@ textarea.inp {
 .swap-row { display: flex; align-items: center; gap: 8px; color: var(--muted); }
 .swap-ex { flex: 1; display: flex; align-items: center; gap: 8px; min-width: 0; color: var(--text); font-size: 14px; font-weight: 600; }
 .swap-ex span { min-width: 0; }
+
+.rir-row { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+.rir-name { font-size: 14px; font-weight: 600; }
+.seg.seg3 { grid-template-columns: repeat(3, 1fr); margin: 0; }
+.seg.seg3 button { min-height: 40px; font-size: 14px; }
+.tip.hold { color: var(--amber); background: rgba(255, 181, 71, 0.1); }
+
+/* Con una ventana abierta, la barra inferior se oculta (Safari iOS) */
+body.modal-open .tabbar { visibility: hidden; pointer-events: none; }
+.two.labeled label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); font-weight: 600; }
+.two.labeled { row-gap: 10px; }

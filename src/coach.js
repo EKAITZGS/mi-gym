@@ -1,6 +1,6 @@
 import { EXERCISES, EX_BY_ID } from './data/exercises'
 import { getAi } from './ai'
-import { uid, todayStr, addDays } from './store'
+import { uid, todayStr, addDays, suggestion, fmtKg } from './store'
 
 export const FEELINGS = [
   { id: 1, label: 'Muy fácil', emoji: '😴' },
@@ -52,8 +52,21 @@ export function needsDeload(sessions) {
 }
 
 // Consejo justo después del check-in
-export function adviceFor(checkin, sessions) {
+export function adviceFor(checkin, sessions, entries = {}, items = []) {
   const tips = []
+  // Subir / mantener según las repeticiones en reserva
+  const rir = checkin.rir || {}
+  const fake = [...sessions.filter((x) => x.checkin !== checkin), { entries, checkin }]
+  const ups = []
+  const holds = []
+  for (const id of Object.keys(rir)) {
+    const it = items.find((i) => i.ex === id)
+    const sg = suggestion(fake, id, it?.reps, it?.sets || 1, EX_BY_ID[id]?.equip)
+    if (sg?.action === 'up') ups.push(`${EX_BY_ID[id]?.name} → ${fmtKg(sg.w)} kg`)
+    else if (rir[id] === 0) holds.push(EX_BY_ID[id]?.name)
+  }
+  if (ups.length) tips.push({ tone: 'green', text: `Es hora de subir peso la próxima vez: ${ups.join(', ')}.` })
+  if (holds.length) tips.push({ tone: 'yellow', text: `Ibas al límite en ${holds.join(', ')}: mantén el peso hasta que te cueste menos.` })
   const p = checkin.pain
   if (p?.zone) {
     if (p.level === 'fuerte')
@@ -67,8 +80,8 @@ export function adviceFor(checkin, sessions) {
         text: `Molestia leve en ${p.zone.toLowerCase()}: la próxima vez baja el peso en los ejercicios que la cargan (te los marcaré) y no llegues al fallo.`,
       })
   }
-  if (checkin.feel === 1) tips.push({ tone: 'green', text: 'Te ha resultado fácil: la próxima vez sube un poco el peso o haz 1-2 repeticiones más.' })
-  if (checkin.feel === 2) tips.push({ tone: 'green', text: 'Buen entreno. Sigue así y sube peso cuando completes todas las repeticiones.' })
+  if (checkin.feel === 1 && !ups.length) tips.push({ tone: 'green', text: 'Te ha resultado fácil: la próxima vez sube un poco el peso o haz 1-2 repeticiones más.' })
+  if (checkin.feel === 2 && !ups.length && !holds.length) tips.push({ tone: 'green', text: 'Buen entreno. Sigue así y sube peso cuando completes todas las repeticiones.' })
   if (checkin.feel === 3) tips.push({ tone: 'green', text: 'Duro pero bien. Mantén los pesos la próxima vez hasta que te cueste menos.' })
   if (checkin.feel >= 4) {
     const all = [...sessions.slice(0, -1), { checkin }]
@@ -299,6 +312,15 @@ export function weeklyReview(data) {
         })
     }
   }
+  // Ejercicios listos para subir peso (según repeticiones y reservas)
+  const ready = []
+  for (const d of data.plan)
+    for (const it of d.items) {
+      const sg = suggestion(data.sessions, it.ex, it.reps, it.sets, EX_BY_ID[it.ex]?.equip)
+      if (sg?.action === 'up' && !ready.some((r) => r.startsWith(EX_BY_ID[it.ex]?.name)))
+        ready.push(`${EX_BY_ID[it.ex]?.name} (${fmtKg(sg.from)} → ${fmtKg(sg.w)} kg)`)
+    }
+  if (ready.length) findings.push(`Listos para subir peso: ${ready.join(', ')}`)
   const decided = data.reviews || {}
   const pending = props.map((p) => ({ ...p, key: propKey(p) })).filter((p) => !decided[p.key])
   return {
@@ -308,7 +330,7 @@ export function weeklyReview(data) {
     pending,
     summary:
       !pains.length && hard < 2
-        ? `Semana sin incidentes (${week.length} entrenos). Sigue así y ve subiendo pesos poco a poco.`
+        ? `Semana sin incidentes (${week.length} entrenos).${ready.length ? '' : ' Sigue así: cuando te sobren repeticiones, te diré que subas.'}`
         : null,
   }
 }

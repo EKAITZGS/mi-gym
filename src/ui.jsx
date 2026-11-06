@@ -5,8 +5,13 @@ import Icon from './icons'
 export function Modal({ title, onClose, children }) {
   useEffect(() => {
     document.body.style.overflow = 'hidden'
+    document.body.classList.add('modal-open')
     return () => {
       document.body.style.overflow = ''
+      // otra ventana puede seguir abierta (se abren encadenadas)
+      setTimeout(() => {
+        if (!document.querySelector('.overlay')) document.body.classList.remove('modal-open')
+      }, 0)
     }
   }, [])
   // Portal al <body>: en Safari iOS el contenedor con scroll atrapa los position:fixed

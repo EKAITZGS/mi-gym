@@ -330,8 +330,9 @@ function DayEditor({ data, setData, dayId, onBack }) {
 }
 
 /* ---------- Check-in al terminar ---------- */
-function CheckIn({ onSave, onSkip }) {
+function CheckIn({ onSave, onSkip, exercises = [] }) {
   const [feel, setFeel] = useState(null)
+  const [rir, setRir] = useState({})
   const [hasPain, setHasPain] = useState(false)
   const [zone, setZone] = useState(null)
   const [level, setLevel] = useState('leve')
@@ -350,6 +351,30 @@ function CheckIn({ onSave, onSkip }) {
           </button>
         ))}
       </div>
+      {exercises.length > 0 && (
+        <>
+          <h4>¿Cuántas repeticiones más podías hacer?</h4>
+          <p className="muted small" style={{ marginTop: -4 }}>
+            Piensa en la última serie de cada ejercicio. Con esto te digo cuándo subir peso.
+          </p>
+          {exercises.map((id) => (
+            <div className="rir-row" key={id}>
+              <span className="rir-name">{EX_BY_ID[id]?.name || id}</span>
+              <div className="seg seg3">
+                {[
+                  [0, 'Ninguna'],
+                  [2, '1-2'],
+                  [3, '3 o más'],
+                ].map(([v, l]) => (
+                  <button key={v} className={rir[id] === v ? 'on' + (v === 0 ? ' warn' : '') : ''} onClick={() => setRir({ ...rir, [id]: v })}>
+                    {l}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </>
+      )}
       <h4>¿Alguna molestia o incidente?</h4>
       <div className="seg">
         <button className={!hasPain ? 'on' : ''} onClick={() => setHasPain(false)}>
@@ -389,7 +414,7 @@ function CheckIn({ onSave, onSkip }) {
       <button
         className="btn primary full"
         disabled={!feel || (hasPain && !zone)}
-        onClick={() => onSave({ feel, pain: hasPain && zone ? { zone, level } : null, note: note.trim() })}
+        onClick={() => onSave({ feel, rir, pain: hasPain && zone ? { zone, level } : null, note: note.trim() })}
       >
         Guardar y ver consejos
       </button>
@@ -456,10 +481,11 @@ function Session({ data, setData, onExit }) {
     return (
       <div className="page">
         <CheckIn
+          exercises={done.exs || []}
           onSkip={() => setDone({ ...done, step: 'summary', tips: [] })}
           onSave={(ck) => {
             setData((d) => ({ ...d, sessions: d.sessions.map((x) => (x.id === done.sid ? { ...x, checkin: ck } : x)) }))
-            setDone({ ...done, step: 'summary', tips: adviceFor(ck, data.sessions) })
+            setDone({ ...done, step: 'summary', tips: adviceFor(ck, data.sessions, done.entries, done.items) })
           }}
         />
       </div>
@@ -561,7 +587,7 @@ function Session({ data, setData, onExit }) {
     const before = (day?.items || []).map((i) => i.ex).join('|')
     const after = items.map((i) => i.ex).join('|')
     const changed = items.length > 0 && (a.dayId === 'free' || (day && before !== after))
-    setDone({ prs, changed, items, dayId: a.dayId, name, sid, step: 'checkin' })
+    setDone({ prs, changed, items, dayId: a.dayId, name, sid, step: 'checkin', exs: Object.keys(entries), entries })
   }
   const discard = () => {
     if (!confirm('¿Descartar este entreno sin guardar?')) return
@@ -590,7 +616,9 @@ function Session({ data, setData, onExit }) {
         const sets = a.entries[it.ex] || []
         const last = lastSets(data.sessions, it.ex)
         const pain = painFor(data.sessions, it.ex)
-        const sug = pain ? null : suggestion(data.sessions, it.ex, it.reps, it.sets, ex?.equip)
+        const s0 = pain ? null : suggestion(data.sessions, it.ex, it.reps, it.sets, ex?.equip)
+        const sug = s0?.action === 'up' ? s0 : null
+        const hold = s0?.action === 'hold' ? s0 : null
         const phOf = (i) => {
           const base = last?.sets[i] || last?.sets[last.sets.length - 1] || {}
           return sug ? { ...base, w: fmtKg(sug.w), r: String(sug.reps) } : base
@@ -629,9 +657,14 @@ function Session({ data, setData, onExit }) {
                     {pain.level === 'fuerte' ? 'Mejor cámbialo por otro o sáltalo hoy.' : 'Baja el peso y no llegues al fallo.'}
                   </div>
                 )}
+                {hold && (
+                  <div className="tip hold">
+                    <Icon name="check" size={15} /> Mantén {fmtKg(hold.from)} kg: {hold.why}
+                  </div>
+                )}
                 {sug && (
                   <div className="tip">
-                    <Icon name="trend" size={15} /> Sube a {fmtKg(sug.w)} kg: la última vez hiciste {sug.hi}+ reps en todas las series con {fmtKg(sug.from)} kg
+                    <Icon name="trend" size={15} /> Sube a {fmtKg(sug.w)} kg: {sug.why}
                   </div>
                 )}
               </div>

@@ -3,7 +3,7 @@ import { FOODS, MEALS, CATS } from './data/foods'
 import { addDays, dayTotals, macros, todayStr, uid, num, parseDate } from './store'
 import { Bar, Modal, Ring } from './ui'
 import Icon from './icons'
-import { analyzeFood } from './ai'
+import { analyzeFood, analyzeLabel } from './ai'
 import { rateFood } from './rating'
 
 const r0 = (n) => Math.round(n)
@@ -122,6 +122,9 @@ function AddFood({ data, setData, date, meal, onClose }) {
   const [code, setCode] = useState('')
   const [scan, setScan] = useState({ loading: false, msg: '' })
   const fileRef = useRef(null)
+  const labelRef = useRef(null)
+  const [nc, setNc] = useState(null) // producto nuevo por código: {code, name, kcal, p, c, f, s, sf, unitG}
+  const [lbl, setLbl] = useState({ loading: false, err: '' })
   const [photo, setPhoto] = useState({ loading: false, err: '' })
   const [rv, setRv] = useState({ name: '', kcal: '', p: '', c: '', f: '', conf: '' })
 
@@ -190,6 +193,8 @@ function AddFood({ data, setData, date, meal, onClose }) {
       return setStep('scan')
     }
     setCode(c)
+    const mine = (data.myFoods || []).find((x) => x.barcode === c)
+    if (mine) return pick(mine)
     setScan({ loading: true, msg: '' })
     setStep('scan')
     try {
@@ -199,7 +204,10 @@ function AddFood({ data, setData, date, meal, onClose }) {
       const j = await res.json()
       const n = j.product?.nutriments
       if (j.status !== 1 || !n || n['energy-kcal_100g'] == null) {
-        return setScan({ loading: false, msg: `Producto ${c} no encontrado o sin datos nutricionales en Open Food Facts.` })
+        const nm = j.product?.product_name ? j.product.product_name + (j.product.brands ? ` (${j.product.brands.split(',')[0].trim()})` : '') : ''
+        setScan({ loading: false, msg: '' })
+        setNc({ code: c, name: nm, kcal: '', p: '', c: '', f: '', s: '', sf: '', unitG: '', found: !!nm })
+        return setStep('newcode')
       }
       const sq = Number(j.product.serving_quantity)
       const f = {
@@ -369,6 +377,74 @@ function AddFood({ data, setData, date, meal, onClose }) {
     )
   }
 
+  if (step === 'newcode' && nc) {
+    const set = (k) => (e) => setNc({ ...nc, [k]: e.target.value })
+    const onLabel = async (e) => {
+      const file = e.target.files?.[0]
+      e.target.value = ''
+      if (!file) return
+      setLbl({ loading: true, err: '' })
+      try {
+        const v = await analyzeLabel(file)
+        setNc((x) => ({ ...x, ...Object.fromEntries(Object.entries(v).filter(([, val]) => val !== '')) }))
+        setLbl({ loading: false, err: '', ok: true })
+      } catch (err) {
+        setLbl({ loading: false, err: err.message === 'NO_KEY' ? 'Para leer la tabla con la cámara necesitas la clave de Groq (Ajustes). Puedes escribir los datos a mano.' : err.message })
+      }
+    }
+    const ok = nc.name.trim() && nc.kcal !== '' && num(nc.kcal) >= 0
+    const save = () => {
+      const f = {
+        id: 'bc-' + nc.code,
+        barcode: nc.code,
+        name: nc.name.trim(),
+        kcal: num(nc.kcal),
+        p: num(nc.p),
+        c: num(nc.c),
+        f: num(nc.f),
+        ...(nc.s !== '' ? { s: num(nc.s) } : {}),
+        ...(nc.sf !== '' ? { sf: num(nc.sf) } : {}),
+        ...(num(nc.unitG) > 0 ? { unitG: num(nc.unitG), unitName: 'ración' } : {}),
+      }
+      setData((d) => ({ ...d, myFoods: [...(d.myFoods || []).filter((x) => x.barcode !== nc.code), f] }))
+      pick(f)
+    }
+    return (
+      <Modal title="Producto nuevo" onClose={onClose}>
+        <input type="file" accept="image/*" capture="environment" ref={labelRef} onChange={onLabel} hidden />
+        <div className="advice yellow sm" style={{ marginTop: 0 }}>
+          {nc.found
+            ? `El código ${nc.code} existe pero no tiene datos nutricionales.`
+            : `No conozco el código ${nc.code}.`}{' '}
+          Créalo una vez y la próxima vez que lo escanees te saldrá directamente.
+        </div>
+        <button className="btn primary full" disabled={lbl.loading} onClick={() => labelRef.current?.click()}>
+          <Icon name="camera" size={18} /> {lbl.loading ? 'Leyendo la tabla…' : 'Foto de la tabla nutricional (IA)'}
+        </button>
+        {lbl.err && <p className="toast warn small">{lbl.err}</p>}
+        {lbl.ok && <p className="toast small">Datos leídos. Revísalos antes de guardar.</p>}
+        <label className="lbl">Nombre del producto</label>
+        <input className="inp" placeholder="Ej: Batido de chocolate Marca X" value={nc.name} onChange={set('name')} />
+        <label className="lbl">Valores por 100 g / 100 ml (los de la tabla)</label>
+        <div className="two labeled">
+          <label>Calorías (kcal)<input className="inp" inputMode="decimal" value={nc.kcal} onChange={set('kcal')} /></label>
+          <label>Proteínas (g)<input className="inp" inputMode="decimal" value={nc.p} onChange={set('p')} /></label>
+          <label>Hidratos (g)<input className="inp" inputMode="decimal" value={nc.c} onChange={set('c')} /></label>
+          <label>de los cuales azúcares (g)<input className="inp" inputMode="decimal" value={nc.s} onChange={set('s')} /></label>
+          <label>Grasas (g)<input className="inp" inputMode="decimal" value={nc.f} onChange={set('f')} /></label>
+          <label>de las cuales saturadas (g)<input className="inp" inputMode="decimal" value={nc.sf} onChange={set('sf')} /></label>
+          <label>Ración (g, opcional)<input className="inp" inputMode="decimal" value={nc.unitG} onChange={set('unitG')} /></label>
+        </div>
+        <button className="btn primary full" disabled={!ok} onClick={save}>
+          <Icon name="check" size={18} /> Guardar producto y poner cantidad
+        </button>
+        <button className="link" onClick={() => setStep('scan')}>
+          <Icon name="left" size={18} /> Volver al escáner
+        </button>
+      </Modal>
+    )
+  }
+
   if (step === 'scan') {
     return (
       <Modal title="Escanear código de barras" onClose={onClose}>
@@ -470,6 +546,10 @@ function AddFood({ data, setData, date, meal, onClose }) {
           <Icon name="camera" size={26} />
           <span>Foto (IA)</span>
         </button>
+        <button className="qa" onClick={() => setStep('manual')}>
+          <Icon name="edit" size={24} />
+          <span>Crear / rápido</span>
+        </button>
       </div>
       <input className="inp" placeholder="Buscar alimento…" value={q} onChange={(e) => setQ(e.target.value)} />
       {!q.trim() && (
@@ -519,9 +599,6 @@ function AddFood({ data, setData, date, meal, onClose }) {
           </div>
         </>
       )}
-      <button className="btn full" onClick={() => setStep('manual')}>
-        Crear alimento propio / añadir rápido
-      </button>
     </Modal>
   )
 }
