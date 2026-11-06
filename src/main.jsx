@@ -23,3 +23,15 @@ createRoot(document.getElementById('root')).render(
     <App />
   </React.StrictMode>
 )
+
+// Pantalla de entrada: se ve al menos ~1,3 s y luego se desvanece
+const t0 = window.__t0 || performance.now()
+const splash = document.getElementById('splash')
+if (splash) {
+  const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+  const wait = Math.max(0, (reduce ? 300 : 1350) - (performance.now() - t0))
+  setTimeout(() => {
+    splash.classList.add('out')
+    setTimeout(() => splash.remove(), 450)
+  }, wait)
+}

@@ -188,6 +188,11 @@ export default function Settings({ data, setData }) {
         Borrar todos los datos
       </button>
 
+      <div className="brand">
+        <img src="./logo.svg" alt="" width="56" height="56" />
+        <b>Mi Gym</b>
+        <span className="muted small">Entrena · Come · Progresa</span>
+      </div>
       <p className="muted small credits">
         Fotos de ejercicios: free-exercise-db (dominio público). Productos de súper: Open Food Facts. Los valores de
         la lista de alimentos son aproximados.
