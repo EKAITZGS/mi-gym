@@ -4,6 +4,7 @@ import { addDays, dayTotals, macros, todayStr, uid, num, parseDate } from './sto
 import { Bar, Modal, Ring } from './ui'
 import Icon from './icons'
 import { analyzeFood, analyzeLabel } from './ai'
+import { polarExercisesOn } from './polar'
 import { rateFood } from './rating'
 
 const r0 = (n) => Math.round(n)
@@ -710,6 +711,14 @@ export default function Diet({ data, setData }) {
             <span><i className="dotc" style={{ background: 'var(--amber)' }} />Hidratos {r0(t.c)} g</span>
             <span><i className="dotc" style={{ background: 'var(--pink)' }} />Grasa {r0(t.f)} g</span>
           </div>
+          {(() => {
+            const burned = polarExercisesOn(data, date).reduce((n, e) => n + e.kcal, 0)
+            return burned > 0 ? (
+              <div className="macro-mini">
+                <span><i className="dotc" style={{ background: 'var(--accent)' }} />Gastadas entrenando (reloj): {burned} kcal</span>
+              </div>
+            ) : null
+          })()}
         </div>
       </div>
 

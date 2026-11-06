@@ -4,6 +4,7 @@ import { EX_BY_ID } from './data/exercises'
 import { Ring, Thumb } from './ui'
 import { ExerciseModal } from './Workout'
 import Icon from './icons'
+import { polarExercisesOn } from './polar'
 import WeeklyReview from './Review'
 import Setup from './Setup'
 import { Generator } from './Workout'
@@ -137,6 +138,39 @@ export default function Home({ data, setData, onStart, go }) {
       )}
 
       <WeeklyReview data={data} setData={setData} />
+
+      {data.polar && (() => {
+        const today = todayStr()
+        const ex = polarExercisesOn(data, today)
+        const last = Object.values(data.polar.exercises || {}).sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time))[0]
+        const day = data.polar.days?.[today]
+        const show = ex.length ? ex : last ? [last] : []
+        return (
+          <div className="card polar-card">
+            <div className="sec-head nm">
+              <b>
+                <Icon name="trend" size={16} className="inl" /> Reloj Polar
+              </b>
+              <span className="muted small">{day?.steps ? `${day.steps.toLocaleString('es-ES')} pasos hoy` : ''}</span>
+            </div>
+            {show.length === 0 && <p className="muted small">Aún no hay entrenos del reloj. Sube uno a Polar Flow y aparecerá aquí.</p>}
+            {show.map((e) => (
+              <div className="polar-ex" key={e.id}>
+                <div className="grow">
+                  <div className="li-t">
+                    {e.sport} · {e.min} min
+                  </div>
+                  <div className="muted small">{e.date === today ? `Hoy ${e.time}` : `${e.date.slice(8)}/${e.date.slice(5, 7)} ${e.time}`}</div>
+                </div>
+                <div className="polar-stats">
+                  <span><b>{e.kcal}</b> kcal</span>
+                  {e.hrAvg && <span><b>{e.hrAvg}</b>/{e.hrMax} ppm</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+        )
+      })()}
 
       <div className="grid2">
         <button className="card tile" onClick={() => go('diet')}>

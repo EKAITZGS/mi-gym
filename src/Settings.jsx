@@ -6,6 +6,7 @@ import Coach from './Coach'
 import { Generator } from './Workout'
 import { generatePlan } from './plans'
 import Icon from './icons'
+import { getPolar, setPolar, connectPolar, syncPolar } from './polar'
 
 export default function Settings({ data, setData }) {
   const [msg, setMsg] = useState('')
@@ -15,6 +16,8 @@ export default function Settings({ data, setData }) {
   const [setup, setSetup] = useState(false)
   const [gen, setGen] = useState(false)
   const [coach, setCoach] = useState(false)
+  const [polar, setPolarState] = useState(getPolar())
+  const [ps, setPs] = useState({ loading: false, msg: '' })
   const flash = (m) => {
     setMsg(m)
     setTimeout(() => setMsg(''), 3500)
@@ -127,6 +130,63 @@ export default function Settings({ data, setData }) {
         <label className="lbl">Proteína (g)</label>
         <input className="inp" inputMode="numeric" value={data.goals.protein} onChange={(e) => setGoal('protein', e.target.value)} />
         <p className="muted small">Ponlos tú como quieras. Son solo una guía para las barras de progreso.</p>
+      </div>
+
+      <h4>Reloj Polar</h4>
+      <div className="card">
+        {polar?.token ? (
+          <>
+            <div className="row nob">
+              <span className="rest-ic"><Icon name="check" size={20} /></span>
+              <div className="grow">
+                <div className="li-t">Polar conectado</div>
+                <div className="muted small">
+                  {data.polar?.lastSync
+                    ? `Última sincronización: ${new Date(data.polar.lastSync).toLocaleString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })} · ${Object.keys(data.polar?.exercises || {}).length} entrenos`
+                    : 'Aún sin sincronizar'}
+                </div>
+              </div>
+            </div>
+            <div className="btns">
+              <button
+                className="btn primary"
+                disabled={ps.loading}
+                onClick={async () => {
+                  setPs({ loading: true, msg: '' })
+                  try {
+                    const r = await syncPolar(setData)
+                    setPs({ loading: false, msg: `Sincronizado: ${r.exercises} entrenos (últimos 30 días).` })
+                  } catch (e) {
+                    setPs({ loading: false, msg: e.message === 'AUTH' ? 'Polar rechazó el acceso: desconecta y vuelve a conectar.' : 'No se pudo sincronizar (¿sin conexión?).' })
+                  }
+                }}
+              >
+                {ps.loading ? 'Sincronizando…' : 'Sincronizar'}
+              </button>
+              <button
+                className="btn"
+                onClick={() => {
+                  if (!confirm('¿Desconectar Polar de esta app?')) return
+                  setPolar(null)
+                  setPolarState(null)
+                }}
+              >
+                Desconectar
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="muted small" style={{ marginTop: 0 }}>
+              Trae las calorías y el pulso de tus entrenos del reloj (los que subas a Polar Flow a partir de ahora). Se
+              sincroniza solo al abrir la app.
+            </p>
+            <button className="btn primary full" onClick={connectPolar}>
+              Conectar Polar
+            </button>
+          </>
+        )}
+        {ps.msg && <div className="advice green sm">{ps.msg}</div>}
       </div>
 
       <h4>IA (Groq): fotos y entrenador</h4>
