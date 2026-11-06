@@ -14,8 +14,10 @@ export default defineConfig({
       includeAssets: ['favicon.png', 'logo.svg', 'ex/**/*.webp'],
       workbox: {
         globPatterns: ['**/*.{js,css,html,jpg,webp,svg}', 'favicon.png'],
-        globIgnores: ['**/ios-icon-*.png', '**/app-icon-*.png'],
+        globIgnores: ['**/ios-icon-*.png', '**/app-icon-*.png', '**/icono.html'],
         navigateFallback: 'index.html',
+        // nunca responder con la página a peticiones de iconos/manifest (iOS los pide al añadir a inicio)
+        navigateFallbackDenylist: [/\.(png|jpg|jpeg|webp|svg|ico|webmanifest|json)$/i, /icono\.html$/],
         cleanupOutdatedCaches: true,
         clientsClaim: true,
         skipWaiting: true,
