@@ -99,7 +99,7 @@ function CreateExercise({ onClose, onCreate }) {
   )
 }
 
-function Library({ data, setData, onPick, onClose, inline }) {
+function Library({ data, setData, onPick, onClose, inline, title }) {
   const [creating, setCreating] = useState(false)
   const [q, setQ] = useState('')
   const [group, setGroup] = useState('Todos')
@@ -170,7 +170,7 @@ function Library({ data, setData, onPick, onClose, inline }) {
   )
   if (inline) return body
   return (
-    <Modal title="Elegir ejercicio" onClose={onClose}>
+    <Modal title={title || 'Elegir ejercicio'} onClose={onClose}>
       {body}
     </Modal>
   )
@@ -303,8 +303,53 @@ function DayEditor({ data, setData, dayId, onBack }) {
 function Session({ data, setData, onExit }) {
   const a = data.active
   const day = a ? data.plan.find((d) => d.id === a.dayId) : null
+  const items = a?.items || day?.items || []
+  const name = a?.name || day?.name || 'Entreno'
   const [detail, setDetail] = useState(null)
-  const [done, setDone] = useState(null) // { prs: [] } al terminar
+  const [picker, setPicker] = useState(null) // { mode: 'add' } | { mode: 'swap', itemId }
+  const [done, setDone] = useState(null) // { prs, changed, items, dayId, name } al terminar
+
+  const newSets = (n, drop) =>
+    Array.from({ length: n }, () => ({ w: '', r: '', done: false, drops: drop ? [{ w: '', r: '' }] : [] }))
+  const setActive = (fn) => setData((d) => (d.active ? { ...d, active: fn(d.active) } : d))
+  const curItems = (act) => act.items || day?.items || []
+  const removeItem = (itemId) =>
+    setActive((act) => {
+      const its = curItems(act)
+      const it = its.find((i) => i.id === itemId)
+      const entries = { ...act.entries }
+      if (it) delete entries[it.ex]
+      return { ...act, items: its.filter((i) => i.id !== itemId), entries }
+    })
+  const addSet = (exId) =>
+    setActive((act) => ({ ...act, entries: { ...act.entries, [exId]: [...(act.entries[exId] || []), ...newSets(1, false)] } }))
+  const pickEx = (ex) => {
+    const p = picker
+    setPicker(null)
+    setActive((act) => {
+      const its = curItems(act)
+      if (its.some((i) => i.ex === ex.id)) return act
+      const entries = { ...act.entries }
+      if (p?.mode === 'swap') {
+        const old = its.find((i) => i.id === p.itemId)
+        if (!old) return act
+        delete entries[old.ex]
+        entries[ex.id] = newSets(old.sets, old.drop)
+        return { ...act, items: its.map((i) => (i.id === p.itemId ? { ...i, ex: ex.id } : i)), entries }
+      }
+      entries[ex.id] = newSets(3, false)
+      return { ...act, items: [...its, { id: uid(), ex: ex.id, sets: 3, reps: '10', drop: false }], entries }
+    })
+  }
+  const saveToPlan = () => {
+    const its = done.items.map((i) => ({ ...i, id: uid() }))
+    if (done.dayId === 'free') {
+      setData((d) => ({ ...d, plan: [...d.plan, { id: uid(), name: 'Mi entreno', weekday: null, items: its }] }))
+    } else {
+      setData((d) => ({ ...d, plan: d.plan.map((x) => (x.id === done.dayId ? { ...x, items: its } : x)) }))
+    }
+    setDone({ ...done, changed: false, saved: true })
+  }
 
   if (done)
     return (
@@ -325,6 +370,20 @@ function Session({ data, setData, onExit }) {
           ) : (
             <p className="muted">Entreno registrado. Cada serie que anotas hace más fiable tu progreso.</p>
           )}
+          {done.changed && (
+            <div className="card save-plan">
+              <b>{done.dayId === 'free' ? '¿Guardar este entreno como un día?' : 'Has cambiado ejercicios'}</b>
+              <p className="muted small">
+                {done.dayId === 'free'
+                  ? 'Lo tendrás en tus días para repetirlo (puedes renombrarlo y asignarle día).'
+                  : `¿Quieres que "${done.name}" quede así para la próxima vez?`}
+              </p>
+              <button className="btn full" onClick={saveToPlan}>
+                {done.dayId === 'free' ? 'Guardar como día nuevo' : 'Guardar cambios en el plan'}
+              </button>
+            </div>
+          )}
+          {done.saved && <p className="toast">Guardado en tu plan.</p>}
           <button className="btn primary full" onClick={onExit}>
             Listo
           </button>
@@ -332,7 +391,7 @@ function Session({ data, setData, onExit }) {
       </div>
     )
 
-  if (!a || !day)
+  if (!a)
     return (
       <div className="page">
         <button className="link" onClick={onExit}>
@@ -372,9 +431,12 @@ function Session({ data, setData, onExit }) {
     setData((d) => ({
       ...d,
       active: null,
-      sessions: [...d.sessions, { id: uid(), date: a.date, dayId: a.dayId, dayName: day.name, entries }],
+      sessions: [...d.sessions, { id: uid(), date: a.date, dayId: a.dayId, dayName: name, entries }],
     }))
-    setDone({ prs })
+    const before = (day?.items || []).map((i) => i.ex).join('|')
+    const after = items.map((i) => i.ex).join('|')
+    const changed = items.length > 0 && (a.dayId === 'free' || (day && before !== after))
+    setDone({ prs, changed, items, dayId: a.dayId, name })
   }
   const discard = () => {
     if (!confirm('¿Descartar este entreno sin guardar?')) return
@@ -386,8 +448,14 @@ function Session({ data, setData, onExit }) {
       <button className="link" onClick={onExit}>
         <Icon name="left" size={18} /> Salir (se queda guardado)
       </button>
-      <h1 className="title">{day.name}</h1>
-      {day.items.map((it) => {
+      <h1 className="title">{name}</h1>
+      {items.length === 0 && (
+        <div className="empty-state">
+          <Icon name="dumbbell" size={28} />
+          <p>Añade los ejercicios que vayas haciendo.</p>
+        </div>
+      )}
+      {items.map((it) => {
         const ex = EX_BY_ID[it.ex]
         const sets = a.entries[it.ex] || []
         const last = lastSets(data.sessions, it.ex)
@@ -398,6 +466,17 @@ function Session({ data, setData, onExit }) {
         }
         return (
           <div className="card" key={it.id}>
+            <div className="ex-tools">
+              <button className="tool" onClick={() => setPicker({ mode: 'swap', itemId: it.id })}>
+                <Icon name="swap" size={15} /> Cambiar
+              </button>
+              <button className="tool" onClick={() => addSet(it.ex)}>
+                <Icon name="plus" size={15} /> Serie
+              </button>
+              <button className="tool danger" onClick={() => confirm('¿Quitar este ejercicio de hoy?') && removeItem(it.id)}>
+                <Icon name="x" size={15} /> Quitar
+              </button>
+            </div>
             <div className="row nob" onClick={() => ex && setDetail(ex)}>
               <Thumb ex={ex} />
               <div className="grow">
@@ -511,6 +590,18 @@ function Session({ data, setData, onExit }) {
           </div>
         )
       })}
+      <button className="btn full" onClick={() => setPicker({ mode: 'add' })}>
+        <Icon name="plus" size={18} /> Añadir ejercicio
+      </button>
+      {picker && (
+        <Library
+          data={data}
+          setData={setData}
+          onPick={pickEx}
+          onClose={() => setPicker(null)}
+          title={picker.mode === 'swap' ? 'Cambiar por…' : 'Añadir ejercicio'}
+        />
+      )}
       <button className="btn primary full" onClick={finish}>
         Terminar entreno
       </button>
@@ -523,7 +614,7 @@ function Session({ data, setData, onExit }) {
 }
 
 /* ---------- Pantalla Entreno ---------- */
-export default function Workout({ data, setData, view, setView, onStart }) {
+export default function Workout({ data, setData, view, setView, onStart, onStartFree }) {
   const [gen, setGen] = useState(false)
 
   if (view.name === 'session') return <Session data={data} setData={setData} onExit={() => setView({ name: 'list' })} />
@@ -571,7 +662,7 @@ export default function Workout({ data, setData, view, setView, onStart }) {
           <span className="pulse" />
           <span className="grow">
             <b>Entreno en curso</b>
-            <span className="small"> · {data.plan.find((d) => d.id === data.active.dayId)?.name}</span>
+            <span className="small"> · {data.active.name || data.plan.find((d) => d.id === data.active.dayId)?.name}</span>
           </span>
           <Icon name="right" size={18} />
         </button>
@@ -642,6 +733,9 @@ export default function Workout({ data, setData, view, setView, onStart }) {
         )
       })}
 
+      <button className="btn full free-btn" onClick={onStartFree}>
+        <Icon name="play" size={14} fill="currentColor" stroke={0} /> Entreno libre (a tu aire)
+      </button>
       <div className="actions">
         <button className="btn" onClick={addDay}>
           <Icon name="plus" size={18} /> Nuevo día

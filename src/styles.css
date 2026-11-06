@@ -1182,3 +1182,38 @@ textarea.inp {
 .filebtn {
   cursor: pointer;
 }
+
+.ex-tools {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: var(--card2);
+  border: 1px solid var(--line);
+  color: var(--text2);
+}
+.tool.danger {
+  color: var(--danger);
+  margin-left: auto;
+}
+.save-plan {
+  margin-top: 12px;
+  background: var(--card2);
+}
+.save-plan p {
+  margin: 4px 0 0;
+}
+.free-btn {
+  margin-top: 0;
+  margin-bottom: 10px;
+  border-color: rgba(62, 224, 143, 0.4);
+  color: var(--accent);
+}
