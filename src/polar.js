@@ -36,6 +36,11 @@ export const connectPolar = () => {
 }
 
 // "PT1H5M30S" -> minutos
+export const isoSeconds = (d) => {
+  const m = String(d || '').match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:([\d.]+)S)?/)
+  if (!m) return 0
+  return Math.round((+m[1] || 0) * 3600 + (+m[2] || 0) * 60 + (+m[3] || 0))
+}
 export const isoMinutes = (d) => {
   const m = String(d || '').match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:([\d.]+)S)?/)
   if (!m) return 0
@@ -59,6 +64,30 @@ const SPORTS = {
 }
 export const sportName = (e) => SPORTS[e.detailed_sport_info] || SPORTS[e.sport] || (e.sport || 'Entreno').toLowerCase()
 
+// Curva de pulso (muestras tipo 0, en ppm) reducida a un punto cada 15 s, y tiempo en cada zona
+const STEP = 15
+function hrDetail(e) {
+  const out = {}
+  const hs = (e.samples || []).find((x) => String(x['sample-type']) === '0')
+  if (hs?.data) {
+    const rate = Number(hs['recording-rate']) || 1
+    const vals = String(hs.data).split(',').map(Number)
+    const per = Math.max(1, Math.round(STEP / rate))
+    const v = []
+    for (let i = 0; i < vals.length; i += per) {
+      const chunk = vals.slice(i, i + per).filter((n) => n > 30 && n < 230)
+      v.push(chunk.length ? Math.round(chunk.reduce((a, b) => a + b, 0) / chunk.length) : 0)
+    }
+    if (v.some((n) => n > 0)) out.hr = { step: per * rate, v }
+  }
+  const z = e.heart_rate_zones
+  if (Array.isArray(z) && z.length)
+    out.zones = z
+      .map((x) => ({ i: x.index, lo: x['lower-limit'], hi: x['upper-limit'], s: isoSeconds(x['in-zone']) }))
+      .sort((a, b) => a.i - b.i)
+  return out
+}
+
 async function get(path, token) {
   const r = await fetch(POLAR_WORKER + path, { headers: { Authorization: `Bearer ${token}` } })
   if (r.status === 401 || r.status === 403) throw new Error('AUTH')
@@ -71,7 +100,7 @@ export async function syncPolar(setData) {
   const p = getPolar()
   if (!p?.token) throw new Error('NO_TOKEN')
   const [ex, act] = await Promise.all([
-    get('/exercises', p.token),
+    get('/exercises?samples=true&zones=true', p.token),
     get(`/activities?from=${addDays(todayStr(), -6)}&to=${todayStr()}`, p.token).catch(() => []),
   ])
   const exercises = {}
@@ -86,6 +115,7 @@ export async function syncPolar(setData) {
       hrMax: e.heart_rate?.maximum || null,
       sport: sportName(e),
       load: e.training_load ? Math.round(e.training_load) : null,
+      ...hrDetail(e),
     }
   }
   const days = {}
