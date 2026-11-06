@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { DEFAULT, todayStr, num } from './store'
-import { getAi, setAi, DEFAULT_MODEL } from './ai'
+import { getAi, setAi, DEFAULT_MODEL, cleanKey, testKey } from './ai'
 import Setup from './Setup'
 import Coach from './Coach'
 import { Generator } from './Workout'
@@ -11,6 +11,7 @@ export default function Settings({ data, setData }) {
   const [msg, setMsg] = useState('')
   const [paste, setPaste] = useState('')
   const [ai, setAiState] = useState(getAi())
+  const [kt, setKt] = useState({ loading: false, res: null })
   const [setup, setSetup] = useState(false)
   const [gen, setGen] = useState(false)
   const [coach, setCoach] = useState(false)
@@ -142,9 +143,10 @@ export default function Settings({ data, setData }) {
           placeholder="gsk_…"
           value={ai.key}
           onChange={(e) => {
-            const n = { ...ai, key: e.target.value }
+            const n = { ...ai, key: cleanKey(e.target.value) }
             setAiState(n)
             setAi(n)
+            setKt({ loading: false, res: null })
           }}
         />
         <label className="lbl">Modelo con visión</label>
@@ -158,6 +160,35 @@ export default function Settings({ data, setData }) {
           }}
         />
         <p className="muted small">Por defecto: {DEFAULT_MODEL}. Si Groq lo cambia, pon aquí el nombre de otro modelo con visión.</p>
+        <button
+          className="btn full"
+          disabled={kt.loading || !ai.key}
+          onClick={async () => {
+            setKt({ loading: true, res: null })
+            setKt({ loading: false, res: await testKey() })
+          }}
+        >
+          {kt.loading ? 'Probando…' : 'Probar clave'}
+        </button>
+        {kt.res && <div className={'advice ' + (kt.res.ok ? 'green' : 'yellow') + ' sm'}>{kt.res.msg}</div>}
+        {kt.res?.models?.length > 0 && (
+          <div className="chips wrap">
+            {kt.res.models.slice(0, 5).map((m) => (
+              <button
+                key={m}
+                className="chip sm"
+                onClick={() => {
+                  const n = { ...ai, model: m }
+                  setAiState(n)
+                  setAi(n)
+                  setKt({ loading: false, res: null })
+                }}
+              >
+                Usar {m}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       <h4>Copia de seguridad</h4>
