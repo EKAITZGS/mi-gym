@@ -9,7 +9,9 @@ export function polarWeek(data) {
   const days = Object.entries(data.polar?.days || {}).filter(([d]) => d >= since && d < todayStr())
   const steps = days.length ? Math.round(days.reduce((a, [, x]) => a + (x.steps || 0), 0) / days.length) : null
   const sessions = ex.map((e) => {
-    const tot = (e.zones || []).reduce((a, z) => a + z.s, 0)
+    const zs = [...(e.zones || [])].sort((a, b) => a.lo - b.lo).map((z, k) => ({ ...z, i: k + 1 }))
+    e = { ...e, zones: zs }
+    const tot = zs.reduce((a, z) => a + z.s, 0)
     const share = (ids) => (tot ? Math.round(((e.zones || []).filter((z) => ids.includes(z.i)).reduce((a, z) => a + z.s, 0) / tot) * 100) : null)
     return { fecha: e.date, deporte: e.sport, min: e.min, kcal: e.kcal, pulsoMedio: e.hrAvg, pulsoMax: e.hrMax, pctZonasAltas: share([4, 5]), pctZonaModerada: share([3]) }
   })

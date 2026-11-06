@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { EXERCISES, EX_BY_ID, GROUPS } from './data/exercises'
 import { WEEKDAYS, uid, lastSets, exStats, suggestion, fmtKg, num } from './store'
 import { Modal, Thumb, LineChart, ExPhoto } from './ui'
@@ -234,12 +234,39 @@ export function Generator({ onClose, onGenerate }) {
 }
 
 /* ---------- Editor de día ---------- */
-function DayEditor({ data, setData, dayId, onBack }) {
-  const day = data.plan.find((d) => d.id === dayId)
+// Cambios sin guardar en el editor de día (App lo consulta antes de cambiar de pestaña)
+export const editGuard = { dirty: false }
+
+function DayEditor({ data, setData, dayId, isNew, onBack }) {
+  const saved = data.plan.find((d) => d.id === dayId)
+  // Se edita una copia: nada cambia en tu plan hasta que pulsas Guardar
+  const [day, setDay] = useState(() => (saved ? structuredClone(saved) : { id: dayId, name: 'Nuevo día', weekday: null, items: [] }))
   const [picker, setPicker] = useState(false)
-  if (!day) return null
-  const patchDay = (p) => setData((d) => ({ ...d, plan: d.plan.map((x) => (x.id === dayId ? { ...x, ...p } : x)) }))
-  const patchItem = (id, p) => patchDay({ items: day.items.map((i) => (i.id === id ? { ...i, ...p } : i)) })
+  const [ask, setAsk] = useState(false)
+  const base = saved || { id: dayId, name: 'Nuevo día', weekday: null, items: [] }
+  const dirty = JSON.stringify(day) !== JSON.stringify(base)
+  editGuard.dirty = dirty
+  useEffect(() => () => {
+    editGuard.dirty = false
+  }, [])
+  if (!saved && !isNew) return null
+  const patchDay = (p) => setDay((d) => ({ ...d, ...p }))
+  const patchItem = (id, p) => setDay((d) => ({ ...d, items: d.items.map((i) => (i.id === id ? { ...i, ...p } : i)) }))
+  const save = () => {
+    const uni = Object.fromEntries(day.items.filter((i) => i.uni != null).map((i) => [i.ex, i.uni]))
+    setData((d) => ({
+      ...d,
+      uniEx: { ...(d.uniEx || {}), ...uni },
+      plan: d.plan.some((x) => x.id === dayId) ? d.plan.map((x) => (x.id === dayId ? day : x)) : [...d.plan, day],
+    }))
+    editGuard.dirty = false
+    onBack(isNew ? 'Día creado' : 'Cambios guardados')
+  }
+  const leave = () => (dirty ? setAsk(true) : onBack())
+  const discard = () => {
+    editGuard.dirty = false
+    onBack()
+  }
   const move = (idx, dir) => {
     const items = [...day.items]
     const j = idx + dir
@@ -253,16 +280,16 @@ function DayEditor({ data, setData, dayId, onBack }) {
     setPicker(false)
   }
   const del = () => {
-    if (!confirm(`¿Borrar el día "${day.name}"?`)) return
-    setData((d) => ({ ...d, plan: d.plan.filter((x) => x.id !== dayId) }))
-    onBack()
+    if (!confirm(isNew ? '¿Descartar este día nuevo?' : `¿Borrar el día "${day.name}"?`)) return
+    if (!isNew) setData((d) => ({ ...d, plan: d.plan.filter((x) => x.id !== dayId) }))
+    discard()
   }
   return (
-    <div className="page">
-      <button className="link" onClick={onBack}>
+    <div className={'page' + (dirty ? ' has-savebar' : '')}>
+      <button className="link" onClick={leave}>
         <Icon name="left" size={18} /> Volver
       </button>
-      <h2>Editar día</h2>
+      <h2>{isNew ? 'Nuevo día' : 'Editar día'}</h2>
       <label className="lbl">Nombre</label>
       <input className="inp" value={day.name} onChange={(e) => patchDay({ name: e.target.value })} />
       <label className="lbl">Día de la semana</label>
@@ -292,7 +319,7 @@ function DayEditor({ data, setData, dayId, onBack }) {
               <button className="icon-btn" onClick={() => move(idx, 1)} aria-label="Bajar">
                 <Icon name="down" size={16} />
               </button>
-              <button className="icon-btn" onClick={() => patchDay({ items: day.items.filter((i) => i.id !== it.id) })}>
+              <button className="icon-btn" onClick={() => patchDay({ items: day.items.filter((i) => i.id !== it.id) })} aria-label="Quitar">
                 <Icon name="trash" size={16} />
               </button>
             </div>
@@ -319,14 +346,7 @@ function DayEditor({ data, setData, dayId, onBack }) {
               <input
                 type="checkbox"
                 checked={!!(it.uni ?? data.uniEx?.[it.ex])}
-                onChange={(e) => {
-                  const v = e.target.checked
-                  setData((d) => ({
-                    ...d,
-                    uniEx: { ...(d.uniEx || {}), [it.ex]: v },
-                    plan: d.plan.map((x) => (x.id === dayId ? { ...x, items: x.items.map((i) => (i.id === it.id ? { ...i, uni: v } : i)) } : x)),
-                  }))
-                }}
+                onChange={(e) => patchItem(it.id, { uni: e.target.checked })}
               />
               Unilateral (reps de cada lado)
             </label>
@@ -337,9 +357,31 @@ function DayEditor({ data, setData, dayId, onBack }) {
         + Añadir ejercicio
       </button>
       <button className="btn danger full" onClick={del}>
-        Eliminar este día
+        {isNew ? 'Descartar día' : 'Eliminar este día'}
       </button>
       {picker && <Library data={data} setData={setData} onPick={add} onClose={() => setPicker(false)} />}
+      {dirty && (
+        <div className="savebar">
+          <span className="small">Cambios sin guardar</span>
+          <button className="btn primary" onClick={save}>
+            <Icon name="check" size={16} /> Guardar
+          </button>
+        </div>
+      )}
+      {ask && (
+        <Modal title="¿Guardar los cambios?" onClose={() => setAsk(false)}>
+          <p className="muted">Has cambiado “{day.name}”. Si sales sin guardar, tu plan se queda como estaba.</p>
+          <button className="btn primary full" onClick={save}>
+            Guardar cambios
+          </button>
+          <button className="btn full" onClick={() => setAsk(false)}>
+            Seguir editando
+          </button>
+          <button className="btn danger full" onClick={discard}>
+            Salir sin guardar
+          </button>
+        </Modal>
+      )}
     </div>
   )
 }
@@ -858,9 +900,28 @@ export default function Workout({ data, setData, view, setView, onStart, onStart
   const [gen, setGen] = useState(false)
   const [setup, setSetup] = useState(false)
   const [coach, setCoach] = useState(false)
+  const [flash, setFlash] = useState(null)
+  useEffect(() => {
+    if (!flash) return
+    const t = setTimeout(() => setFlash(null), 2500)
+    return () => clearTimeout(t)
+  }, [flash])
 
   if (view.name === 'session') return <Session data={data} setData={setData} onExit={() => setView({ name: 'list' })} />
-  if (view.name === 'edit') return <DayEditor data={data} setData={setData} dayId={view.id} onBack={() => setView({ name: 'list' })} />
+  if (view.name === 'edit')
+    return (
+      <DayEditor
+        key={view.id}
+        data={data}
+        setData={setData}
+        dayId={view.id}
+        isNew={!!view.isNew}
+        onBack={(msg) => {
+          setView({ name: 'list' })
+          if (msg) setFlash(msg)
+        }}
+      />
+    )
   if (view.name === 'library')
     return (
       <div className="page">
@@ -877,9 +938,7 @@ export default function Workout({ data, setData, view, setView, onStart, onStart
   const setWeekday = (dayId, w) =>
     setData((d) => ({ ...d, plan: d.plan.map((x) => (x.id === dayId ? { ...x, weekday: w } : x)) }))
   const addDay = () => {
-    const id = uid()
-    setData((d) => ({ ...d, plan: [...d.plan, { id, name: 'Nuevo día', weekday: null, items: [] }] }))
-    setView({ name: 'edit', id })
+    setView({ name: 'edit', id: uid(), isNew: true })
   }
   const generate = (days, level) => {
     setData((d) => ({ ...d, plan: generatePlan(days, level), active: null, setupDone: true }))
@@ -889,6 +948,7 @@ export default function Workout({ data, setData, view, setView, onStart, onStart
 
   return (
     <div className="page">
+      {flash && <div className="notice">{flash}</div>}
       <div className="head">
         <div>
           <div className="eyebrow">Tu rutina</div>
