@@ -23,6 +23,7 @@ export const FOODS = [
   { id: 'f-garbanzos', name: 'Garbanzos cocidos', kcal: 164, p: 8.9, c: 27, f: 2.6, s: 4.8, sf: 0.3 },
   { id: 'f-leche', name: 'Leche semidesnatada', kcal: 46, p: 3.4, c: 4.8, f: 1.6, unitG: 250, unitName: 'vaso', s: 4.8, sf: 1, natural: true },
   { id: 'f-yogur', name: 'Yogur natural', kcal: 61, p: 3.5, c: 4.7, f: 3.3, unitG: 125, unitName: 'yogur', s: 4.7, sf: 2.1, natural: true },
+  { id: 'f-yogur-sabores', name: 'Yogur de sabores azucarado (tipo Danone limón/fresa)', kcal: 82, p: 3.2, c: 12, f: 2.2, s: 11.5, sf: 1.5, unitG: 120, unitName: 'yogur' },
   { id: 'f-griego', name: 'Yogur griego natural', kcal: 97, p: 9, c: 4, f: 5, unitG: 125, unitName: 'yogur', s: 4, sf: 3.3, natural: true },
   { id: 'f-skyr', name: 'Queso fresco batido 0%', kcal: 46, p: 8, c: 4, f: 0.2, s: 4, sf: 0.1, natural: true },
   { id: 'f-queso', name: 'Queso curado', kcal: 400, p: 25, c: 1, f: 33, s: 0.5, sf: 21 },
