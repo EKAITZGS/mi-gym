@@ -105,7 +105,8 @@ export function Ring({ value, max, size = 132, stroke = 12, color = 'var(--accen
           strokeDasharray={c}
           strokeDashoffset={c * (1 - pct)}
           transform={`rotate(-90 ${size / 2} ${size / 2})`}
-          style={{ transition: 'stroke-dashoffset .6s ease' }}
+          className="ring-prog"
+          style={{ transition: 'stroke-dashoffset .6s ease', '--c': c }}
         />
       </svg>
       <div className="ring-in">{children}</div>

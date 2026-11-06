@@ -1461,3 +1461,51 @@ body.modal-open .tabbar { visibility: hidden; pointer-events: none; }
   .btns .btn, .wizard-nav .btn { font-size: 15px; }
   .btns .btn .ico, .wizard-nav .btn .ico { width: 15px; height: 15px; }
 }
+
+/* ---- Marca ---- */
+.brand { display: flex; flex-direction: column; align-items: center; gap: 4px; margin-top: 30px; }
+.brand img { border-radius: 14px; box-shadow: 0 8px 24px -10px rgba(62, 224, 143, 0.5); }
+
+/* ---- Animaciones (solo si el usuario no pidió reducir movimiento) ---- */
+@media (prefers-reduced-motion: no-preference) {
+  .page > * { animation: rise 0.42s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+  .page > *:nth-child(2) { animation-delay: 0.04s; }
+  .page > *:nth-child(3) { animation-delay: 0.08s; }
+  .page > *:nth-child(4) { animation-delay: 0.12s; }
+  .page > *:nth-child(5) { animation-delay: 0.16s; }
+  .page > *:nth-child(6) { animation-delay: 0.2s; }
+  .page > *:nth-child(7) { animation-delay: 0.24s; }
+  .page > *:nth-child(n + 8) { animation-delay: 0.28s; }
+  .tiles > .tile2 { animation: rise 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+  .tiles > .tile2:nth-child(2) { animation-delay: 0.05s; }
+  .tiles > .tile2:nth-child(3) { animation-delay: 0.1s; }
+  .tiles > .tile2:nth-child(4) { animation-delay: 0.15s; }
+  .tiles > .tile2:nth-child(5) { animation-delay: 0.2s; }
+  .tiles > .tile2:nth-child(6) { animation-delay: 0.25s; }
+  @keyframes rise { from { opacity: 0; transform: translateY(10px); } }
+
+  .ring-prog { animation: ringIn 0.9s cubic-bezier(0.65, 0, 0.35, 1) both; }
+  @keyframes ringIn { from { stroke-dashoffset: var(--c); } }
+  .bar-fill { animation: barIn 0.8s cubic-bezier(0.65, 0, 0.35, 1) both; }
+  @keyframes barIn { from { width: 0; } }
+
+  .chk.on { animation: pop 0.32s cubic-bezier(0.2, 1.6, 0.4, 1); }
+  @keyframes pop { 40% { transform: scale(1.18); } }
+
+  .tabbar button.on .ico { animation: tabPop 0.4s cubic-bezier(0.2, 1.6, 0.4, 1); }
+  @keyframes tabPop { 40% { transform: translateY(-3px) scale(1.12); } }
+
+  .pr { animation: prIn 0.6s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
+  .pr .gold { animation: shine 1.6s ease-in-out 0.4s infinite; }
+  @keyframes prIn { from { opacity: 0; transform: scale(0.9) translateY(8px); } }
+  @keyframes shine { 0%, 100% { transform: rotate(0); } 20% { transform: rotate(-12deg) scale(1.15); } 40% { transform: rotate(10deg); } }
+
+  .advice, .toast, .ratecard { animation: rise 0.35s ease both; }
+  .ratecard .l { transition: opacity 0.4s ease 0.15s; }
+  .sheet-body > * { animation: rise 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+  .sheet-body > *:nth-child(2) { animation-delay: 0.03s; }
+  .sheet-body > *:nth-child(3) { animation-delay: 0.06s; }
+  .sheet-body > *:nth-child(n + 4) { animation-delay: 0.09s; }
+  .hero > img { animation: heroZoom 8s ease-out both; }
+  @keyframes heroZoom { from { transform: scale(1.08); } }
+}

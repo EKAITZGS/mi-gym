@@ -10,7 +10,7 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: false,
-      includeAssets: ['apple-touch-icon.png', 'ex/**/*.webp'],
+      includeAssets: ['apple-touch-icon.png', 'favicon.png', 'logo.svg', 'ex/**/*.webp'],
       workbox: {
         globPatterns: ['**/*.{js,css,html,png,jpg,webp,svg}'],
         navigateFallback: 'index.html',
@@ -27,8 +27,8 @@ export default defineConfig({
         scope: './',
         display: 'standalone',
         orientation: 'portrait',
-        background_color: '#0f1115',
-        theme_color: '#0f1115',
+        background_color: '#0a0b0e',
+        theme_color: '#0a0b0e',
         icons: [
           { src: 'icon-192.png', sizes: '192x192', type: 'image/png' },
           { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
