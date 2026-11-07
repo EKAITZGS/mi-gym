@@ -1,7 +1,7 @@
 # Mi Gym — contexto para Claude Code
 
 App personal (PWA) de gimnasio y dieta de Ekaitz para su iPhone. Español en toda la interfaz y las respuestas.
-Objetivo del usuario: bajar ~10 kg de grasa y ganar músculo; no quiere usar báscula (mide la cintura). 20 años, 1,70 m, ~81 kg; objetivos en la app: 2200 kcal y 150 g de proteína. Reloj Polar M430.
+Objetivo del usuario: bajar ~10 kg de grasa y ganar músculo; mide la cintura cada semana y se pesa como mucho 1 vez por semana (no a diario: le baja los ánimos), por eso la app solo enseña la tendencia (media de los últimos 3 pesajes) y esconde los pesos sueltos. Datos en `body.weight` = [{date, kg}]. 20 años, 1,70 m, ~81 kg; objetivos en la app: 2200 kcal y 150 g de proteína. Reloj Polar M430.
 Prefiere respuestas cortas, directas y sinceras. Las propuestas del coach nunca se aplican solas: él acepta o rechaza.
 
 ## Stack
@@ -26,6 +26,14 @@ Prefiere respuestas cortas, directas y sinceras. Las propuestas del coach nunca 
 - Rutas: `/auth`, `/callback`, `/exercises`, `/exercise?id=`, `/activities`, `/push/key|sync|test|next|off`.
 - Push sin payload: el cron manda un "toque" firmado con VAPID (claves generadas por el worker y guardadas en KV) y `push-sw.js` pide el texto a `/push/next`.
 - El editor web de Cloudflare no acepta pegar por API (WAF); se despliega escribiendo el código en el editor o con `wrangler deploy` si se configura.
+
+## Forma de trabajar (acordada con el usuario)
+Él prueba directamente en el iPhone; no abrir vistas previas en el PC ni pedirle que mire nada ahí. Tras cada cambio:
+1. `npm run build`; si falla, arreglar antes de seguir.
+2. Prueba rápida si se puede, sin abrir previews.
+3. Commit y push a `main` sin preguntar (Actions publica en ~2 min).
+4. Decirle en 2–3 líneas qué cambió y que cierre y abra la app en el iPhone.
+Si algo falla en el móvil, él manda captura y se arregla igual. **Preguntar antes** si el cambio puede borrar o estropear datos guardados, o si hay que tocar Cloudflare.
 
 ## Pruebas
 `tests/*.py` (Playwright con Chrome) contra `npx vite preview --port 4173`. Ejecutar las relevantes antes de publicar.

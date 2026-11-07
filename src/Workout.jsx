@@ -7,7 +7,7 @@ import WeeklyReview from './Review'
 import { generatePlan, PLAN_OPTIONS, LEVELS } from './plans'
 import Setup from './Setup'
 import { FEELINGS, ZONES, adviceFor, painFor, needsDeload } from './coach'
-import Coach from './Coach'
+import Coach from './Coach.jsx'
 
 const ORDER = [1, 2, 3, 4, 5, 6, 0] // lunes primero
 
