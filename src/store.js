@@ -92,7 +92,10 @@ export function useStore() {
   useEffect(() => {
     try {
       localStorage.setItem(KEY, JSON.stringify(data))
-    } catch {}
+      window.dispatchEvent(new Event('migym-save-ok'))
+    } catch {
+      window.dispatchEvent(new Event('migym-save-error'))
+    }
   }, [data])
   useEffect(() => {
     try {
