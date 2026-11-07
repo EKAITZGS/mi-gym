@@ -1,7 +1,8 @@
 # Mi Gym — contexto para Claude Code
 
 App personal (PWA) de gimnasio y dieta de Ekaitz para su iPhone. Español en toda la interfaz y las respuestas.
-El peso se muestra solo como tendencia (media de los últimos 3 pesajes), nunca pesos sueltos. Datos en `body.weight` = [{date, kg}].
+El peso se muestra solo como tendencia (media de los últimos 3 pesajes), nunca pesos sueltos; el usuario se pesa como mucho 1 vez por semana. Datos en `body.weight` = [{date, kg}]. Objetivos de kcal/proteína en `goals`. Reloj Polar.
+Prefiere respuestas cortas, directas y sinceras. Las propuestas del coach nunca se aplican solas: él acepta o rechaza.
 
 ## Stack
 - React 18 + Vite 5 + vite-plugin-pwa (Workbox, `registerType: autoUpdate`, `importScripts: ['push-sw.js']`).
@@ -28,7 +29,8 @@ El peso se muestra solo como tendencia (media de los últimos 3 pesajes), nunca 
 
 ## Pruebas
 `tests/*.py` (Playwright con Chrome) contra `npx vite preview --port 4173`. Ejecutar las relevantes antes de publicar.
+Ojo: los scripts se escribieron en otro entorno; usan `executable_path='/usr/bin/google-chrome'` y guardan capturas en `/home/claude/shots/`. Ajusta rutas si no existen.
 
 ## Pendiente / ideas
-- Icono del iPhone sigue mostrando "M" (caché de iOS; probado de todo).
+- Icono del iPhone mostraba "M" (caché de iOS). Último intento: repo `EKAITZGS/EKAITZGS.github.io` con `apple-touch-icon*.png` en la raíz del dominio y un `index.html` que redirige a `/mi-gym/`. Pendiente de que el usuario confirme tras reinstalar la app.
 - Versión multiusuario para amigos (Supabase) — más adelante.
