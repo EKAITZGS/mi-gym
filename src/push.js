@@ -17,7 +17,11 @@ export const pushState = () => {
     return null
   }
 }
-const setState = (v) => localStorage.setItem(LS, JSON.stringify(v))
+const setState = (v) => {
+  try {
+    localStorage.setItem(LS, JSON.stringify(v))
+  } catch {}
+}
 
 const b64ToBytes = (s) => {
   const b = atob(s.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((s.length + 3) % 4))

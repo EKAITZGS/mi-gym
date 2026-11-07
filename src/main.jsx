@@ -1,6 +1,7 @@
 import React from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App'
+import { editGuard } from './Workout'
 import './styles.css'
 import { registerSW } from 'virtual:pwa-register'
 
@@ -14,7 +15,8 @@ const updateSW = registerSW({
     setInterval(check, 30 * 60 * 1000)
   },
   onNeedRefresh() {
-    updateSW(true)
+    const apply = () => (editGuard.dirty ? setTimeout(apply, 30000) : updateSW(true))
+    apply()
   },
 })
 

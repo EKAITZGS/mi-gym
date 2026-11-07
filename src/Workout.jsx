@@ -617,13 +617,17 @@ function Session({ data, setData, onExit }) {
     )
 
   const patchSet = (exId, si, fn) =>
-    setData((d) => ({
-      ...d,
-      active: {
-        ...d.active,
-        entries: { ...d.active.entries, [exId]: d.active.entries[exId].map((s, i) => (i === si ? fn(s) : s)) },
-      },
-    }))
+    setData((d) =>
+      d.active
+        ? {
+            ...d,
+            active: {
+              ...d.active,
+              entries: { ...d.active.entries, [exId]: d.active.entries[exId].map((s, i) => (i === si ? fn(s) : s)) },
+            },
+          }
+        : d
+    )
 
   const finish = () => {
     const sid = uid()
