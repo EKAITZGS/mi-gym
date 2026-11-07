@@ -253,11 +253,12 @@ function DayEditor({ data, setData, dayId, isNew, onBack }) {
   const patchDay = (p) => setDay((d) => ({ ...d, ...p }))
   const patchItem = (id, p) => setDay((d) => ({ ...d, items: d.items.map((i) => (i.id === id ? { ...i, ...p } : i)) }))
   const save = () => {
-    const uni = Object.fromEntries(day.items.filter((i) => i.uni != null).map((i) => [i.ex, i.uni]))
+    const fixed = { ...day, items: day.items.map((i) => ({ ...i, sets: Math.max(1, Math.min(10, Number(i.sets) || 1)) })) }
+    const uni = Object.fromEntries(fixed.items.filter((i) => i.uni != null).map((i) => [i.ex, i.uni]))
     setData((d) => ({
       ...d,
       uniEx: { ...(d.uniEx || {}), ...uni },
-      plan: d.plan.some((x) => x.id === dayId) ? d.plan.map((x) => (x.id === dayId ? day : x)) : [...d.plan, day],
+      plan: d.plan.some((x) => x.id === dayId) ? d.plan.map((x) => (x.id === dayId ? fixed : x)) : [...d.plan, fixed],
     }))
     editGuard.dirty = false
     onBack(isNew ? 'Día creado' : 'Cambios guardados')
@@ -330,7 +331,13 @@ function DayEditor({ data, setData, dayId, isNew, onBack }) {
                   className="inp sm"
                   inputMode="numeric"
                   value={it.sets}
-                  onChange={(e) => patchItem(it.id, { sets: Math.max(1, Math.min(10, Number(e.target.value) || 1)) })}
+                  onFocus={(e) => e.target.select()}
+                  onChange={(e) => {
+                    // se puede borrar y escribir libremente; se corrige al salir del campo
+                    const v = e.target.value.replace(/\D/g, '').slice(0, 2)
+                    patchItem(it.id, { sets: v === '' ? '' : Math.min(10, Number(v)) })
+                  }}
+                  onBlur={() => !(Number(it.sets) >= 1) && patchItem(it.id, { sets: 1 })}
                 />
               </label>
               <label>
