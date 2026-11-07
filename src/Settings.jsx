@@ -55,7 +55,10 @@ export default function Settings({ data, setData }) {
   const load = (text) => {
     try {
       const obj = JSON.parse(text)
+      const isObj = (v) => v && typeof v === 'object' && !Array.isArray(v)
       if (!obj || !Array.isArray(obj.plan)) throw new Error('formato')
+      if (['sessions', 'myFoods', 'myExercises'].some((k) => k in obj && !Array.isArray(obj[k])) || ['food', 'goals'].some((k) => k in obj && !isObj(obj[k])))
+        throw new Error('formato')
       if (!confirm('Esto reemplaza todos los datos actuales por los de la copia. ¿Continuar?')) return
       setData({ ...DEFAULT, ...obj })
       setPaste('')

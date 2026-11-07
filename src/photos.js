@@ -18,6 +18,7 @@ async function tx(mode, fn) {
     const out = fn(t.objectStore(STORE))
     t.oncomplete = () => res(out?.result ?? out)
     t.onerror = () => rej(t.error)
+    t.onabort = () => rej(t.error)
   })
 }
 

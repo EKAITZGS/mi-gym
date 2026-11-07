@@ -141,7 +141,7 @@ export async function analyzeLabel(file) {
   } catch {
     throw new Error('No pude leer la tabla, prueba con otra foto más cerca y con luz')
   }
-  if (!(Number(o.kcal) >= 0)) throw new Error('No veo una tabla nutricional en la foto')
+  if (o.kcal == null || !(Number(o.kcal) >= 0)) throw new Error('No veo una tabla nutricional en la foto')
   const n = (v) => (v == null || v === '' || isNaN(Number(v)) ? '' : String(Math.round(Number(v) * 10) / 10))
   return { kcal: n(o.kcal), p: n(o.proteina), c: n(o.hidratos), s: n(o.azucares), f: n(o.grasa), sf: n(o.saturadas), unitG: n(o.racion_g) }
 }

@@ -693,11 +693,11 @@ export default function Diet({ data, setData }) {
   return (
     <div className="page">
       <div className="datenav">
-        <button className="icon-btn" onClick={() => setDate(addDays(date, -1))}>
+        <button className="icon-btn" aria-label="Día anterior" onClick={() => setDate(addDays(date, -1))}>
           <Icon name="left" size={18} />
         </button>
         <h2>{dateLabel(date)}</h2>
-        <button className="icon-btn" onClick={() => setDate(addDays(date, 1))}>
+        <button className="icon-btn" aria-label="Día siguiente" onClick={() => setDate(addDays(date, 1))}>
           <Icon name="right" size={18} />
         </button>
       </div>

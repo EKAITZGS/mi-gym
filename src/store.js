@@ -77,10 +77,16 @@ export const DEFAULT = {
 
 export function useStore() {
   const [data, setData] = useState(() => {
+    let s = null
     try {
-      const s = localStorage.getItem(KEY)
+      s = localStorage.getItem(KEY)
       if (s) return { ...DEFAULT, ...JSON.parse(s) }
-    } catch {}
+    } catch {
+      // Dato corrupto: copia de seguridad antes de que el efecto de abajo lo pise con DEFAULT
+      try {
+        if (s) localStorage.setItem(KEY + '.bak', s)
+      } catch {}
+    }
     return DEFAULT
   })
   useEffect(() => {
