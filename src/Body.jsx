@@ -334,6 +334,11 @@ export default function BodyCard({ data, setData }) {
       )}
       {!both && wRecent.length >= 2 && <LineChart points={wRecent.map((w) => ({ label: w.date, v: w.v }))} unit="kg" />}
       {both && <BodyChart waist={recent} weight={wRecent} />}
+      {!both && (
+        <p className="muted small" style={{ margin: '0 0 10px' }}>
+          La gráfica aparece cuando tengas al menos 2 medidas de cintura y 2 de peso (una por semana).
+        </p>
+      )}
       <div className="btns">
         <button className={'btn' + (dueW ? ' primary' : '')} onClick={() => setModal('waist')}>
           <Icon name="edit" size={15} /> {dueW ? 'Toca medir' : 'Cintura'}
