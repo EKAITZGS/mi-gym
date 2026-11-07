@@ -64,6 +64,17 @@ export default function App() {
     const t = setTimeout(() => syncPush(data).catch(() => {}), 3000)
     return () => clearTimeout(t)
   }, [data.food, data.sessions, data.plan, data.body, data.pushPrefs, data.polar, data.goals])
+  const [saveFail, setSaveFail] = useState(false)
+  useEffect(() => {
+    const bad = () => setSaveFail(true)
+    const ok = () => setSaveFail(false)
+    window.addEventListener('migym-save-error', bad)
+    window.addEventListener('migym-save-ok', ok)
+    return () => {
+      window.removeEventListener('migym-save-error', bad)
+      window.removeEventListener('migym-save-ok', ok)
+    }
+  }, [])
   useEffect(() => {
     if (!notice) return
     const t = setTimeout(() => setNotice(null), 5000)
@@ -117,6 +128,11 @@ export default function App() {
         {tab === 'diet' && <Diet data={data} setData={setData} />}
         {tab === 'settings' && <Settings data={data} setData={setData} />}
       </main>
+      {saveFail && (
+        <div className="notice" style={{ background: 'var(--danger)', color: '#fff', top: 0 }} role="alert">
+          No se está guardando: lo de ahora se perderá al cerrar. Haz una copia en Ajustes y libera espacio en el iPhone.
+        </div>
+      )}
       {notice && (
         <div className="notice" onClick={() => setNotice(null)}>
           {notice}

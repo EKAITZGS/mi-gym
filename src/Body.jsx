@@ -222,6 +222,56 @@ function PhotosModal({ data, setData, onClose }) {
   )
 }
 
+// Cintura y peso (tendencia) en una sola gráfica: se dibuja el cambio desde el inicio, así no se ven pesos sueltos
+function BodyChart({ waist, weight }) {
+  const W = 340
+  const H = 170
+  const L = 34
+  const R = 12
+  const T = 12
+  const B = 24
+  const a = waist.map((p) => ({ date: p.date, d: Math.round((p.cm - waist[0].cm) * 10) / 10 }))
+  const b = weight.map((p) => ({ date: p.date, d: Math.round((p.v - weight[0].v) * 10) / 10 }))
+  const dates = [...a, ...b].map((p) => p.date).sort()
+  const t0 = Date.parse(dates[0])
+  const span = Math.max(1, Date.parse(dates[dates.length - 1]) - t0)
+  const vs = [...a, ...b].map((p) => p.d)
+  let min = Math.min(0, ...vs)
+  let max = Math.max(0, ...vs)
+  if (min === max) {
+    min -= 1
+    max += 1
+  }
+  const pad = (max - min) * 0.15
+  min -= pad
+  max += pad
+  const x = (s) => L + ((Date.parse(s) - t0) / span) * (W - L - R)
+  const y = (v) => T + (H - T - B) * (1 - (v - min) / (max - min))
+  const path = (s) => s.map((p, i) => `${i ? 'L' : 'M'}${x(p.date).toFixed(1)},${y(p.d).toFixed(1)}`).join(' ')
+  const ticks = [min, (min + max) / 2, max]
+  return (
+    <div className="chart-wrap">
+      <div className="chart-head" style={{ flexWrap: 'wrap', gap: 12 }}>
+        <span className="small" style={{ color: 'var(--accent)' }}>● Cintura (cm)</span>
+        <span className="small" style={{ color: 'var(--blue)' }}>● Peso, tendencia (kg)</span>
+        <span className="muted small">cambio desde el inicio</span>
+      </div>
+      <svg viewBox={`0 0 ${W} ${H}`} className="chart" role="img" aria-label="Cambio de cintura y de peso">
+        {ticks.map((v, k) => (
+          <text key={k} x={L - 6} y={y(v) + 3} textAnchor="end" className="ct">
+            {(Math.round(v * 10) / 10).toString().replace('.', ',')}
+          </text>
+        ))}
+        <line x1={L} x2={W - R} y1={y(0)} y2={y(0)} stroke="var(--line)" strokeDasharray="4 4" />
+        <path d={path(a)} fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+        <path d={path(b)} fill="none" stroke="var(--blue)" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+        <text x={L} y={H - 6} className="ct">{fmtD(dates[0])}</text>
+        <text x={W - R} y={H - 6} textAnchor="end" className="ct">{fmtD(dates[dates.length - 1])}</text>
+      </svg>
+    </div>
+  )
+}
+
 export default function BodyCard({ data, setData }) {
   const [modal, setModal] = useState(null)
   const waist = data.body?.waist || []
@@ -238,6 +288,7 @@ export default function BodyCard({ data, setData }) {
   const wDiff = wt.length >= 2 ? Math.round((wLast.v - wt[0].v) * 10) / 10 : null
   const dueK = weights.length > 0 && daysSince(weights[weights.length - 1].date) >= 7
   const wRecent = wt.filter((w) => w.date >= addDays(todayStr(), -120))
+  const both = recent.length >= 2 && wRecent.length >= 2
   return (
     <div className="card body-card">
       <div className="sec-head nm">
@@ -265,7 +316,7 @@ export default function BodyCard({ data, setData }) {
           )}
         </div>
       </div>
-      {recent.length >= 2 && <LineChart points={recent.map((w) => ({ label: w.date, v: w.cm }))} unit="cm" />}
+      {!both && recent.length >= 2 && <LineChart points={recent.map((w) => ({ label: w.date, v: w.cm }))} unit="cm" />}
       {wLast && (
         <div className="body-row">
           <div className="grow">
@@ -281,7 +332,8 @@ export default function BodyCard({ data, setData }) {
           </div>
         </div>
       )}
-      {wRecent.length >= 2 && <LineChart points={wRecent.map((w) => ({ label: w.date, v: w.v }))} unit="kg" />}
+      {!both && wRecent.length >= 2 && <LineChart points={wRecent.map((w) => ({ label: w.date, v: w.v }))} unit="kg" />}
+      {both && <BodyChart waist={recent} weight={wRecent} />}
       <div className="btns">
         <button className={'btn' + (dueW ? ' primary' : '')} onClick={() => setModal('waist')}>
           <Icon name="edit" size={15} /> {dueW ? 'Toca medir' : 'Cintura'}
