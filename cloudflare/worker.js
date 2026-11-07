@@ -4,6 +4,7 @@ const API = 'https://www.polaraccesslink.com/v3';
 const cors = { 'Access-Control-Allow-Origin': APP_ORIGIN, 'Access-Control-Allow-Headers': 'Authorization, Content-Type', 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 'Access-Control-Max-Age': '86400' };
 const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { ...cors, 'Content-Type': 'application/json' } });
 const back = (params) => Response.redirect(APP_URL + '#' + new URLSearchParams(params).toString(), 302);
+const PUSH_HOSTS = /^(([a-z0-9-]+\.)*push\.apple\.com|fcm\.googleapis\.com|updates\.push\.services\.mozilla\.com|([a-z0-9-]+\.)*notify\.windows\.com)$/;
 const enc = new TextEncoder();
 const b64u = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 const subId = async (endpoint) => [...new Uint8Array(await crypto.subtle.digest('SHA-256', enc.encode(endpoint)))].map((b) => b.toString(16).padStart(2, '0')).join('').slice(0, 32);
@@ -74,14 +75,21 @@ if (msg) await env.PUSH.put('sub:' + id, JSON.stringify(rec));
 return json(msg || { title: 'Mi Gym', body: 'Tienes un aviso nuevo en Mi Gym.' });
 }
 if (req.method !== 'POST') return json({ error: 'metodo' }, 405);
-const body = await req.json().catch(() => ({}));
+const raw = await req.text();
+if (raw.length > 20000) return json({ error: 'demasiado_grande' }, 413);
+let body = {};
+try { body = JSON.parse(raw) || {}; } catch {}
 const endpoint = String((body.sub && body.sub.endpoint) || body.endpoint || '');
-if (!/^https:\/\//.test(endpoint)) return json({ error: 'sin_suscripcion' }, 400);
+let host = '';
+try { const u = new URL(endpoint); if (u.protocol === 'https:') host = u.hostname; } catch {}
+if (!PUSH_HOSTS.test(host)) return json({ error: 'sin_suscripcion' }, 400);
 const id = await subId(endpoint);
 if (p === '/push/off') { await env.PUSH.delete('sub:' + id); return json({ ok: true }); }
-const rec = (await env.PUSH.get('sub:' + id, 'json')) || { sent: {}, queue: [] };
+const old = await env.PUSH.get('sub:' + id, 'json');
+if (!old && (await env.PUSH.list({ prefix: 'sub:', limit: 20 })).keys.length >= 20) return json({ error: 'demasiadas_suscripciones' }, 429);
+const rec = old || { sent: {}, queue: [] };
 if (p === '/push/sync') {
-rec.sub = body.sub;
+rec.sub = { endpoint };
 rec.items = (Array.isArray(body.items) ? body.items : []).slice(0, 60).map(clean);
 const keep = {};
 for (const it of rec.items) if (rec.sent[it.k]) keep[it.k] = 1;
@@ -90,8 +98,8 @@ await env.PUSH.put('sub:' + id, JSON.stringify(rec));
 return json({ ok: true, id });
 }
 if (p === '/push/test') {
-rec.sub = rec.sub || body.sub;
-rec.queue = [...(rec.queue || []), { title: 'Avisos activados ✅', body: 'Así te llegarán los avisos de Mi Gym.' }].slice(-10);
+rec.sub = rec.sub || { endpoint };
+rec.queue = [...(rec.queue || []), { title: 'Avisos activados \u2705', body: 'As\u00ed te llegar\u00e1n los avisos de Mi Gym.' }].slice(-10);
 await env.PUSH.put('sub:' + id, JSON.stringify(rec));
 const r = await sendPush(env, endpoint);
 return json({ ok: r.ok, status: r.status, id });
