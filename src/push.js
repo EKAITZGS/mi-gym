@@ -76,7 +76,7 @@ export function pushPlan(data) {
     if (pr.waist && wd === 0) {
       const w = data.body?.waist || []
       const last = w[w.length - 1]?.date
-      if (!last || addDays(last, 6) <= date) items.push({ k: 'waist-' + date, at: at(date, '10:00'), title: 'Toca medir la cintura 📏', body: 'En ayunas, a la altura del ombligo. Tarda 10 segundos.' })
+      if (!last || addDays(last, 6) <= date) items.push({ k: 'waist-' + date, at: at(date, '10:00'), title: 'Toca medir la cintura 📏', body: 'En ayunas, a la altura del ombligo. Si quieres, pésate también (solo cuenta la tendencia).' })
     }
   }
   if (pr.watch && data.polar && data.sessions.some((s) => s.date === today) && !polarExercisesOn(data, today).length)

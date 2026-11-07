@@ -69,6 +69,61 @@ function WaistModal({ data, setData, onClose }) {
   )
 }
 
+// Media de los últimos 3 pesajes: lo que se muestra es la tendencia, no el número suelto
+const trend = (list) => list.map((_, i) => {
+  const s = list.slice(Math.max(0, i - 2), i + 1)
+  return { date: list[i].date, v: Math.round((s.reduce((a, e) => a + e.kg, 0) / s.length) * 10) / 10 }
+})
+
+function WeightModal({ data, setData, onClose }) {
+  const weights = data.body?.weight || []
+  const [kg, setKg] = useState('')
+  const [show, setShow] = useState(false)
+  const save = () => {
+    const v = num(kg)
+    if (v < 30 || v > 300) return
+    const d = todayStr()
+    setData((x) => {
+      const w = (x.body?.weight || []).filter((e) => e.date !== d)
+      return { ...x, body: { ...(x.body || {}), weight: [...w, { date: d, kg: v }].sort((a, b) => a.date.localeCompare(b.date)) } }
+    })
+    onClose()
+  }
+  return (
+    <Modal title="Pesarte" onClose={onClose}>
+      <p className="muted small">
+        Una vez por semana, el mismo día, por la mañana, en ayunas y después de ir al baño. No mires el número suelto: lo que importa es la tendencia.
+      </p>
+      <label className="lbl">Peso (kg)</label>
+      <input className="inp" inputMode="decimal" value={kg} onChange={(e) => setKg(e.target.value)} placeholder="Ej. 80,5" autoFocus />
+      <button className="btn primary full" disabled={!(num(kg) >= 30 && num(kg) <= 300)} onClick={save}>
+        Guardar
+      </button>
+      {weights.length > 0 && (
+        <>
+          <button className="btn full" onClick={() => setShow(!show)}>
+            {show ? 'Ocultar pesos sueltos' : 'Ver pesos sueltos'}
+          </button>
+          {show &&
+            [...weights].reverse().slice(0, 8).map((e) => (
+              <div className="row nob li" key={e.date}>
+                <span className="grow">{fmtD(e.date)}</span>
+                <b>{fmtKg(e.kg)} kg</b>
+                <button
+                  className="icon-btn ghost"
+                  aria-label="Borrar peso"
+                  onClick={() => setData((x) => ({ ...x, body: { ...x.body, weight: (x.body?.weight || []).filter((w) => w.date !== e.date) } }))}
+                >
+                  <Icon name="x" size={14} />
+                </button>
+              </div>
+            ))}
+        </>
+      )}
+    </Modal>
+  )
+}
+
 function PhotosModal({ data, setData, onClose }) {
   const photos = data.body?.photos || []
   const fileRef = useRef()
@@ -177,11 +232,17 @@ export default function BodyCard({ data, setData }) {
   const dueW = daysSince(last?.date) >= 7
   const dueP = daysSince(photos[photos.length - 1]?.date) >= 28
   const recent = waist.filter((w) => w.date >= addDays(todayStr(), -120))
+  const weights = data.body?.weight || []
+  const wt = trend(weights)
+  const wLast = wt[wt.length - 1]
+  const wDiff = wt.length >= 2 ? Math.round((wLast.v - wt[0].v) * 10) / 10 : null
+  const dueK = weights.length > 0 && daysSince(weights[weights.length - 1].date) >= 7
+  const wRecent = wt.filter((w) => w.date >= addDays(todayStr(), -120))
   return (
     <div className="card body-card">
       <div className="sec-head nm">
         <b>Tu cuerpo</b>
-        <span className="muted small">sin báscula</span>
+        <span className="muted small">cintura y tendencia</span>
       </div>
       <div className="body-row">
         <div className="grow">
@@ -205,16 +266,36 @@ export default function BodyCard({ data, setData }) {
         </div>
       </div>
       {recent.length >= 2 && <LineChart points={recent.map((w) => ({ label: w.date, v: w.cm }))} unit="cm" />}
+      {wLast && (
+        <div className="body-row">
+          <div className="grow">
+            <div className="body-num">
+              {fmtKg(wLast.v)} <span>kg de media (tendencia)</span>
+            </div>
+            {wDiff != null && (
+              <div className={'delta ' + (wDiff <= 0 ? 'up' : 'down')}>
+                {wDiff > 0 ? '+' : ''}
+                {fmtKg(wDiff)} kg desde el {fmtD(wt[0].date)}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      {wRecent.length >= 2 && <LineChart points={wRecent.map((w) => ({ label: w.date, v: w.v }))} unit="kg" />}
       <div className="btns">
         <button className={'btn' + (dueW ? ' primary' : '')} onClick={() => setModal('waist')}>
           <Icon name="edit" size={15} /> {dueW ? 'Toca medir' : 'Cintura'}
+        </button>
+        <button className={'btn' + (dueK ? ' primary' : '')} onClick={() => setModal('weight')}>
+          <Icon name="edit" size={15} /> {dueK ? 'Toca pesarte' : 'Peso'}
         </button>
         <button className={'btn' + (dueP ? ' primary' : '')} onClick={() => setModal('photos')}>
           <Icon name="camera" size={15} /> {dueP ? 'Toca foto' : `Fotos (${photos.length})`}
         </button>
       </div>
       {modal === 'waist' && <WaistModal data={data} setData={setData} onClose={() => setModal(null)} />}
-      {modal === 'photos' && <PhotosModal data={data} setData={setData} onClose={() => setModal(null)} />}
+      {modal === 'weight' && <WeightModal data={data} setData={setData} onClose={() => setModal(null)} />}
+      {modal === 'photos' &&<PhotosModal data={data} setData={setData} onClose={() => setModal(null)} />}
     </div>
   )
 }
