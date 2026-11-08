@@ -83,6 +83,9 @@ export function ExerciseModal({ ex, data, onClose, onPick, pickLabel, onDelete }
 }
 
 /* ---------- Biblioteca / selector ---------- */
+// se busca por nombre, grupo y músculo principal (así "glúteo" encuentra también el hip thrust)
+const norm = (t) => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+const searchText = (e) => (e._s ??= norm([e.name, e.group, ...(e.main || []), e.equip || ''].join(' ')))
 function CreateExercise({ onClose, onCreate }) {
   const [name, setName] = useState('')
   const [group, setGroup] = useState(GROUPS[0])
@@ -108,9 +111,13 @@ function Library({ data, setData, onPick, onClose, inline, title }) {
   const [q, setQ] = useState('')
   const [group, setGroup] = useState('Todos')
   const [open, setOpen] = useState(null)
+  // se enseñan pocos ejercicios a la vez para que la lista vaya fluida; "Ver más" carga el resto
+  const PAGE = 12
+  const [limit, setLimit] = useState(PAGE)
+  useEffect(() => setLimit(PAGE), [q, group])
   const list = EXERCISES.filter(
     (e) =>
-      (group === 'Todos' || e.group === group) && (!q || q.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').split(/\s+/).filter(Boolean).every((w) => e.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(w)))
+      (group === 'Todos' || e.group === group) && (!q || q.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').split(/\s+/).filter(Boolean).every((w) => searchText(e).includes(w)))
   )
   const body = (
     <>
@@ -123,7 +130,7 @@ function Library({ data, setData, onPick, onClose, inline, title }) {
         ))}
       </div>
       <div className="list">
-        {list.map((e) => (
+        {list.slice(0, limit).map((e) => (
           <button key={e.id} className="row" onClick={() => setOpen(e)}>
             <Thumb ex={e} />
             <div className="grow">
@@ -136,6 +143,11 @@ function Library({ data, setData, onPick, onClose, inline, title }) {
           </button>
         ))}
         {list.length === 0 && <p className="muted">Sin resultados.</p>}
+        {list.length > limit && (
+          <button className="btn full more-btn" onClick={() => setLimit(limit + 20)}>
+            Ver más ({list.length - limit} restantes)
+          </button>
+        )}
       </div>
       <button className="btn full" onClick={() => setCreating(true)}>
         + Crear ejercicio propio

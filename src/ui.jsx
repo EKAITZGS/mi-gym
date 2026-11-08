@@ -36,7 +36,7 @@ export function Modal({ title, onClose, children }) {
 export function Thumb({ ex, size = 48 }) {
   const style = { width: size, height: size }
   return ex?.imgs?.[0] ? (
-    <img className="thumb" style={style} src={ex.imgs[1] || ex.imgs[0]} alt="" loading="lazy" />
+    <img className="thumb" style={style} src={ex.imgs[1] || ex.imgs[0]} alt="" loading="lazy" decoding="async" />
   ) : (
     <div className="thumb empty" style={style}>
       <Icon name="dumbbell" size={size * 0.45} />
@@ -62,7 +62,7 @@ export function ExPhoto({ ex, className = '' }) {
   return (
     <div className={'exphoto ' + className}>
       {ex.imgs.map((s, i) => (
-        <img key={s} src={s} alt={ex.name} className={i === f ? 'on' : ''} />
+        <img key={s} src={s} alt={ex.name} className={i === f ? 'on' : ''} decoding="async" />
       ))}
       {n > 1 && (
         <div className="frames">
