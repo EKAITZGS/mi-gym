@@ -1697,3 +1697,28 @@ body.modal-open .savebar { display: none; }
 /* Quitar serie / drop en la sesión */
 .set-links { display: flex; justify-content: space-between; align-items: center; }
 .set-links .danger-link { color: var(--danger); opacity: 0.85; }
+
+/* ---- Tu personaje (rangos por músculo) ---- */
+.rank-card { display: flex; gap: 14px; align-items: center; width: 100%; text-align: left; color: inherit; font: inherit; cursor: pointer;
+  background: radial-gradient(120% 120% at 20% 0%, rgba(127, 178, 255, 0.12), transparent 60%), var(--card); }
+.char-wrap { display: flex; gap: 4px; flex-shrink: 0; width: 46%; }
+.char-wrap.big { width: 100%; justify-content: center; gap: 18px; padding: 6px 0 2px;
+  background: radial-gradient(60% 70% at 50% 45%, rgba(127, 178, 255, 0.10), transparent 70%); border-radius: 18px; }
+.mannequin { width: 50%; height: auto; display: block; }
+.char-wrap.big .mannequin { width: 42%; max-width: 170px; }
+.rank-side { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.rank-mini { display: flex; flex-wrap: wrap; gap: 4px 10px; }
+.rank-mini span { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); }
+.rank-mini i { width: 8px; height: 8px; border-radius: 2px; transform: rotate(45deg); }
+.rank-badge { display: inline-flex; align-items: center; gap: 7px; align-self: flex-start; padding: 5px 12px 5px 10px; border-radius: 999px;
+  font-weight: 800; letter-spacing: 0.02em; color: var(--rc); background: color-mix(in srgb, var(--rc) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--rc) 55%, transparent); box-shadow: 0 0 14px -4px var(--rc); font-size: 15px; }
+.rank-badge i { width: 10px; height: 10px; transform: rotate(45deg); border-radius: 2px; background: var(--rc); box-shadow: 0 0 8px var(--rc); }
+.rank-badge.sm { font-size: 12px; padding: 3px 9px 3px 8px; }
+.rank-badge.sm i { width: 7px; height: 7px; }
+.rank-badge.none { --rc: #6b7280; color: var(--muted); box-shadow: none; font-weight: 600; }
+.char-overall { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 10px 0 4px; font-weight: 700; }
+.rk-row { padding: 10px 0; border-top: 1px solid var(--line); }
+.rk-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.rk-bar { height: 6px; border-radius: 99px; background: var(--card2); overflow: hidden; margin-bottom: 6px; }
+.rk-bar span { display: block; height: 100%; border-radius: 99px; box-shadow: 0 0 10px currentColor; }

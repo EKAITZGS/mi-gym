@@ -10,6 +10,7 @@ import Setup from './Setup'
 import PolarSession from './PolarSession'
 import BodyCard from './Body'
 import MonthModal from './Month'
+import RankCard from './Rank'
 import { ProteinTip, MuscleSets, StepsBar } from './Extras'
 import { Generator } from './Workout'
 import { generatePlan } from './plans'
@@ -253,6 +254,7 @@ export default function Home({ data, setData, onStart, go }) {
       </button>
       {month && <MonthModal data={data} onClose={() => setMonth(false)} />}
 
+      <RankCard data={data} />
       <MuscleSets data={data} />
       <BodyCard data={data} setData={setData} />
 
