@@ -1,90 +1,29 @@
-// Maniquí anatómico propio (SVG). Se dibuja medio cuerpo (izquierda del dibujo) y se refleja.
-// viewBox 200 x 400, eje central x = 100. Cada músculo lleva el grupo que lo colorea.
+// Maniquí: imagen anatómica (frente y espalda) separada en capas por grupo muscular.
+// Cada máscara se pinta con el color del rango de ese músculo; encima van las líneas y las partes neutras.
+// Fuente y script de separación en assets-src/.
+const FILES = { Pecho: 'pecho', Espalda: 'espalda', Hombro: 'hombro', 'Bíceps': 'biceps', 'Tríceps': 'triceps', Pierna: 'pierna', Core: 'core' }
+const url = (f) => `url(body/${f}.png)`
 
-const BASE =
-  'M100,58 L92,58 C91,65 88,69 84,72 C72,75 60,78 52,84 C45,90 42,100 42,110 C40,126 41,140 44,154 C42,172 43,190 47,205 C43,214 43,226 46,233 C50,238 56,237 58,231 C61,222 60,212 57,205 C62,190 66,172 67,158 C69,146 69,134 68,124 C67,150 67,176 68,196 C68,202 69,207 70,211 C63,234 62,258 65,280 C67,292 70,302 72,312 C65,334 66,356 70,374 C67,382 66,388 67,393 L86,393 C88,388 87,382 84,376 C90,356 92,334 91,312 C96,296 99,270 99,248 C99,236 100,230 100,226 Z'
-
-const HEAD = 'M100,15 C88,15 82,25 82,37 C82,49 89,58 100,60 C111,58 118,49 118,37 C118,25 112,15 100,15 Z'
-
-const FRONT = [
-  ['Espalda', 'M90,64 C84,70 74,74 64,78 C72,80 80,80 88,77 C92,74 95,70 96,66 Z'],
-  ['Hombro', 'M62,79 C52,82 45,92 44,104 C43,114 46,122 50,128 C54,118 60,110 66,104 C70,96 74,88 78,82 C72,79 66,78 62,79 Z'],
-  ['Pecho', 'M79,82 C86,79 94,80 99,82 L99,116 C92,122 82,124 74,120 C69,117 66,112 66,106 C70,96 74,88 79,82 Z'],
-  ['Bíceps', 'M51,129 C55,119 61,112 67,108 C70,118 70,132 67,146 C65,152 60,156 55,155 C51,150 49,140 51,129 Z'],
-  ['Tríceps', 'M45,112 C42,124 42,138 46,150 L50,152 C48,142 48,134 50,128 C47,124 46,118 45,112 Z'],
-  ['Core', 'M70,121 C75,124 79,127 82,130 L83,168 C79,174 75,180 72,188 C68,172 67,152 68,136 C68,130 69,125 70,121 Z'],
-  ['Core', 'M84,124 C90,122 96,122 99,123 L99,139 C94,140 89,140 85,141 C84,135 84,129 84,124 Z'],
-  ['Core', 'M85,144 L99,143 L99,158 L85,160 C85,154 85,149 85,144 Z'],
-  ['Core', 'M85,163 L99,162 L99,178 L85,180 Z'],
-  ['Core', 'M85,183 L99,182 L99,214 C93,208 88,200 86,192 Z'],
-  ['Pierna', 'M71,212 C64,232 63,256 66,276 C68,288 72,296 77,300 C77,272 78,244 81,216 C78,214 74,213 71,212 Z'],
-  ['Pierna', 'M83,214 C88,215 92,218 94,222 C95,248 92,276 87,296 C84,300 81,301 79,300 C79,270 80,242 83,214 Z'],
-  ['Pierna', 'M96,226 C99,238 99,252 98,266 C97,282 94,294 90,301 C89,302 88,301 88,299 C93,276 96,250 96,226 Z'],
-  ['Pierna', 'M71,314 C66,330 66,350 71,366 L78,372 C80,352 81,332 80,316 Z'],
-  ['Pierna', 'M82,315 C88,320 91,334 90,350 C89,362 86,370 82,374 L80,374 C83,354 84,334 82,315 Z'],
-]
-
-const BACK = [
-  ['Espalda', 'M100,56 L93,58 C89,68 80,74 64,79 C76,84 86,92 91,104 C95,114 98,122 100,130 Z'],
-  ['Hombro', 'M62,80 C52,84 45,94 44,106 C44,115 47,122 50,127 C55,116 61,108 67,102 C70,94 72,88 73,84 C69,81 65,80 62,80 Z'],
-  ['Espalda', 'M74,86 C82,90 88,96 91,105 C84,110 76,112 69,112 C68,104 70,94 74,86 Z'],
-  ['Espalda', 'M69,115 C78,114 86,111 92,107 C96,118 99,130 100,142 L100,150 C94,164 87,176 80,186 C74,172 70,156 69,140 C68,130 68,122 69,115 Z'],
-  ['Espalda', 'M91,160 C94,155 97,152 100,152 L100,206 C95,207 90,205 86,201 C86,186 88,172 91,160 Z'],
-  ['Tríceps', 'M50,128 C54,118 60,110 67,106 C71,118 71,134 67,148 C64,154 58,157 52,155 C48,148 47,138 50,128 Z'],
-  ['Core', 'M69,188 C74,192 78,192 82,189 C80,198 76,204 72,208 C69,202 68,195 69,188 Z'],
-  ['Pierna', 'M72,209 C82,203 92,203 100,208 L100,250 C92,258 81,258 74,250 C68,238 68,222 72,209 Z'],
-  ['Pierna', 'M72,255 C77,259 81,260 84,261 C84,280 82,294 79,302 C75,298 72,288 71,276 C71,268 71,261 72,255 Z'],
-  ['Pierna', 'M86,261 C92,260 96,258 98,255 C99,272 97,290 92,303 C88,304 84,304 81,302 C84,290 86,276 86,261 Z'],
-  ['Pierna', 'M70,314 C64,328 65,346 69,356 C73,362 78,362 82,358 C84,342 84,326 82,314 Z'],
-  ['Pierna', 'M84,314 C92,316 96,326 95,340 C94,352 90,360 86,362 C84,346 84,330 84,314 Z'],
-]
-
-// Partes sin grupo propio (antebrazos, manos, rodillas, pies…)
-const NEUTRAL = {
-  front: [
-    'M46,157 C44,172 45,188 49,203 L53,203 C52,186 52,172 55,159 Z',
-    'M57,159 C62,159 64,157 65,156 C64,172 60,188 56,203 L54,203 C55,186 56,172 57,159 Z',
-    'M48,205 L57,205 C60,212 60,222 57,230 C55,236 49,237 46,232 C43,224 44,212 48,205 Z',
-    'M74,302 L92,302 C93,306 92,310 90,312 L74,312 C72,308 72,305 74,302 Z',
-    'M70,378 L84,378 C86,384 87,388 85,392 L67,392 C66,388 67,382 70,378 Z',
-    'M93,58 C93,63 92,67 90,70 L100,73 L100,60 Z',
-  ],
-  back: [
-    'M46,157 C44,172 45,188 49,203 L53,203 C52,186 52,172 55,159 Z',
-    'M57,159 C62,159 64,157 65,156 C64,172 60,188 56,203 L54,203 C55,186 56,172 57,159 Z',
-    'M48,205 L57,205 C60,212 60,222 57,230 C55,236 49,237 46,232 C43,224 44,212 48,205 Z',
-    'M74,304 L91,305 C91,308 90,311 88,313 L74,313 C73,310 73,307 74,304 Z',
-    'M74,362 L86,364 C85,370 84,374 83,378 L76,378 C75,372 75,366 74,362 Z',
-    'M70,379 L84,379 C86,384 87,388 85,392 L67,392 C66,388 67,383 70,379 Z',
-  ],
+const shade = (hex, k) => {
+  const n = parseInt(hex.slice(1), 16)
+  const c = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((x) => Math.round(k > 0 ? x + (255 - x) * k : x * (1 + k)))
+  return `rgb(${c.join(',')})`
 }
 
-export default function Mannequin({ view = 'front', groups = {}, gid }) {
-  const parts = view === 'front' ? FRONT : BACK
-  const lit = (g) => groups[g]?.rank
-  const half = (
-    <>
-      {NEUTRAL[view].map((d, i) => (
-        <path key={'n' + i} d={d} fill={`url(#${gid}-skin)`} className="mq-seam" />
-      ))}
-      {parts.map(([g, d], i) => (
-        <path
-          key={i}
-          d={d}
-          fill={lit(g) ? `url(#${gid}-${lit(g).id})` : `url(#${gid}-none)`}
-          className={'mq-seam' + (lit(g) ? ' lit' : '')}
-          style={lit(g) ? { '--rc': lit(g).color } : undefined}
-        />
-      ))}
-    </>
-  )
+export default function Mannequin({ groups = {} }) {
   return (
-    <svg viewBox="0 0 200 400" className="mannequin" role="img" aria-label={view === 'front' ? 'Vista de frente' : 'Vista de espalda'}>
-      <path d={BASE} className="mq-base" />
-      <path d={BASE} className="mq-base" transform="translate(200,0) scale(-1,1)" />
-      <path d={HEAD} className="mq-head" />
-      {half}
-      <g transform="translate(200,0) scale(-1,1)">{half}</g>
-    </svg>
+    <div className="mq" role="img" aria-label="Maniquí con el rango de cada músculo">
+      {Object.entries(FILES).map(([g, f]) => {
+        const r = groups[g]?.rank
+        const bg = r ? `linear-gradient(170deg, ${shade(r.color, 0.45)} 0%, ${r.color} 35%, ${shade(r.color, -0.3)} 100%)` : 'linear-gradient(170deg, #353c49, #20252e)'
+        return (
+          <div key={g} className={'mq-layer' + (r ? ' lit' : '')} style={r ? { '--rc': r.color } : undefined}>
+            <div className="mq-fill" style={{ background: bg, WebkitMaskImage: url('mask-' + f), maskImage: url('mask-' + f) }} />
+          </div>
+        )
+      })}
+      <img src="body/base.png" alt="" className="mq-img" draggable="false" />
+      <img src="body/edge.png" alt="" className="mq-img" draggable="false" />
+    </div>
   )
 }

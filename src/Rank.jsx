@@ -1,41 +1,10 @@
 import { useState } from 'react'
 import { Modal } from './ui'
 import Icon from './icons'
-import { RANKS, muscleRanks, symmetry } from './ranks'
+import { muscleRanks, symmetry } from './ranks'
 import { EX_BY_ID } from './data/exercises'
 import { fmtKg } from './store'
 import Mannequin from './Mannequin'
-
-function Defs({ gid }) {
-  return (
-    <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden="true">
-      <defs>
-        {RANKS.map((r) => (
-          <linearGradient key={r.id} id={`${gid}-${r.id}`} x1="0" y1="0" x2="0.35" y2="1">
-            <stop offset="0" stopColor="#ffffff" stopOpacity="0.9" />
-            <stop offset="0.18" stopColor={r.color} />
-            <stop offset="1" stopColor={r.color} stopOpacity="0.62" />
-          </linearGradient>
-        ))}
-        <linearGradient id={`${gid}-none`} x1="0" y1="0" x2="0.35" y2="1">
-          <stop offset="0" stopColor="#a9b2c3" />
-          <stop offset="1" stopColor="#5f6879" />
-        </linearGradient>
-        <linearGradient id={`${gid}-skin`} x1="0" y1="0" x2="0.35" y2="1">
-          <stop offset="0" stopColor="#6f7889" />
-          <stop offset="1" stopColor="#434b59" />
-        </linearGradient>
-        <filter id={`${gid}-glow`} x="-30%" y="-30%" width="160%" height="160%">
-          <feGaussianBlur stdDeviation="1.4" result="b" />
-          <feMerge>
-            <feMergeNode in="b" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-      </defs>
-    </svg>
-  )
-}
 
 export const RankBadge = ({ rank, sm }) =>
   rank ? (
@@ -51,10 +20,8 @@ function Detail({ data, onClose }) {
   const sym = symmetry(data)
   return (
     <Modal title="Tu personaje" onClose={onClose}>
-      <Defs gid="rkd" />
       <div className="char-wrap big">
-        <Mannequin view="front" groups={groups} gid="rkd" />
-        <Mannequin view="back" groups={groups} gid="rkd" />
+        <Mannequin groups={groups} />
       </div>
       <div className="char-overall">
         Rango general <RankBadge rank={overall} />
@@ -107,10 +74,8 @@ export default function RankCard({ data }) {
   return (
     <>
     <button className="card rank-card" onClick={() => setOpen(true)}>
-      <Defs gid="rkc" />
       <div className="char-wrap">
-        <Mannequin view="front" groups={groups} gid="rkc" />
-        <Mannequin view="back" groups={groups} gid="rkc" />
+        <Mannequin groups={groups} />
       </div>
       <div className="rank-side">
         <span className="muted small">Tu personaje</span>
