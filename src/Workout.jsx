@@ -234,6 +234,10 @@ export function Generator({ onClose, onGenerate }) {
 }
 
 /* ---------- Editor de día ---------- */
+// Entradas numéricas: peso con decimales (coma o punto) y repeticiones enteras
+const kgIn = (v) => v.replace(/[^\d.,]/g, '').replace(/([.,].*)[.,]/g, '$1').slice(0, 6)
+const repIn = (v) => v.replace(/\D/g, '').slice(0, 3)
+
 // Cambios sin guardar en el editor de día (App lo consulta antes de cambiar de pestaña)
 export const editGuard = { dirty: false }
 
@@ -253,7 +257,7 @@ function DayEditor({ data, setData, dayId, isNew, onBack }) {
   const patchDay = (p) => setDay((d) => ({ ...d, ...p }))
   const patchItem = (id, p) => setDay((d) => ({ ...d, items: d.items.map((i) => (i.id === id ? { ...i, ...p } : i)) }))
   const save = () => {
-    const fixed = { ...day, items: day.items.map((i) => ({ ...i, sets: Math.max(1, Math.min(10, Number(i.sets) || 1)) })) }
+    const fixed = { ...day, items: day.items.map((i) => ({ ...i, sets: Math.max(1, Math.min(50, Number(i.sets) || 1)) })) }
     const uni = Object.fromEntries(fixed.items.filter((i) => i.uni != null).map((i) => [i.ex, i.uni]))
     setData((d) => ({
       ...d,
@@ -335,7 +339,7 @@ function DayEditor({ data, setData, dayId, isNew, onBack }) {
                   onChange={(e) => {
                     // se puede borrar y escribir libremente; se corrige al salir del campo
                     const v = e.target.value.replace(/\D/g, '').slice(0, 2)
-                    patchItem(it.id, { sets: v === '' ? '' : Math.min(10, Number(v)) })
+                    patchItem(it.id, { sets: v === '' ? '' : Math.min(50, Number(v)) })
                   }}
                   onBlur={() => !(Number(it.sets) >= 1) && patchItem(it.id, { sets: 1 })}
                 />
@@ -520,6 +524,8 @@ function Session({ data, setData, onExit }) {
       if (it) delete entries[it.ex]
       return { ...act, items: its.filter((i) => i.id !== itemId), entries }
     })
+  const removeSet = (exId, idx) =>
+    setActive((act) => ({ ...act, entries: { ...act.entries, [exId]: (act.entries[exId] || []).filter((_, k) => k !== idx) } }))
   const addSet = (exId) =>
     setActive((act) => ({ ...act, entries: { ...act.entries, [exId]: [...(act.entries[exId] || []), ...newSets(1, false)] } }))
   const pickEx = (ex) => {
@@ -791,7 +797,7 @@ function Session({ data, setData, onExit }) {
                       inputMode="decimal"
                       placeholder={ph.w || 'kg'}
                       value={s.w}
-                      onChange={(e) => patchSet(it.ex, i, (x) => ({ ...x, w: e.target.value }))}
+                      onChange={(e) => patchSet(it.ex, i, (x) => ({ ...x, w: kgIn(e.target.value) }))}
                     />
                     <span className="x">{uni ? 'kg' : 'kg ×'}</span>
                     <input
@@ -800,7 +806,7 @@ function Session({ data, setData, onExit }) {
                       aria-label={uni ? 'Reps izquierdo' : 'Reps'}
                       placeholder={ph.r || (uni ? 'izq' : 'reps')}
                       value={s.r}
-                      onChange={(e) => patchSet(it.ex, i, (x) => ({ ...x, r: e.target.value }))}
+                      onChange={(e) => patchSet(it.ex, i, (x) => ({ ...x, r: repIn(e.target.value) }))}
                     />
                     {uni && (
                       <input
@@ -809,7 +815,7 @@ function Session({ data, setData, onExit }) {
                         aria-label="Reps derecho"
                         placeholder={ph.r2 || 'der'}
                         value={s.r2 || ''}
-                        onChange={(e) => patchSet(it.ex, i, (x) => ({ ...x, r2: e.target.value }))}
+                        onChange={(e) => patchSet(it.ex, i, (x) => ({ ...x, r2: repIn(e.target.value) }))}
                       />
                     )}
                     <button
@@ -846,7 +852,7 @@ function Session({ data, setData, onExit }) {
                         onChange={(e) =>
                           patchSet(it.ex, i, (x) => ({
                             ...x,
-                            drops: x.drops.map((y, k) => (k === j ? { ...y, w: e.target.value } : y)),
+                            drops: x.drops.map((y, k) => (k === j ? { ...y, w: kgIn(e.target.value) } : y)),
                           }))
                         }
                       />
@@ -859,7 +865,7 @@ function Session({ data, setData, onExit }) {
                         onChange={(e) =>
                           patchSet(it.ex, i, (x) => ({
                             ...x,
-                            drops: x.drops.map((y, k) => (k === j ? { ...y, r: e.target.value } : y)),
+                            drops: x.drops.map((y, k) => (k === j ? { ...y, r: repIn(e.target.value) } : y)),
                           }))
                         }
                       />
@@ -871,12 +877,19 @@ function Session({ data, setData, onExit }) {
                       </button>
                     </div>
                   ))}
-                  <button
-                    className="link small"
-                    onClick={() => patchSet(it.ex, i, (x) => ({ ...x, drops: [...x.drops, { w: '', r: '' }] }))}
-                  >
-                    + drop (bajar peso)
-                  </button>
+                  <div className="set-links">
+                    <button
+                      className="link small"
+                      onClick={() => patchSet(it.ex, i, (x) => ({ ...x, drops: [...x.drops, { w: '', r: '' }] }))}
+                    >
+                      + drop (bajar peso)
+                    </button>
+                    {sets.length > 1 && (
+                      <button className="link small danger-link" onClick={() => removeSet(it.ex, i)}>
+                        Quitar serie
+                      </button>
+                    )}
+                  </div>
                 </div>
               )
             })}

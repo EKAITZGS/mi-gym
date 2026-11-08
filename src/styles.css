@@ -1693,3 +1693,7 @@ body.modal-open .savebar { display: none; }
 .dp-meal { border-top: 1px solid var(--line); padding: 10px 0; }
 .dp-head { display: flex; justify-content: space-between; margin-bottom: 4px; }
 .dp-item { padding: 2px 0; }
+
+/* Quitar serie / drop en la sesión */
+.set-links { display: flex; justify-content: space-between; align-items: center; }
+.set-links .danger-link { color: var(--danger); opacity: 0.85; }

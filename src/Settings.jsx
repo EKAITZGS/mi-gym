@@ -23,7 +23,18 @@ export default function Settings({ data, setData }) {
     setMsg(m)
     setTimeout(() => setMsg(''), 3500)
   }
-  const setGoal = (k, v) => setData((d) => ({ ...d, goals: { ...d.goals, [k]: num(v) } }))
+  // Objetivos: se escribe libre (se puede borrar) y se guarda al salir del campo; vacío o 0 deja el valor anterior
+  const [goalDraft, setGoalDraft] = useState({})
+  const goalVal = (k, def) => goalDraft[k] ?? String(data.goals[k] ?? def)
+  const editGoal = (k, v) => setGoalDraft((g) => ({ ...g, [k]: v.replace(/\D/g, '').slice(0, 6) }))
+  const commitGoal = (k) => {
+    const v = num(goalDraft[k])
+    if (goalDraft[k] != null && v > 0) setData((d) => ({ ...d, goals: { ...d.goals, [k]: v } }))
+    setGoalDraft((g) => {
+      const { [k]: _, ...rest } = g
+      return rest
+    })
+  }
 
   const exportFile = async () => {
     const json = JSON.stringify(data)
@@ -130,11 +141,11 @@ export default function Settings({ data, setData }) {
       <h4>Objetivos diarios</h4>
       <div className="card">
         <label className="lbl">Calorías (kcal)</label>
-        <input className="inp" inputMode="numeric" value={data.goals.kcal} onChange={(e) => setGoal('kcal', e.target.value)} />
+        <input className="inp" inputMode="numeric" value={goalVal('kcal', 2200)} onFocus={(e) => e.target.select()} onChange={(e) => editGoal('kcal', e.target.value)} onBlur={() => commitGoal('kcal')} />
         <label className="lbl">Proteína (g)</label>
-        <input className="inp" inputMode="numeric" value={data.goals.protein} onChange={(e) => setGoal('protein', e.target.value)} />
+        <input className="inp" inputMode="numeric" value={goalVal('protein', 150)} onFocus={(e) => e.target.select()} onChange={(e) => editGoal('protein', e.target.value)} onBlur={() => commitGoal('protein')} />
         <label className="lbl">Pasos al día</label>
-        <input className="inp" inputMode="numeric" value={data.goals.steps ?? 7000} onChange={(e) => setGoal('steps', e.target.value)} />
+        <input className="inp" inputMode="numeric" value={goalVal('steps', 7000)} onFocus={(e) => e.target.select()} onChange={(e) => editGoal('steps', e.target.value)} onBlur={() => commitGoal('steps')} />
         <p className="muted small">Ponlos tú como quieras. Son solo una guía para las barras de progreso.</p>
       </div>
 
