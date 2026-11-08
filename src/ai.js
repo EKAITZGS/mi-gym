@@ -41,12 +41,29 @@ async function resizeImage(file, max = 768) {
   }
 }
 
-const PROMPT = `Mira la foto e identifica el alimento o plato principal.
-Responde SOLO con un JSON con estas claves, sin texto extra:
-{"nombre": "nombre corto en español (indica si es crudo o cocinado)", "kcal_100g": numero, "proteina_100g": numero, "hidratos_100g": numero, "grasa_100g": numero, "confianza": "alta|media|baja"}
-Usa valores medios aproximados por cada 100 g del alimento tal como se ve. Si hay varios alimentos, elige el principal. Si no hay comida en la foto, pon kcal_100g en 0.`
+const PROMPT = (portion) => `Eres un nutricionista que analiza fotos de comida para calcular calorías y macros.
 
-export async function analyzeFood(file) {
+PASOS
+1. Identifica cada alimento de la foto y estima su peso o volumen total.
+2. Lee cuánto se ha comido el usuario realmente (dato PORCIÓN). Puede venir como porcentaje (50%), fracción (la mitad), gramos, unidades ("12 pipas") o una frase ("me dejé un cuarto").
+3. Calcula SOLO sobre lo comido: total estimado × porción.
+4. Si no hay dato de porción, asume que se ha comido todo y dilo explícitamente en "supuestos".
+5. Si el envase tiene etiqueta nutricional visible, usa esos valores por encima de tu estimación.
+
+REGLAS
+- No inventes datos: si algo no se ve claro, dilo en "supuestos".
+- Para envases (pipas, galletas...) distingue entre peso del paquete y peso comestible (sin cáscara).
+- Para un paquete, calcula por lo que falta del paquete, no por lo que contiene al inicio.
+- kcal y macros de cada alimento son los de la cantidad COMIDA (comido_g), no por 100 g.
+- Nombres cortos en español, indicando crudo o cocinado si importa.
+
+PORCIÓN: ${portion ? portion : 'no indicada'}
+
+Responde SOLO con este JSON, sin texto extra:
+{"alimentos": [{"nombre": "", "total_g": 0, "comido_g": 0, "kcal": 0, "proteina_g": 0, "carbos_g": 0, "grasa_g": 0}], "total_kcal": 0, "supuestos": "", "confianza": "alta|media|baja"}
+Si no hay comida en la foto, devuelve "alimentos": [].`
+
+export async function analyzeFood(file, portion = '') {
   const { key, model } = getAi()
   if (!key) throw new Error('NO_KEY')
   const dataUri = await resizeImage(file)
@@ -61,14 +78,14 @@ export async function analyzeFood(file) {
           {
             role: 'user',
             content: [
-              { type: 'text', text: PROMPT },
+              { type: 'text', text: PROMPT(String(portion || '').trim().slice(0, 120)) },
               { type: 'image_url', image_url: { url: dataUri } },
             ],
           },
         ],
         response_format: { type: 'json_object' },
         temperature: 0.2,
-        max_completion_tokens: 500,
+        max_completion_tokens: 1200,
       }),
     })
   } catch {
@@ -94,17 +111,20 @@ export async function analyzeFood(file) {
       throw new Error('No entendí la respuesta de la IA, prueba otra foto')
     }
   }
-  const n = (v) => Math.max(0, Number(v) || 0)
-  const out = {
-    name: String(o.nombre || 'Alimento').slice(0, 80),
-    kcal: n(o.kcal_100g),
-    p: n(o.proteina_100g),
-    c: n(o.hidratos_100g),
-    f: n(o.grasa_100g),
-    conf: o.confianza || 'media',
-  }
-  if (out.kcal <= 0) throw new Error('No he reconocido comida en la foto, prueba otra')
-  return out
+  const n = (v) => Math.max(0, Number(String(v).replace(',', '.')) || 0)
+  const items = (Array.isArray(o.alimentos) ? o.alimentos : [])
+    .map((x) => ({
+      name: String(x.nombre || 'Alimento').slice(0, 80),
+      total: n(x.total_g),
+      g: n(x.comido_g),
+      kcal: n(x.kcal),
+      p: n(x.proteina_g),
+      c: n(x.carbos_g),
+      f: n(x.grasa_g),
+    }))
+    .filter((x) => x.kcal > 0 || x.g > 0)
+  if (!items.length) throw new Error('No he reconocido comida en la foto, prueba otra')
+  return { items, assumptions: String(o.supuestos || '').slice(0, 400), conf: o.confianza || 'media' }
 }
 
 const LABEL_PROMPT = `Esta foto es la tabla de información nutricional de un producto envasado.

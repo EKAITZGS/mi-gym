@@ -163,7 +163,7 @@ function AddFood({ data, setData, date, meal, onClose }) {
   const [nc, setNc] = useState(null) // producto nuevo por código: {code, name, kcal, p, c, f, s, sf, unitG}
   const [lbl, setLbl] = useState({ loading: false, err: '' })
   const codePhotoRef = useRef(null)
-  const emptyNc = (code = '', name = '', found = false) => ({ code, name, kcal: '', p: '', c: '', f: '', s: '', sf: '', unitG: '', found })
+  const emptyNc = (code = '', name = '', found = false) => ({ code, name, kcal: '', p: '', c: '', f: '', s: '', sf: '', unitG: '', pkgG: '', found })
   const onLabel = async (e) => {
     const file = e.target.files?.[0]
     e.target.value = ''
@@ -190,6 +190,10 @@ function AddFood({ data, setData, date, meal, onClose }) {
   }
   const labelInput = <input type="file" accept="image/*" capture="environment" ref={labelRef} onChange={onLabel} hidden />
   const [photo, setPhoto] = useState({ loading: false, err: '' })
+  // foto con IA: primero se pregunta cuánto te has comido y luego se revisan los alimentos detectados
+  const [shot, setShot] = useState(null) // { file, url }
+  const [portion, setPortion] = useState('')
+  const [rvItems, setRvItems] = useState(null) // { items: [...], assumptions, conf }
   const [rv, setRv] = useState({ name: '', kcal: '', p: '', c: '', f: '', conf: '' })
 
   const recents = useMemo(() => {
@@ -245,8 +249,10 @@ function AddFood({ data, setData, date, meal, onClose }) {
     }
   }
 
+  const [pkgIn, setPkgIn] = useState('')
   const pick = (f) => {
     setFood(f)
+    setPkgIn('')
     setMode('g')
     setAmount(f.unitG ? '1' : '100')
     if (f.unitG) setMode('u')
@@ -267,7 +273,7 @@ function AddFood({ data, setData, date, meal, onClose }) {
     setStep('scan')
     try {
       const res = await fetch(
-        `https://world.openfoodfacts.org/api/v2/product/${c}.json?fields=product_name,brands,nutriments,serving_quantity,nutriscore_grade`
+        `https://world.openfoodfacts.org/api/v2/product/${c}.json?fields=product_name,brands,nutriments,serving_quantity,product_quantity,nutriscore_grade`
       )
       const j = await res.json()
       const n = j.product?.nutriments
@@ -278,6 +284,7 @@ function AddFood({ data, setData, date, meal, onClose }) {
         return setStep('newcode')
       }
       const sq = Number(j.product.serving_quantity)
+      const pq = Number(j.product.product_quantity)
       const f = {
         id: 'bc-' + c,
         name: (j.product.product_name || 'Producto') + (j.product.brands ? ` (${j.product.brands.split(',')[0].trim()})` : ''),
@@ -289,6 +296,7 @@ function AddFood({ data, setData, date, meal, onClose }) {
         sf: n['saturated-fat_100g'] != null ? Number(n['saturated-fat_100g']) : undefined,
         ns: j.product.nutriscore_grade,
         ...(sq > 0 ? { unitG: sq, unitName: 'ración' } : {}),
+        ...(pq > 0 && pq < 10000 ? { pkgG: pq } : {}),
       }
       setScan({ loading: false, msg: '' })
       pick(f)
@@ -298,20 +306,45 @@ function AddFood({ data, setData, date, meal, onClose }) {
   }
 
 
-  const onPhoto = async (e) => {
+  const onPhoto = (e) => {
     const file = e.target.files?.[0]
     e.target.value = ''
     if (!file) return
+    if (shot?.url) URL.revokeObjectURL(shot.url)
+    setShot({ file, url: URL.createObjectURL(file) })
+    setPortion('')
+    setPhoto({ loading: false, err: '' })
+    setStep('portion')
+  }
+  const runPhoto = async () => {
+    if (!shot) return
     setPhoto({ loading: true, err: '' })
     setStep('photo')
     try {
-      const r = await analyzeFood(file)
-      setRv({ name: r.name, kcal: String(r0(r.kcal)), p: String(r1(r.p)), c: String(r1(r.c)), f: String(r1(r.f)), conf: r.conf })
+      const r = await analyzeFood(shot.file, portion)
+      setRvItems({ ...r, items: r.items.map((x) => ({ ...x, on: true, g: String(Math.round(x.g || x.total)) , base: x })) })
       setPhoto({ loading: false, err: '' })
-      setStep('review')
+      setStep('review2')
     } catch (err) {
       setPhoto({ loading: false, err: err.message })
     }
+  }
+  // macros de un alimento detectado reescalados a los gramos que pongas
+  const scaled = (x) => {
+    const g0 = x.base.g || x.base.total || 1
+    const k = num(x.g) / g0
+    return { kcal: x.base.kcal * k, p: x.base.p * k, c: x.base.c * k, f: x.base.f * k }
+  }
+  const addDetected = () => {
+    const list = rvItems.items.filter((x) => x.on && num(x.g) > 0)
+    if (!list.length) return
+    const add = list.map((x) => {
+      const m = scaled(x)
+      const g = num(x.g)
+      return { id: uid(), meal, name: x.name.trim() || 'Alimento', grams: g, kcal: (m.kcal / g) * 100, p: (m.p / g) * 100, c: (m.c / g) * 100, f: (m.f / g) * 100, ai: true }
+    })
+    setData((d) => ({ ...d, food: { ...d.food, [date]: [...(d.food[date] || []), ...add] } }))
+    onClose()
   }
 
   const grams = food ? (mode === 'u' ? num(amount) * (food.unitG || 0) : num(amount)) : 0
@@ -323,12 +356,43 @@ function AddFood({ data, setData, date, meal, onClose }) {
   }
 
   if (step === 'qty' && food) {
+    const pkgG = num(pkgIn) || food.pkgG || 0
+    const isCode = String(food.id || '').startsWith('bc-') || food.barcode
+    const FR = [['Entero', 1], ['¾', 0.75], ['La mitad', 0.5], ['⅓', 1 / 3], ['¼', 0.25]]
+    const setFrac = (k) => {
+      setMode('g')
+      setAmount(String(Math.round(pkgG * k)))
+    }
     return (
       <Modal title={food.name} onClose={onClose}>
         <RateCard food={food} />
         <p className="muted">
           Por 100 g: {r0(food.kcal)} kcal · {r1(food.p)} P · {r1(food.c)} H · {r1(food.f)} G
         </p>
+        {(pkgG > 0 || isCode) && (
+          <div className="pkg-box">
+            <div className="pkg-top">
+              <b>¿Cuánto del paquete?</b>
+              {food.pkgG ? (
+                <span className="muted small">paquete de {r0(food.pkgG)} g</span>
+              ) : (
+                <label className="pkg-in muted small">
+                  paquete de
+                  <input className="inp" inputMode="numeric" placeholder="g" value={pkgIn} onChange={(e) => setPkgIn(e.target.value.replace(/\D/g, '').slice(0, 5))} />g
+                </label>
+              )}
+            </div>
+            {pkgG > 0 && (
+              <div className="chips wrap">
+                {FR.map(([l, k]) => (
+                  <button key={l} className={'chip' + (mode === 'g' && num(amount) === Math.round(pkgG * k) ? ' on' : '')} onClick={() => setFrac(k)}>
+                    {l} · {Math.round(pkgG * k)} g
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
         <label className="lbl">Cantidad</label>
         <div className="qty">
           <input className="inp" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} autoFocus />
@@ -347,7 +411,12 @@ function AddFood({ data, setData, date, meal, onClose }) {
         <button
           className="btn primary full"
           disabled={grams <= 0}
-          onClick={() =>
+          onClick={() => {
+            // si has puesto el peso del paquete de un producto escaneado, se recuerda para la próxima vez
+            if (!food.pkgG && num(pkgIn) > 0 && isCode) {
+              const code = food.barcode || String(food.id).slice(3)
+              setData((d) => ({ ...d, myFoods: [...(d.myFoods || []).filter((x) => x.barcode !== code), { ...food, id: 'bc-' + code, barcode: code, pkgG: num(pkgIn) }] }))
+            }
             addEntry({
               name: food.name,
               grams,
@@ -364,8 +433,9 @@ function AddFood({ data, setData, date, meal, onClose }) {
               alcohol: food.alcohol,
               fastfood: food.fastfood,
               label: mode === 'u' ? `${num(amount)} ${food.unitName}` : undefined,
+              pkgG: food.pkgG || (num(pkgIn) > 0 ? num(pkgIn) : undefined),
             })
-          }
+          }}
         >
           Añadir a {meal.toLowerCase()}
         </button>
@@ -377,6 +447,84 @@ function AddFood({ data, setData, date, meal, onClose }) {
   }
 
   const fileInput = <input type="file" accept="image/*" capture="environment" ref={fileRef} onChange={onPhoto} hidden />
+
+  if (step === 'portion' && shot) {
+    const chips = ['Todo', 'Tres cuartos', 'La mitad', 'Un cuarto']
+    return (
+      <Modal title="¿Cuánto te has comido?" onClose={onClose}>
+        {fileInput}
+        <img src={shot.url} alt="" className="ai-shot" />
+        <p className="muted small">
+          Así calculo solo lo que has comido. Vale un porcentaje, una fracción, gramos, unidades ("12 pipas") o una frase ("me dejé un cuarto").
+        </p>
+        <div className="chips wrap">
+          {chips.map((c) => (
+            <button key={c} className={'chip' + (portion === c ? ' on' : '')} onClick={() => setPortion(c)}>
+              {c}
+            </button>
+          ))}
+        </div>
+        <input className="inp" value={portion} onChange={(e) => setPortion(e.target.value)} placeholder="Ej. 200 g, 12 pipas, me dejé la mitad del arroz" />
+        <button className="btn primary full" onClick={runPhoto}>
+          <Icon name="sparkle" size={16} /> Analizar
+        </button>
+        <button className="link" onClick={() => fileRef.current?.click()}>
+          Hacer otra foto
+        </button>
+      </Modal>
+    )
+  }
+
+  if (step === 'review2' && rvItems) {
+    const tot = rvItems.items.filter((x) => x.on).reduce((t, x) => {
+      const m = scaled(x)
+      return { kcal: t.kcal + m.kcal, p: t.p + m.p }
+    }, { kcal: 0, p: 0 })
+    const upd = (i, p) => setRvItems((r) => ({ ...r, items: r.items.map((x, k) => (k === i ? { ...x, ...p } : x)) }))
+    return (
+      <Modal title="Lo que te has comido" onClose={onClose}>
+        <div className="polar-sum">
+          <div>
+            <b>{r0(tot.kcal)}</b>
+            <span>kcal</span>
+          </div>
+          <div>
+            <b>{r1(tot.p)}</b>
+            <span>g proteína</span>
+          </div>
+        </div>
+        {rvItems.assumptions && (
+          <div className={'advice ' + (rvItems.conf === 'alta' ? 'green' : 'yellow') + ' sm'}>
+            <b>Confianza {rvItems.conf}.</b> {rvItems.assumptions}
+          </div>
+        )}
+        {rvItems.items.map((x, i) => {
+          const m = scaled(x)
+          return (
+            <div key={i} className={'ai-item' + (x.on ? '' : ' off')}>
+              <label className="chk-l">
+                <input type="checkbox" checked={x.on} onChange={(e) => upd(i, { on: e.target.checked })} />
+                <input className="inp ai-name" value={x.name} onChange={(e) => upd(i, { name: e.target.value })} />
+              </label>
+              <div className="ai-row">
+                <input className="inp sm" inputMode="numeric" value={x.g} onFocus={(e) => e.target.select()} onChange={(e) => upd(i, { g: e.target.value.replace(/[^\d]/g, '').slice(0, 4) })} />
+                <span className="muted small">g comidos{x.base.total ? ` de ~${r0(x.base.total)} g` : ''}</span>
+                <span className="ai-k">
+                  <b>{r0(m.kcal)}</b> kcal · {r1(m.p)} P
+                </span>
+              </div>
+            </div>
+          )
+        })}
+        <button className="btn primary full" disabled={!rvItems.items.some((x) => x.on && num(x.g) > 0)} onClick={addDetected}>
+          Añadir a {meal}
+        </button>
+        <button className="link" onClick={() => setStep('portion')}>
+          <Icon name="left" size={18} /> Cambiar porción y volver a analizar
+        </button>
+      </Modal>
+    )
+  }
 
   if (step === 'photo') {
     return (
@@ -462,6 +610,7 @@ function AddFood({ data, setData, date, meal, onClose }) {
         ...(nc.s !== '' ? { s: num(nc.s) } : {}),
         ...(nc.sf !== '' ? { sf: num(nc.sf) } : {}),
         ...(num(nc.unitG) > 0 ? { unitG: num(nc.unitG), unitName: 'ración' } : {}),
+        ...(num(nc.pkgG) > 0 ? { pkgG: num(nc.pkgG) } : {}),
       }
       setData((d) => ({ ...d, myFoods: [...(d.myFoods || []).filter((x) => !nc.code || x.barcode !== nc.code), f] }))
       pick(f)
@@ -495,6 +644,7 @@ function AddFood({ data, setData, date, meal, onClose }) {
           <label>Grasas (g)<input className="inp" inputMode="decimal" value={nc.f} onChange={set('f')} /></label>
           <label>de las cuales saturadas (g)<input className="inp" inputMode="decimal" value={nc.sf} onChange={set('sf')} /></label>
           <label>Ración (g, opcional)<input className="inp" inputMode="decimal" value={nc.unitG} onChange={set('unitG')} /></label>
+          <label>Paquete entero (g, opcional)<input className="inp" inputMode="decimal" value={nc.pkgG || ''} onChange={set('pkgG')} /></label>
         </div>
         <button className="btn primary full" disabled={!ok} onClick={save}>
           <Icon name="check" size={18} /> Guardar producto y poner cantidad

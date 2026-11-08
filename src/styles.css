@@ -1740,3 +1740,20 @@ body.modal-open .savebar { display: none; }
 .mq-img { pointer-events: none; user-select: none; }
 .char-wrap { width: 52%; display: block; }
 .char-wrap.big { width: 100%; display: block; padding: 4px 0; }
+
+/* Foto con IA: porción y revisión */
+.ai-shot { width: 100%; max-height: 240px; object-fit: cover; border-radius: 14px; margin-bottom: 10px; display: block; }
+.ai-item { border-top: 1px solid var(--line); padding: 10px 0; }
+.ai-item.off { opacity: 0.45; }
+.ai-item .chk-l { display: flex; align-items: center; gap: 10px; }
+.ai-item .ai-name { margin: 0; flex: 1; }
+.ai-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; padding-left: 30px; }
+.ai-row .inp.sm { width: 76px; margin: 0; text-align: center; }
+.ai-k { margin-left: auto; font-size: 13px; white-space: nowrap; }
+
+/* Parte del paquete */
+.pkg-box { background: var(--card2); border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; margin: 8px 0 4px; }
+.pkg-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
+.pkg-in { display: inline-flex; align-items: center; gap: 6px; }
+.pkg-in .inp { width: 70px; margin: 0; padding: 6px 8px; text-align: center; }
+.pkg-box .chips { margin: 0; }
