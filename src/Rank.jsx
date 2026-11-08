@@ -18,8 +18,12 @@ function Defs({ gid }) {
           </linearGradient>
         ))}
         <linearGradient id={`${gid}-none`} x1="0" y1="0" x2="0.35" y2="1">
-          <stop offset="0" stopColor="#4a5160" />
-          <stop offset="1" stopColor="#262a33" />
+          <stop offset="0" stopColor="#a9b2c3" />
+          <stop offset="1" stopColor="#5f6879" />
+        </linearGradient>
+        <linearGradient id={`${gid}-skin`} x1="0" y1="0" x2="0.35" y2="1">
+          <stop offset="0" stopColor="#6f7889" />
+          <stop offset="1" stopColor="#434b59" />
         </linearGradient>
         <filter id={`${gid}-glow`} x="-30%" y="-30%" width="160%" height="160%">
           <feGaussianBlur stdDeviation="1.4" result="b" />
