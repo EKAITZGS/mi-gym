@@ -18,7 +18,7 @@ Prefiere respuestas cortas, directas y sinceras. Las propuestas del coach nunca 
 - `src/coach.js` revisión semanal (propone, nunca aplica solo) + IA; usa datos del reloj (`polarWeek`).
 - `src/polar.js` + `src/PolarSession.jsx` Polar AccessLink vía el Worker. Polar devuelve campos en snake_case (`sample_type`, `heart_rate_zones` con `lower_limit`, índices de zona desde 0): el parser acepta ambos formatos.
 - `src/push.js` + `src/PushCard.jsx` + `public/push-sw.js` avisos Web Push.
-- `src/Rank.jsx` + `src/ranks.js` + `src/Mannequin.jsx` "Tu personaje": rangos Hierro→Diamante por músculo según fuerza real (1RM est./peso corporal), simetría izq/der. El maniquí es una imagen generada por IA separada en capas por grupo (`public/body/mask-*.png`, `base.png`, `edge.png`); fuente y script en `assets-src/`.
+- `src/Rank.jsx` + `src/ranks.js` + `src/Mannequin.jsx` "Tu personaje": rangos Hierro→Diamante por músculo (7 grupos + Antebrazo) según fuerza real (1RM est./peso corporal); los músculos secundarios de cada ejercicio cuentan (×0,7 en rangos, ½ en series por músculo; `groupsOf` en ranks.js); simetría izq/der. El maniquí es una imagen generada por IA separada en capas por grupo (`public/body/mask-*.png`, `base.png`, `edge.png`); fuente y script en `assets-src/`.
 - `src/store.js` `suggestion()` subida de peso (RIR + doble progresión; en pesos libres máx. ~12 %).
 
 ## Cloudflare Worker (`cloudflare/worker.js`)

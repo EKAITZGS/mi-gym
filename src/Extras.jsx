@@ -1,5 +1,5 @@
 import { FOODS } from './data/foods'
-import { EX_BY_ID, GROUPS } from './data/exercises'
+import { RANK_GROUPS, groupsOf } from './ranks'
 import { dayTotals, todayStr, uid, fmtDate } from './store'
 
 const FOOD = Object.fromEntries(FOODS.map((f) => [f.id, f]))
@@ -104,13 +104,14 @@ export function MuscleSets({ data }) {
   const d = new Date()
   d.setDate(d.getDate() - ((d.getDay() + 6) % 7))
   const monday = fmtDate(d)
-  const count = Object.fromEntries(GROUPS.map((g) => [g, 0]))
+  const direct = Object.fromEntries(RANK_GROUPS.map((g) => [g, 0]))
+  const indirect = Object.fromEntries(RANK_GROUPS.map((g) => [g, 0]))
   for (const s of data.sessions.filter((x) => x.date >= monday))
-    for (const [exId, sets] of Object.entries(s.entries || {})) {
-      const g = EX_BY_ID[exId]?.group
-      if (g && count[g] != null) count[g] += sets.length
-    }
-  const total = Object.values(count).reduce((a, b) => a + b, 0)
+    for (const [exId, sets] of Object.entries(s.entries || {}))
+      for (const { g, main } of groupsOf(exId)) (main ? direct : indirect)[g] += sets.length
+  // las series indirectas (músculo secundario) cuentan la mitad
+  const count = Object.fromEntries(RANK_GROUPS.map((g) => [g, Math.round(direct[g] + indirect[g] / 2)]))
+  const total = Object.values(direct).reduce((a, b) => a + b, 0)
   if (!total) return null
   const MAX = 24
   return (
@@ -119,8 +120,11 @@ export function MuscleSets({ data }) {
         <b>Series por músculo</b>
         <span className="muted small">esta semana · ideal 10–20</span>
       </div>
+      <div className="muted small" style={{ marginTop: 2 }}>
+        Las de músculos secundarios cuentan la mitad (el press banca suma a tríceps y hombro).
+      </div>
       <div className="msets">
-        {GROUPS.map((g) => {
+        {RANK_GROUPS.map((g) => {
           const n = count[g]
           const tone = n === 0 ? 'none' : n < 10 ? 'low' : n > 20 ? 'high' : 'ok'
           return (
@@ -130,7 +134,7 @@ export function MuscleSets({ data }) {
                 <span className="mset-band" style={{ left: `${(10 / MAX) * 100}%`, width: `${(10 / MAX) * 100}%` }} />
                 <span className={'mset-fill ' + tone} style={{ width: `${Math.min(100, (n / MAX) * 100)}%` }} />
               </span>
-              <span className="mset-v">{n}</span>
+              <span className="mset-v" title={indirect[g] ? `${direct[g]} directas + ${indirect[g]} indirectas` : undefined}>{n}</span>
             </div>
           )
         })}

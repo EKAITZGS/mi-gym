@@ -1647,7 +1647,7 @@ body.modal-open .savebar { display: none; }
 
 /* ---- Series por músculo ---- */
 .msets { display: grid; gap: 8px; margin-top: 8px; }
-.mset { display: grid; grid-template-columns: 64px 1fr 26px; align-items: center; gap: 10px; font-size: 13px; }
+.mset { display: grid; grid-template-columns: 78px 1fr 26px; align-items: center; gap: 10px; font-size: 13px; }
 .mset-bar { position: relative; height: 10px; border-radius: 99px; background: var(--card2); overflow: hidden; }
 .mset-band { position: absolute; top: 0; bottom: 0; background: rgba(62, 224, 143, 0.12); }
 .mset-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 99px; transition: width 0.6s ease; }

@@ -21,7 +21,20 @@ line_a = dark * silf
 t = np.clip((lum - 0.25) / 0.55, 0, 1)
 lo = np.array([0.10, 0.11, 0.14]); hi = np.array([0.30, 0.33, 0.39])
 neutral = lo + (hi - lo) * t[..., None]
-grey_a = (greyish & sil).astype(np.float32)
+# antebrazos: zona gris entre codo y muñeca (pasa a ser músculo con su propia máscara)
+H = sil.shape[0]
+yy, xx = np.mgrid[0:H, 0:W]
+arms = ((xx < 175) | ((xx > 370) & (xx < 465)) | ((xx > 535) & (xx < 632)) | (xx > 830)) & (yy > 240) & (yy < 392)
+fore = greyish & sil & arms
+lab, n = ndi.label(fore)
+if n:
+    sz = ndi.sum(fore, lab, range(1, n + 1)); fore = np.isin(lab, [i + 1 for i, z in enumerate(sz) if z > 150])
+fore = ndi.binary_fill_holes(ndi.binary_closing(fore, iterations=3))
+fm = ndi.gaussian_filter((ndi.binary_dilation(fore, iterations=2) & sil).astype(np.float32), 0.6)
+mimg = np.zeros((*fore.shape, 4), np.uint8); mimg[..., :3] = 255; mimg[..., 3] = (np.clip(fm, 0, 1) * 255).astype(np.uint8)
+Image.fromarray(mimg, 'RGBA').save('mask_Antebrazo.png', optimize=True)
+print('antebrazo px', int(fore.sum()))
+grey_a = (greyish & sil & ~fore).astype(np.float32)
 grey_a = ndi.gaussian_filter(grey_a, 0.5)
 out = np.zeros((*sil.shape, 4), np.float32)
 # capa: primero gris neutro, luego líneas encima
@@ -37,7 +50,7 @@ e = np.zeros((*sil.shape, 4), np.uint8); e[..., :3] = [190, 205, 230]; e[..., 3]
 Image.fromarray(e, 'RGBA').save('edge.png', optimize=True)
 # máscaras a la misma resolución: reescalar las ya corregidas
 import glob
-for f in glob.glob('mask_*.png'):
+for f in [x for x in glob.glob('mask_*.png') if 'Antebrazo' not in x]:
     m = Image.open(f).resize((W, sil.shape[0]), Image.LANCZOS)
     m.save(f, optimize=True)
 print(src.size)

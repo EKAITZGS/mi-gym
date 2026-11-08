@@ -1,7 +1,7 @@
 // Maniquí: imagen anatómica (frente y espalda) separada en capas por grupo muscular.
 // Cada máscara se pinta con el color del rango de ese músculo; encima van las líneas y las partes neutras.
 // Fuente y script de separación en assets-src/.
-const FILES = { Pecho: 'pecho', Espalda: 'espalda', Hombro: 'hombro', 'Bíceps': 'biceps', 'Tríceps': 'triceps', Pierna: 'pierna', Core: 'core' }
+const FILES = { Pecho: 'pecho', Espalda: 'espalda', Hombro: 'hombro', 'Bíceps': 'biceps', 'Tríceps': 'triceps', Pierna: 'pierna', Core: 'core', Antebrazo: 'antebrazo' }
 const url = (f) => `url(body/${f}.png)`
 
 const shade = (hex, k) => {

@@ -2,6 +2,29 @@
 // Para cada ejercicio hay una referencia de nivel "Oro" (intermedio sólido) (1RM estimado / peso corporal; en mancuernas, por mancuerna).
 // En los de peso corporal se usan repeticiones máximas en una serie.
 import { EX_BY_ID, GROUPS } from './data/exercises'
+
+// Grupos del maniquí (los de la biblioteca + antebrazo, que solo se trabaja como secundario)
+export const RANK_GROUPS = [...GROUPS, 'Antebrazo']
+// Nombre del músculo en los datos del ejercicio → grupo
+const TO_GROUP = {
+  Pecho: 'Pecho', Dorsales: 'Espalda', 'Espalda media': 'Espalda', Lumbar: 'Espalda', Trapecio: 'Espalda', Hombros: 'Hombro',
+  'Bíceps': 'Bíceps', 'Tríceps': 'Tríceps', 'Cuádriceps': 'Pierna', Femorales: 'Pierna', 'Glúteos': 'Pierna', Gemelos: 'Pierna',
+  Abdominales: 'Core', Antebrazo: 'Antebrazo',
+}
+// Secundarios que faltan en los datos (agarre = antebrazo)
+const EXTRA_SEC = {
+  Hammer_Curls: ['Antebrazo'], Bent_Over_Barbell_Row: ['Antebrazo'], 'One-Arm_Dumbbell_Row': ['Antebrazo'], Seated_Cable_Rows: ['Antebrazo'],
+  Pullups: ['Antebrazo'], Barbell_Shrug: ['Antebrazo'], Dumbbell_Shrug: ['Antebrazo'], Romanian_Deadlift: ['Antebrazo', 'Espalda'], Barbell_Squat: ['Core'],
+}
+export const SEC_FACTOR = 0.7
+// Grupos que trabaja un ejercicio: principal (1) y secundarios (SEC_FACTOR para rangos, 0,5 para contar series)
+export function groupsOf(id) {
+  const ex = EX_BY_ID[id]
+  if (!ex) return []
+  const main = ex.group
+  const sec = new Set([...(ex.sec || []).map((m) => TO_GROUP[m]), ...(EXTRA_SEC[id] || [])].filter((g) => g && g !== main))
+  return [{ g: main, main: true }, ...[...sec].map((g) => ({ g, main: false }))]
+}
 import { e1rm, num, todayStr, addDays } from './store'
 
 export const RANKS = [
@@ -68,14 +91,18 @@ export function muscleRanks(data) {
           f = e / bw / ref
           val = { e, ref }
         }
-        if (!best[id] || f > best[id].f) best[id] = { id, f, ...val, date: s.date }
+        for (const { g, main } of groupsOf(id)) {
+          const k = g + '|' + id
+          const fg = main ? f : f * SEC_FACTOR
+          if (!best[k] || fg > best[k].f) best[k] = { id, g, f: fg, main, factor: main ? 1 : SEC_FACTOR, ...val, date: s.date }
+        }
       }
     }
   }
   const out = {}
-  for (const g of GROUPS) {
+  for (const g of RANK_GROUPS) {
     const list = Object.values(best)
-      .filter((b) => EX_BY_ID[b.id].group === g)
+      .filter((b) => b.g === g)
       .sort((a, b) => b.f - a.f)
     if (!list.length) {
       out[g] = { group: g, f: null, rank: null, top: null }
@@ -86,8 +113,8 @@ export function muscleRanks(data) {
     const nr = nextRank(f)
     // cuánto te falta para el siguiente rango en tu mejor ejercicio de ese músculo
     let need = null
-    if (nr && top.ref) need = { rank: nr, e1rm: Math.ceil(nr.min * top.ref * bw * 2) / 2 }
-    else if (nr && REPS[top.id]) need = { rank: nr, reps: Math.ceil((nr.min * REPS[top.id]) / (1 + (top.w || 0) / bw)) }
+    if (nr && top.ref) need = { rank: nr, e1rm: Math.ceil(((nr.min / top.factor) * top.ref * bw) * 2) / 2 }
+    else if (nr && REPS[top.id]) need = { rank: nr, reps: Math.ceil(((nr.min / top.factor) * REPS[top.id]) / (1 + (top.w || 0) / bw)) }
     out[g] = { group: g, f, rank: rankOf(f), top, need, progress: nr ? Math.max(0, Math.min(1, (f - rankOf(f).min) / (nr.min - rankOf(f).min))) : 1 }
   }
   const have = Object.values(out).filter((x) => x.f != null)

@@ -40,6 +40,7 @@ function Detail({ data, onClose }) {
               </div>
               <div className="muted small">
                 {EX_BY_ID[g.top.id]?.name}
+                {g.top.main ? '' : ' (secundario)'}
                 {g.top.e ? ` · 1RM est. ${fmtKg(Math.round(g.top.e * 2) / 2)} kg` : ` · ${g.top.reps} reps`}
                 {g.need ? (g.need.e1rm ? ` · ${g.need.rank.name} con 1RM est. ${fmtKg(g.need.e1rm)} kg` : ` · ${g.need.rank.name} con ${g.need.reps} reps`) : ' · rango máximo'}
               </div>
@@ -60,7 +61,7 @@ function Detail({ data, onClose }) {
         <p className="muted small">Activa "Unilateral" en ejercicios de un brazo o una pierna y apunta las reps de cada lado para medir la simetría.</p>
       )}
       <p className="muted small">
-        Los rangos salen de tu fuerza real en los últimos 90 días comparada con tu peso corporal{bw.real ? '' : ' (aún sin pesajes: se calcula con 80 kg)'}, usando referencias de fuerza para hombres entrenados. Oro es un nivel intermedio sólido; Diamante, avanzado.
+        Los rangos salen de tu fuerza real en los últimos 90 días comparada con tu peso corporal{bw.real ? '' : ' (aún sin pesajes: se calcula con 80 kg)'}, usando referencias de fuerza para hombres entrenados. Oro es un nivel intermedio sólido; Diamante, avanzado. Los ejercicios también suman, con menos peso, a los músculos que trabajan como secundarios: el press banca al tríceps y al hombro, los remos al bíceps y al antebrazo…
       </p>
     </Modal>
   )
@@ -83,7 +84,7 @@ export default function RankCard({ data }) {
         <div className="rank-mini">
           {Object.values(groups)
             .filter((g) => g.rank)
-            .slice(0, 7)
+            .slice(0, 8)
             .map((g) => (
               <span key={g.group} className="small">
                 <i style={{ background: g.rank.color }} /> {g.group}
@@ -91,7 +92,7 @@ export default function RankCard({ data }) {
             ))}
         </div>
         <span className="muted small">
-          {n}/7 desbloqueados ›
+          {n}/{Object.keys(groups).length} desbloqueados ›
         </span>
       </div>
     </button>
