@@ -1722,3 +1722,11 @@ body.modal-open .savebar { display: none; }
 .rk-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
 .rk-bar { height: 6px; border-radius: 99px; background: var(--card2); overflow: hidden; margin-bottom: 6px; }
 .rk-bar span { display: block; height: 100%; border-radius: 99px; box-shadow: 0 0 10px currentColor; }
+
+/* Maniquí anatómico */
+.mq-base { fill: #14171d; stroke: rgba(255, 255, 255, 0.22); stroke-width: 1.2; }
+.mq-head { fill: #0c0e12; stroke: rgba(255, 255, 255, 0.35); stroke-width: 1.4; }
+.mq-seam { stroke: #0b0d11; stroke-width: 1.4; stroke-linejoin: round; }
+.mq-seam.lit { filter: drop-shadow(0 0 2.5px var(--rc)); }
+.char-wrap .mannequin { width: 50%; }
+.char-wrap.big .mannequin { width: 46%; max-width: 190px; }
