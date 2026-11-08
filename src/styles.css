@@ -1733,10 +1733,10 @@ body.modal-open .savebar { display: none; }
 .char-wrap.big .mannequin { width: 46%; max-width: 190px; }
 
 /* Maniquí por capas (imagen) */
-.mq { position: relative; width: 100%; aspect-ratio: 900 / 822; }
+.mq { position: relative; width: 100%; aspect-ratio: 1000 / 914; }
 .mq-layer, .mq-img, .mq-fill { position: absolute; inset: 0; width: 100%; height: 100%; }
 .mq-fill { -webkit-mask-size: 100% 100%; mask-size: 100% 100%; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; }
-.mq-layer.lit { filter: drop-shadow(0 0 5px var(--rc)); }
+.mq-layer.lit { filter: drop-shadow(0 0 3px var(--rc)); }
 .mq-img { pointer-events: none; user-select: none; }
 .char-wrap { width: 52%; display: block; }
 .char-wrap.big { width: 100%; display: block; padding: 4px 0; }

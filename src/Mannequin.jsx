@@ -15,7 +15,7 @@ export default function Mannequin({ groups = {} }) {
     <div className="mq" role="img" aria-label="Maniquí con el rango de cada músculo">
       {Object.entries(FILES).map(([g, f]) => {
         const r = groups[g]?.rank
-        const bg = r ? `linear-gradient(170deg, ${shade(r.color, 0.45)} 0%, ${r.color} 35%, ${shade(r.color, -0.3)} 100%)` : 'linear-gradient(170deg, #353c49, #20252e)'
+        const bg = r ? `linear-gradient(170deg, ${shade(r.color, 0.45)} 0%, ${r.color} 35%, ${shade(r.color, -0.3)} 100%)` : 'linear-gradient(170deg, #4a5466, #343c4a)'
         return (
           <div key={g} className={'mq-layer' + (r ? ' lit' : '')} style={r ? { '--rc': r.color } : undefined}>
             <div className="mq-fill" style={{ background: bg, WebkitMaskImage: url('mask-' + f), maskImage: url('mask-' + f) }} />
