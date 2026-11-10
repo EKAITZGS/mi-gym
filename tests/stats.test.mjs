@@ -29,3 +29,19 @@ assert.deepEqual(calcGoals({ kg: 80, cm: 175, age: 25, male: true, act: 1.375, a
 assert.equal(calcGoals({ kg: 80, cm: 175, age: 25, male: true, act: 1.375, aim: 'keep' }).protein, 130)
 assert.equal(calcGoals({ kg: 0, cm: 175, age: 25 }), null)
 console.log('stats ok')
+
+// recomendaciones en día de descanso
+import { restDayTips } from '../src/coach.js'
+{
+  const base = { goals: { steps: 7000 }, plan: [], sessions: [] }
+  const today = (() => { const t = new Date(); return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}` })()
+  assert.match(restDayTips(base)[0], /Sal a andar/)
+  assert.match(restDayTips(base)[1], /corre suave/)
+  const some = { ...base, polar: { days: { [today]: { steps: 3000 } } } }
+  assert.match(restDayTips(some)[0], /Te faltan 4\.000: unos 40 minutos/)
+  const knee = { ...base, sessions: [{ checkin: { feel: 2, pain: { zone: 'Rodilla', level: 'leve' } } }] }
+  assert.match(restDayTips(knee)[1], /mejor andar que correr/)
+  const done = { ...base, polar: { days: { [today]: { steps: 9000 } } } }
+  assert.equal(restDayTips(done).length, 1)
+  console.log('rest tips ok')
+}

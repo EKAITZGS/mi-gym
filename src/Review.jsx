@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { EX_BY_ID } from './data/exercises'
 import { Thumb } from './ui'
 import Icon from './icons'
-import { weeklyReview, applyProposal, aiWeeklyReview } from './coach'
+import { weeklyReview, applyProposal, aiWeeklyReview, restDayTips } from './coach'
 import { hasAi } from './ai'
 
 function Proposal({ p, data, onDecide }) {
@@ -48,7 +48,29 @@ function Proposal({ p, data, onDecide }) {
   )
 }
 
-export default function WeeklyReview({ data, setData, focusId }) {
+// rest: hoy no toca pesas (Inicio) -> solo recomendaciones de andar o correr
+export default function WeeklyReview({ data, setData, focusId, rest }) {
+  if (rest) {
+    const tips = restDayTips(data)
+    return (
+      <div className="card review">
+        <div className="sec-head nm">
+          <b>
+            <Icon name="trend" size={16} className="inl" /> Recomendaciones para hoy
+          </b>
+        </div>
+        <ul className="tips-list">
+          {tips.map((t, i) => (
+            <li key={i}>{t}</li>
+          ))}
+        </ul>
+      </div>
+    )
+  }
+  return <TrainingReview data={data} setData={setData} focusId={focusId} />
+}
+
+function TrainingReview({ data, setData, focusId }) {
   const rv = weeklyReview(data, focusId)
   const [ai, setAi] = useState({ loading: false, err: '', res: null })
   const [msg, setMsg] = useState('')
@@ -79,7 +101,7 @@ export default function WeeklyReview({ data, setData, focusId }) {
     <div className="card review">
       <div className="sec-head nm">
         <b>
-          <Icon name="trend" size={16} className="inl" /> Revisión de la semana
+          <Icon name="trend" size={16} className="inl" /> Recomendaciones de entrenamiento
         </b>
         <span className="muted small">{rv.count} entrenos</span>
       </div>

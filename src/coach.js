@@ -332,10 +332,6 @@ export function weeklyReview(data, focusId) {
   if (pw) {
     const ss = pw.sessions
     if (ss.length) {
-      const kcal = ss.reduce((a, x) => a + (x.kcal || 0), 0)
-      const hrs = ss.filter((x) => x.pulsoMedio)
-      const avgHr = hrs.length ? Math.round(hrs.reduce((a, x) => a + x.pulsoMedio, 0) / hrs.length) : null
-      findings.push(`Reloj: ${ss.length} ${ss.length === 1 ? 'entreno' : 'entrenos'}, ${kcal} kcal gastadas entrenando${avgHr ? `, pulso medio ${avgHr} ppm` : ''}`)
       const intense = ss.filter((x) => x.pctZonasAltas > 35).length
       const soft = ss.filter((x) => x.pctZonasAltas != null && x.pctZonasAltas + (x.pctZonaModerada || 0) < 10).length
       if (intense >= 2) findings.push(`${intense} entrenos con mucho tiempo en pulso alto: cuida el descanso y el sueño`)
@@ -358,6 +354,27 @@ export function weeklyReview(data, focusId) {
         ? `Semana sin incidentes (${week.length} entrenos).${ready.length ? '' : ' Sigue así: cuando te sobren repeticiones, te diré que subas.'}`
         : null,
   }
+}
+
+// Día sin pesas: andar o correr según pasos de hoy, cansancio, molestias y si mañana toca gimnasio
+const miles = (n) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+export function restDayTips(data, now = new Date()) {
+  const tips = []
+  const goal = data.goals?.steps || 7000
+  const steps = data.polar?.days?.[todayStr()]?.steps || 0
+  const last = data.sessions[data.sessions.length - 1]
+  const pain = last?.checkin?.pain
+  const legPain = pain && /Rodilla|Espalda baja/.test(pain.zone)
+  const tired = last?.checkin?.feel >= 4 || last?.checkin?.sleep === 1
+  const gymTomorrow = data.plan.some((d) => d.weekday === (now.getDay() + 1) % 7)
+  if (steps >= goal) tips.push(`Llevas ${miles(steps)} pasos: objetivo cumplido. Hoy basta con estirar 10 minutos y descansar.`)
+  else if (steps > 0) tips.push(`Llevas ${miles(steps)} pasos. Te faltan ${miles(goal - steps)}: unos ${Math.ceil((goal - steps) / 100)} minutos andando.`)
+  else tips.push('Sal a andar 30–45 minutos a buen ritmo: son unos 4.000 pasos y ayudan a recuperar las piernas y a quemar grasa.')
+  if (legPain) tips.push(`Tuviste molestia en ${pain.zone.toLowerCase()}: mejor andar que correr hasta que se te pase.`)
+  else if (tired) tips.push('Tu último entreno fue muy duro o dormiste mal: hoy mejor solo andar, sin correr.')
+  else if (steps < goal)
+    tips.push(`Si te apetece más, corre suave 20–30 minutos a un ritmo en el que puedas hablar.${gymTomorrow ? ' Nada de series fuertes: mañana toca gimnasio.' : ''}`)
+  return tips
 }
 
 export function applyProposal(plan, p) {
