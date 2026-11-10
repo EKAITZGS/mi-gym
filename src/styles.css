@@ -1764,15 +1764,15 @@ body.modal-open .savebar { display: none; }
 .title, h2, h3, .body-num, .ring-num { font-family: var(--font-head); }
 
 /* ---- Sesión: descanso, nota y comparación ---- */
-.rest { position: fixed; left: 16px; right: 16px; bottom: calc(var(--tab) + env(safe-area-inset-bottom) + 12px); z-index: 890;
+.restbar { position: fixed; left: 16px; right: 16px; bottom: calc(var(--tab) + env(safe-area-inset-bottom) + 12px); z-index: 890;
   display: flex; align-items: center; gap: 8px; background: var(--card2); border: 1px solid var(--line); border-radius: 14px;
   padding: 8px 8px 8px 14px; box-shadow: var(--shadow); }
 .rest-t { font-family: var(--font-head); font-weight: 800; font-size: 22px; min-width: 58px; }
-.rest button { background: var(--track); border: 0; border-radius: 10px; min-height: 40px; min-width: 40px; padding: 0 10px; font-size: 13px; font-weight: 600;
+.restbar button { background: var(--track); border: 0; border-radius: 10px; min-height: 40px; min-width: 40px; padding: 0 10px; font-size: 13px; font-weight: 600;
   display: grid; place-items: center; }
-.rest.go { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); justify-content: space-between; }
-.rest.go .rest-t { font-size: 17px; }
-.rest.go button { background: rgba(0, 0, 0, 0.12); }
+.restbar.go { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); justify-content: space-between; }
+.restbar.go .rest-t { font-size: 17px; }
+.restbar.go button { background: rgba(0, 0, 0, 0.12); }
 .inp.note { width: 100%; margin-top: 10px; font-size: 14px; }
 .cmp { border-top: 1px solid var(--line); padding: 8px 0; }
 .cmp-h { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }

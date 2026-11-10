@@ -5,14 +5,16 @@ import Home from './Home'
 import Workout, { editGuard } from './Workout'
 import Diet from './Diet'
 import Settings from './Settings'
+import Progress from './Progress'
 import Icon from './icons'
 import { readPolarReturn, getPolar, syncPolar } from './polar'
 import { syncPush } from './push'
 
 const TABS = [
-  { id: 'home', label: 'Hoy', icon: 'home' },
+  { id: 'home', label: 'Inicio', icon: 'home' },
   { id: 'train', label: 'Entreno', icon: 'dumbbell' },
   { id: 'diet', label: 'Dieta', icon: 'food' },
+  { id: 'progress', label: 'Progreso', icon: 'trend' },
   { id: 'settings', label: 'Ajustes', icon: 'settings' },
 ]
 
@@ -132,6 +134,7 @@ export default function App() {
         {tab === 'home' && <Home data={data} setData={setData} onStart={start} go={goTab} />}
         {tab === 'train' && <Workout data={data} setData={setData} view={view} setView={setView} onStart={start} onStartFree={startFree} />}
         {tab === 'diet' && <Diet data={data} setData={setData} />}
+        {tab === 'progress' && <Progress data={data} setData={setData} />}
         {tab === 'settings' && <Settings data={data} setData={setData} />}
       </main>
       {saveFail && (

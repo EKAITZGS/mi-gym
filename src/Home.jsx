@@ -1,17 +1,13 @@
-import { useMemo, useState } from 'react'
-import { dayTotals, fmtDate, todayStr, exStats, fmtKg } from './store'
+import { useState } from 'react'
+import { dayTotals, fmtDate, todayStr } from './store'
 import { EX_BY_ID } from './data/exercises'
 import { Ring, Thumb } from './ui'
-import { ExerciseModal } from './Workout'
 import Icon from './icons'
 import { polarExercisesOn } from './polar'
 import WeeklyReview from './Review'
 import Setup from './Setup'
 import PolarSession from './PolarSession'
-import BodyCard from './Body'
-import MonthModal from './Month'
-import RankCard from './Rank'
-import { ProteinTip, MuscleSets, StepsBar } from './Extras'
+import { ProteinTip, StepsBar } from './Extras'
 import { Generator } from './Workout'
 import { generatePlan } from './plans'
 
@@ -21,11 +17,9 @@ const greeting = () => {
 }
 
 export default function Home({ data, setData, onStart, go }) {
-  const [open, setOpen] = useState(null)
   const [setup, setSetup] = useState(false)
   const [gen, setGen] = useState(false)
   const [polarEx, setPolarEx] = useState(null)
-  const [month, setMonth] = useState(false)
   const wd = new Date().getDay()
   const todays = data.plan.filter((d) => d.weekday === wd)
   const others = data.plan.filter((d) => d.weekday !== wd)
@@ -39,19 +33,6 @@ export default function Home({ data, setData, onStart, go }) {
   const done = data.sessions.filter((s) => s.date >= monday).length
   const planned = data.plan.filter((d) => d.weekday != null).length
   const dateTxt = new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })
-
-  const progress = useMemo(() => {
-    const ids = [...new Set(data.sessions.flatMap((s) => Object.keys(s.entries || {})))]
-    return ids
-      .map((id) => {
-        const st = exStats(data.sessions, id)
-        if (!st.length || !EX_BY_ID[id]) return null
-        return { id, n: st.length, first: st[0].best.e, last: st[st.length - 1].best.e }
-      })
-      .filter(Boolean)
-      .sort((a, b) => b.n - a.n)
-      .slice(0, 5)
-  }, [data.sessions])
 
   const weekDots = Array.from({ length: 7 }, (_, i) => {
     const d = new Date()
@@ -249,43 +230,6 @@ export default function Home({ data, setData, onStart, go }) {
           ))}
         </div>
       </div>
-      <button className="link small month-link" onClick={() => setMonth(true)}>
-        <Icon name="trend" size={15} /> Ver resumen del mes
-      </button>
-      {month && <MonthModal data={data} onClose={() => setMonth(false)} />}
-
-      <RankCard data={data} />
-      <MuscleSets data={data} />
-      <BodyCard data={data} setData={setData} />
-
-      {progress.length > 0 && (
-        <>
-          <div className="sec-head">
-            <h4>Tu progreso de fuerza</h4>
-          </div>
-          <div className="card list-card">
-            {progress.map((p) => {
-              const diff = p.last - p.first
-              return (
-                <button key={p.id} className="row nob li" onClick={() => setOpen(EX_BY_ID[p.id])}>
-                  <Thumb ex={EX_BY_ID[p.id]} size={42} />
-                  <div className="grow">
-                    <div className="li-t">{EX_BY_ID[p.id].name}</div>
-                    <div className="muted small">1RM est. {fmtKg(Math.round(p.last * 10) / 10)} kg</div>
-                  </div>
-                  {p.n > 1 && (
-                    <span className={'delta ' + (diff >= 0 ? 'up' : 'down')}>
-                      {diff >= 0 ? '+' : ''}
-                      {fmtKg(Math.round(diff * 10) / 10)} kg
-                    </span>
-                  )}
-                </button>
-              )
-            })}
-          </div>
-        </>
-      )}
-      {open && <ExerciseModal ex={open} data={data} onClose={() => setOpen(null)} />}
     </div>
   )
 }

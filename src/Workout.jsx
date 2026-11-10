@@ -529,7 +529,7 @@ function RestTimer({ end, onAdd, onClose }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [left])
   return (
-    <div className={'rest' + (left <= 0 ? ' go' : '')} role="timer">
+    <div className={'restbar' + (left <= 0 ? ' go' : '')} role="timer">
       <span className="rest-t">{left > 0 ? `${Math.floor(left / 60)}:${pad(left % 60)}` : '¡Siguiente serie!'}</span>
       {left > 0 && <span className="muted small grow">descanso</span>}
       {left > 0 && <button onClick={() => onAdd(-15)}>−15 s</button>}

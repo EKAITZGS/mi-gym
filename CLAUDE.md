@@ -13,7 +13,7 @@ Prefiere respuestas cortas, directas y sinceras. Las propuestas del coach nunca 
 ## Ficheros clave
 - `src/App.jsx` pestañas, vuelta automática a entreno en curso, sincronización Polar y de avisos.
 - `src/Workout.jsx` biblioteca, editor de día (borrador + Guardar + confirmación al salir, `editGuard`), sesión (unilateral izq/der, drops), check-in.
-- `src/Home.jsx` Hoy: entreno del día / "Hecho hoy", reloj Polar (pasos + detalle con curva de pulso), proteína que falta, series por músculo, cintura y fotos.
+- `src/Home.jsx` Inicio: entreno del día / "Hecho hoy", reloj Polar (pasos + detalle con curva de pulso), proteína que falta, series por músculo, cintura y fotos.
 - `src/Diet.jsx` dieta (escáner, foto IA con Groq, repetir de ayer, comidas favoritas).
 - `src/coach.js` revisión semanal (propone, nunca aplica solo) + IA; usa datos del reloj (`polarWeek`).
 - `src/polar.js` + `src/PolarSession.jsx` Polar AccessLink vía el Worker. Polar devuelve campos en snake_case (`sample_type`, `heart_rate_zones` con `lower_limit`, índices de zona desde 0): el parser acepta ambos formatos.
