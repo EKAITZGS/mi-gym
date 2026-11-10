@@ -9,7 +9,6 @@ import Setup from './Setup'
 import PolarSession from './PolarSession'
 import { ProteinTip, StepsBar } from './Extras'
 import { Generator } from './Workout'
-import { generatePlan } from './plans'
 
 const greeting = () => {
   const h = new Date().getHours()
@@ -66,11 +65,9 @@ export default function Home({ data, setData, onStart, go }) {
       {setup && <Setup data={data} setData={setData} onClose={() => setSetup(false)} />}
       {gen && (
         <Generator
+          data={data}
+          setData={setData}
           onClose={() => setGen(false)}
-          onGenerate={(days, level) => {
-            setData((d) => ({ ...d, plan: generatePlan(days, level), active: null, setupDone: true }))
-            setGen(false)
-          }}
         />
       )}
 

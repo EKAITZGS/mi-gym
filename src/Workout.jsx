@@ -4,7 +4,7 @@ import { WEEKDAYS, uid, lastSets, exStats, suggestion, fmtKg, num, pad } from '.
 import { Modal, Thumb, LineChart, ExPhoto } from './ui'
 import Icon from './icons'
 import WeeklyReview from './Review'
-import { generatePlan, PLAN_OPTIONS, LEVELS } from './plans'
+import { LEVELS, EQUIP, MINUTES, DAY_TYPES, SPLITS, DEFAULT_WEEKDAYS, splitFor, typesFor, pickFor, prescribe, buildDay, buildPlan, stripSlots } from './plans'
 import Setup from './Setup'
 import { PlanVolume } from './Extras'
 import { FEELINGS, ZONES, adviceFor, painFor, needsDeload } from './coach'
@@ -193,55 +193,256 @@ function Library({ data, setData, onPick, onClose, inline, title }) {
   )
 }
 
-/* ---------- Generador de plan ---------- */
-export function Generator({ onClose, onGenerate }) {
-  const [level, setLevel] = useState('beginner')
+/* ---------- Generador de plan (paso a paso) ---------- */
+const FOCUS = ['Pecho', 'Espalda', 'Pierna', 'Hombro', 'Bíceps', 'Tríceps', 'Core']
+const restTxt = (s) => (s >= 60 ? `${Math.floor(s / 60)}:${pad(s % 60)}` : `${s} s`)
+
+// Sustituye el plan con días fijos; conserva los días sin día fijo y no toca el historial
+export function Generator({ data, setData, onClose }) {
+  const guess = data.sessions.length < 12 ? 'beginner' : data.sessions.length < 60 ? 'intermediate' : 'advanced'
+  const [step, setStep] = useState(0) // 0 nivel, 1 días, 2 reparto, 3 material, 4 resultado
+  const [level, setLevel] = useState(guess)
+  const [wds, setWds] = useState(() => {
+    const cur = [...new Set(data.plan.filter((d) => d.weekday != null).map((d) => d.weekday))]
+    return cur.length ? cur : DEFAULT_WEEKDAYS[LEVELS.find((l) => l.id === guess).days]
+  })
+  const [n, setN] = useState(6)
+  const [types, setTypes] = useState({}) // día de la semana -> tipo elegido a mano
+  const [equip, setEquip] = useState(EQUIP)
+  const [focus, setFocus] = useState(null)
+  const [plan, setPlan] = useState(null)
   const lv = LEVELS.find((l) => l.id === level)
-  const [days, setDays] = useState(lv.days)
-  const pickLevel = (l) => {
-    setLevel(l.id)
-    setDays(l.days)
+  const days = ORDER.filter((w) => wds.includes(w))
+  const auto = typesFor(splitFor(days.length), days.length)
+  const dayList = days.map((w, i) => ({ weekday: w, type: types[w] || auto[i] }))
+  const opts = { level, n, equip, focus }
+  const usedIn = (p) => new Set(p.flatMap((d) => d.items.map((i) => i.ex)))
+
+  const make = (list = dayList) => {
+    setPlan(buildPlan({ days: list, ...opts }))
+    setStep(4)
   }
-  return (
-    <Modal title="Plan automático" onClose={onClose}>
-      <h4 style={{ marginTop: 0 }}>1. Tu nivel</h4>
-      <div className="list">
-        {LEVELS.map((l) => (
-          <button key={l.id} className={'row opt' + (level === l.id ? ' on' : '')} onClick={() => pickLevel(l)}>
-            <div className="grow">
-              <b>{l.label}</b>
-              <div className="muted small">{l.hint}</div>
-            </div>
-            {level === l.id && <span className="plus"><Icon name="check" size={18} /></span>}
-          </button>
-        ))}
-      </div>
-      <div className="tip">
-        <Icon name="sparkle" size={15} /> Para tu nivel te recomiendo ir {lv.range} a la semana.
-      </div>
-      <h4>2. Días por semana</h4>
-      <div className="chips wrap">
-        {PLAN_OPTIONS.map((o) => (
-          <button key={o.days} className={'chip' + (days === o.days ? ' on' : '')} onClick={() => setDays(o.days)}>
-            {o.days} días{o.days === lv.days ? ' ★' : ''}
-          </button>
-        ))}
-      </div>
-      <p className="muted small">{PLAN_OPTIONS.find((o) => o.days === days)?.hint}</p>
-      {level === 'beginner' && days >= 5 && (
-        <p className="toast warn small">Siendo principiante, más de 4 días suele ser demasiado: recuperarás peor.</p>
+  const applySplit = (s) => {
+    const t = typesFor(s, days.length)
+    setTypes(Object.fromEntries(days.map((w, i) => [w, t[i]])))
+    return days.map((w, i) => ({ weekday: w, type: t[i] }))
+  }
+  const surprise = () => {
+    const ok = SPLITS.filter((s) => s.cycle.length <= Math.max(1, days.length))
+    make(applySplit(ok[Math.floor(Math.random() * ok.length)]))
+  }
+  const toggleWd = (w) => setWds((s) => (s.includes(w) ? s.filter((x) => x !== w) : [...s, w]))
+  const regenDay = (id) =>
+    setPlan((p) => p.map((d) => (d.id === id ? { ...d, items: buildDay(d.type, opts, usedIn(p)) } : d)))
+  const swap = (dayId, itemId) =>
+    setPlan((p) => {
+      const used = usedIn(p)
+      return p.map((d) =>
+        d.id !== dayId
+          ? d
+          : {
+              ...d,
+              items: d.items.map((i) => {
+                if (i.id !== itemId) return i
+                const x = pickFor(i.slot, { equip, used, avoid: d.items.map((o) => o.ex) })
+                return x ? { ...i, ex: x.id, ...prescribe(x, level, focus) } : i
+              }),
+            },
+      )
+    })
+  const save = () => {
+    setData((d) => ({ ...d, plan: [...stripSlots(plan), ...d.plan.filter((x) => x.weekday == null)], active: null, setupDone: true }))
+    onClose(true)
+  }
+  const nav = (back, next, label = 'Siguiente', disabled = false) => (
+    <div className="wizard-nav">
+      {back != null && (
+        <button className="btn" onClick={() => setStep(back)}>
+          <Icon name="left" size={16} /> Atrás
+        </button>
       )}
-      <p className="muted small">
-        {level === 'beginner'
-          ? 'Principiante: 2-3 series por ejercicio, sin fallo ni drop sets.'
-          : level === 'advanced'
-            ? 'Avanzado: una serie más por ejercicio.'
-            : 'Intermedio: 3 series por ejercicio.'}{' '}
-        Esto sustituye tu plan actual; luego puedes cambiar lo que quieras.
-      </p>
-      <button className="btn primary full" onClick={() => onGenerate(days, level)}>
-        Crear plan de {days} días
+      <button className="btn primary" disabled={disabled} onClick={next}>
+        {label} <Icon name="right" size={16} />
       </button>
+    </div>
+  )
+
+  return (
+    <Modal title="Plan automático" onClose={() => onClose(false)}>
+      <div className="steps">
+        {[0, 1, 2, 3, 4].map((s) => (
+          <span key={s} className={'stepdot' + (s === step ? ' on' : s < step ? ' done' : '')} />
+        ))}
+      </div>
+
+      {step === 0 && (
+        <>
+          <h4 style={{ marginTop: 0 }}>¿Cuál es tu nivel?</h4>
+          <div className="list">
+            {LEVELS.map((l) => (
+              <button key={l.id} className={'row opt' + (level === l.id ? ' on' : '')} onClick={() => setLevel(l.id)}>
+                <div className="grow">
+                  <b>{l.label}</b>
+                  <div className="muted small">{l.hint}</div>
+                </div>
+                {level === l.id && <span className="plus"><Icon name="check" size={18} /></span>}
+              </button>
+            ))}
+          </div>
+          <div className="tip">
+            <Icon name="sparkle" size={15} /> Para tu nivel te recomiendo ir {lv.range} a la semana.
+          </div>
+          {nav(null, () => setStep(1))}
+          <button className="btn full" onClick={surprise} disabled={!days.length}>
+            <Icon name="sparkle" size={16} /> Sorpréndeme (sin más preguntas)
+          </button>
+        </>
+      )}
+
+      {step === 1 && (
+        <>
+          <h4 style={{ marginTop: 0 }}>¿Qué días vas al gimnasio?</h4>
+          <div className="chips wrap">
+            {ORDER.map((w) => (
+              <button key={w} className={'chip' + (wds.includes(w) ? ' on' : '')} onClick={() => toggleWd(w)}>
+                {WEEKDAYS[w].slice(0, 3)}
+              </button>
+            ))}
+          </div>
+          <p className="muted small">
+            {days.length} {days.length === 1 ? 'día' : 'días'} a la semana · recomendado: {lv.range}
+          </p>
+          {level === 'beginner' && days.length >= 5 && (
+            <p className="toast warn small">Siendo principiante, más de 4 días suele ser demasiado: recuperarás peor.</p>
+          )}
+          {days.length === 7 && <p className="toast warn small">Sin ningún día de descanso: el séptimo será suave (core).</p>}
+          <h4>¿Cuánto tiempo tienes por entreno?</h4>
+          <div className="chips wrap">
+            {MINUTES.map((m) => (
+              <button key={m.min} className={'chip' + (n === m.n ? ' on' : '')} onClick={() => setN(m.n)}>
+                {m.min} min
+              </button>
+            ))}
+          </div>
+          <p className="muted small">Unos {level === 'beginner' ? Math.min(n, 5) : n} ejercicios por día.</p>
+          {nav(0, () => setStep(2), 'Siguiente', !days.length)}
+        </>
+      )}
+
+      {step === 2 && (
+        <>
+          <h4 style={{ marginTop: 0 }}>¿Cómo repartes los músculos?</h4>
+          <div className="chips wrap">
+            {SPLITS.map((s) => (
+              <button key={s.id} className="chip sm" onClick={() => applySplit(s)}>
+                {s.label}
+                {s === splitFor(days.length) ? ' ★' : ''}
+              </button>
+            ))}
+          </div>
+          <p className="muted small">Toca un reparto o cambia cada día a tu gusto.</p>
+          {dayList.map((d) => (
+            <div key={d.weekday} className="sum-row">
+              <b>{WEEKDAYS[d.weekday]}</b>
+              <select
+                className="inp"
+                style={{ width: 'auto', margin: 0 }}
+                aria-label={`Qué entrenas el ${WEEKDAYS[d.weekday]}`}
+                value={d.type}
+                onChange={(e) => setTypes((t) => ({ ...t, [d.weekday]: e.target.value }))}
+              >
+                {Object.entries(DAY_TYPES).map(([id, t]) => (
+                  <option key={id} value={id}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ))}
+          {nav(1, () => setStep(3))}
+        </>
+      )}
+
+      {step === 3 && (
+        <>
+          <h4 style={{ marginTop: 0 }}>¿Qué material tienes?</h4>
+          <div className="chips wrap">
+            {EQUIP.map((e) => (
+              <button
+                key={e}
+                className={'chip' + (equip.includes(e) ? ' on' : '')}
+                onClick={() => setEquip((s) => (s.includes(e) ? s.filter((x) => x !== e) : [...s, e]))}
+              >
+                {e}
+              </button>
+            ))}
+          </div>
+          <h4>¿Quieres priorizar algún músculo?</h4>
+          <div className="chips wrap">
+            <button className={'chip' + (!focus ? ' on' : '')} onClick={() => setFocus(null)}>
+              Ninguno
+            </button>
+            {FOCUS.map((g) => (
+              <button key={g} className={'chip' + (focus === g ? ' on' : '')} onClick={() => setFocus(g)}>
+                {g}
+              </button>
+            ))}
+          </div>
+          {focus && <p className="muted small">{focus}: una serie más en cada ejercicio.</p>}
+          {nav(2, () => make(), 'Crear plan')}
+        </>
+      )}
+
+      {step === 4 && plan && (
+        <>
+          <p className="muted small" style={{ marginTop: 0 }}>
+            Toca <Icon name="swap" size={13} className="inl" /> para cambiar un ejercicio o rehaz un día entero. RIR = reps que te
+            quedan en reserva al acabar la serie.
+          </p>
+          {plan.map((d) => (
+            <div key={d.id} className="card" style={{ padding: 12 }}>
+              <div className="sec-head nm">
+                <b>
+                  {WEEKDAYS[d.weekday]} · {d.name}
+                </b>
+                <button className="link small" onClick={() => regenDay(d.id)}>
+                  Rehacer día
+                </button>
+              </div>
+              {d.items.map((i) => {
+                const ex = EX_BY_ID[i.ex]
+                return (
+                  <div key={i.id} className="row nob">
+                    <Thumb ex={ex} size={40} />
+                    <div className="grow">
+                      <div>{ex?.name}</div>
+                      <div className="muted small">
+                        {i.sets}×{i.reps} · RIR {i.rir} · descanso {restTxt(i.rest)}
+                      </div>
+                    </div>
+                    <button className="icon-btn" aria-label={`Cambiar ${ex?.name}`} onClick={() => swap(d.id, i.id)}>
+                      <Icon name="swap" size={18} />
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          ))}
+          <PlanVolume days={plan} />
+          <p className="muted small">Sustituye tu plan actual. Tu historial de entrenos no se toca.</p>
+          <div className="wizard-nav">
+            <button className="btn" onClick={() => setStep(3)}>
+              <Icon name="left" size={16} /> Atrás
+            </button>
+            <button className="btn primary" onClick={save}>
+              <Icon name="check" size={16} /> Guardar plan
+            </button>
+          </div>
+          <button className="link" onClick={() => make(plan.map((d) => ({ weekday: d.weekday, type: d.type })))}>
+            Rehacer todo
+          </button>
+        </>
+      )}
     </Modal>
   )
 }
@@ -832,6 +1033,8 @@ function Session({ data, setData, onExit }) {
                 <div className="muted small">
                   Objetivo: {it.sets}×{it.reps}
                   {it.drop ? ' · drop set' : ''}
+                  {it.rir != null ? ` · RIR ${it.rir}` : ''}
+                  {it.rest ? ` · descanso ${restTxt(it.rest)}` : ''}
                 </div>
                 {last && (
                   <div className="muted small">
@@ -914,7 +1117,7 @@ function Session({ data, setData, onExit }) {
                         // sin reps de hoy no se da por hecha: te lleva al campo en vez de inventarlas
                         if (!s.done && !(s.r || (uni && s.r2)))
                           return e.currentTarget.parentElement.querySelector('input[aria-label^="Reps"]')?.focus()
-                        if (!s.done) setRest(Date.now() + restSecs() * 1000)
+                        if (!s.done) setRest(Date.now() + (it.rest || restSecs()) * 1000)
                         patchSet(it.ex, i, (x) =>
                           x.done
                             ? { ...x, done: false }
@@ -1062,10 +1265,6 @@ export default function Workout({ data, setData, view, setView, onStart, onStart
   const addDay = () => {
     setView({ name: 'edit', id: uid(), isNew: true })
   }
-  const generate = (days, level) => {
-    setData((d) => ({ ...d, plan: generatePlan(days, level), active: null, setupDone: true }))
-    setGen(false)
-  }
   const sorted = [...data.plan].sort((a, b) => ((a.weekday ?? 9) + 6) % 7 - ((b.weekday ?? 9) + 6) % 7)
 
   return (
@@ -1204,7 +1403,7 @@ export default function Workout({ data, setData, view, setView, onStart, onStart
           <span className="tile2-s">Fotos y progreso</span>
         </button>
       </div>
-      {gen && <Generator onClose={() => setGen(false)} onGenerate={generate} />}
+      {gen && <Generator data={data} setData={setData} onClose={() => setGen(false)} />}
       {setup && <Setup data={data} setData={setData} onClose={() => setSetup(false)} />}
       {coach && <Coach data={data} setData={setData} onClose={() => setCoach(false)} />}
     </div>

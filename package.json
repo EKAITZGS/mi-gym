@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "esbuild tests/plans.test.mjs --bundle --platform=node --format=esm --log-level=warning --outfile=node_modules/.cache/plans.test.mjs && node node_modules/.cache/plans.test.mjs"
   },
   "dependencies": {
     "@zxing/browser": "^0.2.1",

@@ -19,6 +19,7 @@ Prefiere respuestas cortas, directas y sinceras. Las propuestas del coach nunca 
 - `src/polar.js` + `src/PolarSession.jsx` Polar AccessLink vía el Worker. Polar devuelve campos en snake_case (`sample_type`, `heart_rate_zones` con `lower_limit`, índices de zona desde 0): el parser acepta ambos formatos.
 - `src/push.js` + `src/PushCard.jsx` + `public/push-sw.js` avisos Web Push.
 - `src/Rank.jsx` + `src/ranks.js` + `src/Mannequin.jsx` "Tu personaje": rangos Hierro→Diamante por músculo (7 grupos + Antebrazo) según fuerza real (1RM est./peso corporal); los músculos secundarios de cada ejercicio cuentan (×0,7 en rangos, ½ en series por músculo; `groupsOf` en ranks.js); simetría izq/der. El maniquí es una imagen generada por IA separada en capas por grupo (`public/body/mask-*.png`, `base.png`, `edge.png`); fuente y script en `assets-src/`.
+- `src/plans.js` generador de rutinas: tipos de día con huecos (grupo/músculo/multiarticular), repartos, material, foco; prescribe series, reps, RIR y descanso (`rir`, `rest` en segundos: campos opcionales de cada ejercicio del plan). UI paso a paso en `Generator` (Workout.jsx), usado en Inicio, Entreno y Ajustes.
 - `src/store.js` `suggestion()` subida de peso (RIR + doble progresión; en pesos libres máx. ~12 %).
 
 ## Ejercicios
@@ -40,7 +41,7 @@ Prefiere respuestas cortas, directas y sinceras. Las propuestas del coach nunca 
 Si algo falla en el móvil, él manda captura y se arregla igual. **Preguntar antes** si el cambio puede borrar o estropear datos guardados, o si hay que tocar Cloudflare.
 
 ## Pruebas
-`tests/*.py` (Playwright con Chrome) contra `npx vite preview --port 4173`. Ejecutar las relevantes antes de publicar.
+`npm test` (lógica del generador, sin navegador). `tests/*.py` (Playwright con Chrome) contra `npx vite preview --port 4173`. Ejecutar las relevantes antes de publicar.
 Ojo: los scripts se escribieron en otro entorno; usan `executable_path='/usr/bin/google-chrome'` y guardan capturas en `/home/claude/shots/`. Ajusta rutas si no existen.
 
 ## Pendiente / ideas

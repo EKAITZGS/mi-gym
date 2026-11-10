@@ -4,7 +4,6 @@ import { getAi, setAi, DEFAULT_MODEL, cleanKey, testKey } from './ai'
 import Setup from './Setup'
 import Coach from './Coach.jsx'
 import { Generator } from './Workout'
-import { generatePlan } from './plans'
 import Icon from './icons'
 import PushCard from './PushCard'
 import { getPolar, setPolar, connectPolar, syncPolar } from './polar'
@@ -129,11 +128,11 @@ export default function Settings({ data, setData }) {
       {coach && <Coach data={data} setData={setData} onClose={() => setCoach(false)} />}
       {gen && (
         <Generator
-          onClose={() => setGen(false)}
-          onGenerate={(days, level) => {
-            setData((d) => ({ ...d, plan: generatePlan(days, level), active: null, setupDone: true }))
+          data={data}
+          setData={setData}
+          onClose={(ok) => {
             setGen(false)
-            flash('Plan creado. Míralo en Entreno.')
+            ok && flash('Plan creado. Míralo en Entreno.')
           }}
         />
       )}
