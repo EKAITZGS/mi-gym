@@ -48,8 +48,8 @@ function Proposal({ p, data, onDecide }) {
   )
 }
 
-export default function WeeklyReview({ data, setData }) {
-  const rv = weeklyReview(data)
+export default function WeeklyReview({ data, setData, focusId }) {
+  const rv = weeklyReview(data, focusId)
   const [ai, setAi] = useState({ loading: false, err: '', res: null })
   const [msg, setMsg] = useState('')
   if (!rv) return null

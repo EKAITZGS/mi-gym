@@ -153,7 +153,7 @@ export default function Home({ data, setData, onStart, go }) {
         </div>
       )}
 
-      <WeeklyReview data={data} setData={setData} />
+      <WeeklyReview data={data} setData={setData} focusId={todays[0]?.id} />
 
       {data.polar && (() => {
         const today = todayStr()

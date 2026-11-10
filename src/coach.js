@@ -284,7 +284,9 @@ export const weekStart = () => {
 }
 export const propKey = (p) => `${weekStart()}|${p.type}|${p.dayId}|${p.itemId}|${p.to ?? p.delta}`
 
-export function weeklyReview(data) {
+// focusId: si se pasa (Inicio), los consejos de ejercicios y las propuestas son solo los del día que toca hoy
+export function weeklyReview(data, focusId) {
+  const focus = focusId && data.plan.find((d) => d.id === focusId)
   const since = addDays(todayStr(), -7)
   const week = data.sessions.filter((s) => s.date >= since && s.checkin)
   if (!week.length) return null
@@ -332,13 +334,13 @@ export function weeklyReview(data) {
   }
   // Ejercicios listos para subir peso (según repeticiones y reservas)
   const ready = []
-  for (const d of data.plan)
+  for (const d of focus ? [focus] : data.plan)
     for (const it of d.items) {
       const sg = suggestion(data.sessions, it.ex, it.reps, it.sets, EX_BY_ID[it.ex]?.equip)
       if (sg?.action === 'up' && !ready.some((r) => r.startsWith(EX_BY_ID[it.ex]?.name)))
         ready.push(`${EX_BY_ID[it.ex]?.name} (${fmtKg(sg.from)} → ${fmtKg(sg.w)} kg)`)
     }
-  if (ready.length) findings.push(`Listos para subir peso: ${ready.join(', ')}`)
+  if (ready.length) findings.push(`${focus ? `Hoy (${focus.name}), listos` : 'Listos'} para subir peso: ${ready.join(', ')}`)
   const pw = polarWeek(data)
   if (pw) {
     const ss = pw.sessions
@@ -358,7 +360,7 @@ export function weeklyReview(data) {
       findings.push(`Pasos: media de ${pw.pasosMediosDia.toLocaleString('es-ES')} al día. Llegar a 7.000–8.000 te ayuda mucho a bajar grasa sin esfuerzo`)
   }
   const decided = data.reviews || {}
-  const pending = props.map((p) => ({ ...p, key: propKey(p) })).filter((p) => !decided[p.key])
+  const pending = props.map((p) => ({ ...p, key: propKey(p) })).filter((p) => !decided[p.key] && (!focus || p.dayId === focus.id))
   return {
     findings,
     avg,
