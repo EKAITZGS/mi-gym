@@ -3,6 +3,7 @@ import { EXERCISES } from './data/exercises'
 import { WEEKDAYS, uid } from './store'
 import { Modal, Thumb } from './ui'
 import Icon from './icons'
+import { PlanVolume } from './Extras'
 
 const ORDER = [1, 2, 3, 4, 5, 6, 0]
 // Grupos que se pueden elegir para un día -> grupos de ejercicios
@@ -208,6 +209,11 @@ export default function Setup({ data, setData, onClose }) {
               </span>
             </div>
           ))}
+          <PlanVolume
+            days={active.map((w) => ({
+              items: days[w].exs.map((ex) => ({ ex, sets: data.plan.find((x) => x.weekday === w)?.items.find((i) => i.ex === ex)?.sets || 3 })),
+            }))}
+          />
           <p className="muted small">Cada ejercicio empieza con 3 series de 10; puedes cambiarlo luego en Editar.</p>
           <div className="wizard-nav">
             <button className="btn" onClick={() => goStep(step - 1)}>

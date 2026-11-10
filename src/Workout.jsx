@@ -6,6 +6,7 @@ import Icon from './icons'
 import WeeklyReview from './Review'
 import { generatePlan, PLAN_OPTIONS, LEVELS } from './plans'
 import Setup from './Setup'
+import { PlanVolume } from './Extras'
 import { FEELINGS, ZONES, adviceFor, painFor, needsDeload } from './coach'
 import Coach from './Coach.jsx'
 
@@ -1165,6 +1166,8 @@ export default function Workout({ data, setData, view, setView, onStart, onStart
           </div>
         )
       })}
+
+      <PlanVolume days={data.plan.filter((d) => d.weekday != null)} />
 
       <div className="sec-head">
         <h4>Herramientas</h4>

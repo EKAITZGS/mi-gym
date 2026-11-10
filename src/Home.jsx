@@ -158,9 +158,11 @@ export default function Home({ data, setData, onStart, go }) {
       {data.polar && (() => {
         const today = todayStr()
         const ex = polarExercisesOn(data, today)
-        const last = Object.values(data.polar.exercises || {}).sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time))[0]
         const day = data.polar.days?.[today]
-        const show = ex.length ? ex : last ? [last] : []
+        const hasDay = day && (day.steps > 0 || day.kcal > 0)
+        // sin datos del reloj de hoy (ni pasos/calorías ni entreno) el apartado no se enseña
+        if (!ex.length && !hasDay) return null
+        const show = ex
         return (
           <div className="card polar-card">
             <div className="sec-head nm">
@@ -168,8 +170,12 @@ export default function Home({ data, setData, onStart, go }) {
                 <Icon name="trend" size={16} className="inl" /> Reloj Polar
               </b>
             </div>
-            {day?.steps != null && <StepsBar steps={day.steps} goal={data.goals.steps || 7000} />}
-            {show.length === 0 && <p className="muted small">Aún no hay entrenos del reloj. Sube uno a Polar Flow y aparecerá aquí.</p>}
+            {hasDay && <StepsBar steps={day.steps || 0} goal={data.goals.steps || 7000} />}
+            {hasDay && day.kcal > 0 && (
+              <div className="muted small">
+                <b style={{ color: 'var(--text)' }}>{day.kcal}</b> kcal gastadas hoy según el reloj{day.active > 0 ? ` · ${day.active} en movimiento` : ''}
+              </div>
+            )}
             {show.map((e) => (
               <button className="polar-ex" key={e.id} onClick={() => setPolarEx(e)}>
                 <div className="grow">

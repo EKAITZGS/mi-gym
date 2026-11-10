@@ -109,16 +109,41 @@ export function MuscleSets({ data }) {
   for (const s of data.sessions.filter((x) => x.date >= monday))
     for (const [exId, sets] of Object.entries(s.entries || {}))
       for (const { g, main } of groupsOf(exId)) (main ? direct : indirect)[g] += sets.length
+  if (!Object.values(direct).some(Boolean)) return null
+  return <MuscleBars direct={direct} indirect={indirect} title="Series por músculo" sub="esta semana · ideal 10–20" />
+}
+
+// Volumen semanal que suma el plan (días con día fijo): avisa de músculos cortos o pasados antes de entrenar
+export function PlanVolume({ days }) {
+  const direct = Object.fromEntries(RANK_GROUPS.map((g) => [g, 0]))
+  const indirect = Object.fromEntries(RANK_GROUPS.map((g) => [g, 0]))
+  for (const d of days)
+    for (const it of d.items || [])
+      for (const { g, main } of groupsOf(it.ex)) (main ? direct : indirect)[g] += Number(it.sets) || 0
+  if (!Object.values(direct).some(Boolean)) return null
+  const n = (g) => Math.round(direct[g] + indirect[g] / 2)
+  // el antebrazo no se avisa: se trabaja con el agarre en casi todo
+  const gs = RANK_GROUPS.filter((g) => g !== 'Antebrazo')
+  const low = gs.filter((g) => n(g) < 10)
+  const high = gs.filter((g) => n(g) > 20)
+  return (
+    <MuscleBars direct={direct} indirect={indirect} title="Volumen de tu plan" sub="series por semana · ideal 10–20">
+      {low.length > 0 && <div className="advice yellow sm">Se quedan cortos (menos de 10): {low.join(', ')}.</div>}
+      {high.length > 0 && <div className="advice yellow sm">Demasiadas (más de 20): {high.join(', ')}. Más no es mejor si no recuperas.</div>}
+      {!low.length && !high.length && <div className="advice green sm">Volumen equilibrado en todos los grupos.</div>}
+    </MuscleBars>
+  )
+}
+
+function MuscleBars({ direct, indirect, title, sub, children }) {
   // las series indirectas (músculo secundario) cuentan la mitad
   const count = Object.fromEntries(RANK_GROUPS.map((g) => [g, Math.round(direct[g] + indirect[g] / 2)]))
-  const total = Object.values(direct).reduce((a, b) => a + b, 0)
-  if (!total) return null
   const MAX = 24
   return (
     <div className="card">
       <div className="sec-head nm">
-        <b>Series por músculo</b>
-        <span className="muted small">esta semana · ideal 10–20</span>
+        <b>{title}</b>
+        <span className="muted small">{sub}</span>
       </div>
       <div className="muted small" style={{ marginTop: 2 }}>
         Las de músculos secundarios cuentan la mitad (el press banca suma a tríceps y hombro).
@@ -139,6 +164,7 @@ export function MuscleSets({ data }) {
           )
         })}
       </div>
+      {children}
     </div>
   )
 }

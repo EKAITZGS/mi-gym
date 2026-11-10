@@ -129,9 +129,11 @@ async function get(path, token) {
 export async function syncPolar(setData) {
   const p = getPolar()
   if (!p?.token) throw new Error('NO_TOKEN')
-  const [ex, act] = await Promise.all([
+  let actErr = null
+  const [ex, act] =await Promise.all([
     get('/exercises?samples=true&zones=true', p.token),
-    get(`/activities?from=${addDays(todayStr(), -6)}&to=${todayStr()}`, p.token).catch(() => []),
+    // si falla la actividad diaria no se pierden los entrenos, pero el fallo se guarda para enseñarlo en Ajustes
+    get(`/activities?from=${addDays(todayStr(), -6)}&to=${todayStr()}`, p.token).catch((e) => ((actErr = e.message), [])),
   ])
   const exercises = {}
   for (const e of Array.isArray(ex) ? ex : []) {
@@ -160,14 +162,17 @@ export async function syncPolar(setData) {
     }
   }
   const days = {}
-  for (const a of Array.isArray(act) ? act : []) {
-    const d = String(a.date || a.start_time || '').slice(0, 10)
-    if (d) days[d] = { kcal: Math.round(a.calories || 0), active: Math.round(a.active_calories || 0), steps: a.steps || 0 }
+  // Polar puede devolver la lista suelta o dentro de un objeto, y los campos con _ o con -
+  for (const a of Array.isArray(act) ? act : act?.activities || act?.['activity-log'] || []) {
+    const d = String(a.date || a.start_time || a['start-time'] || '').slice(0, 10)
+    const n = (...ks) => Math.round(Number(ks.map((k) => a[k]).find((v) => v != null)) || 0)
+    if (d) days[d] = { kcal: n('calories'), active: n('active_calories', 'active-calories'), steps: n('steps', 'active-steps', 'active_steps') }
   }
   setData((d) => ({
     ...d,
     polar: {
       lastSync: new Date().toISOString(),
+      ...(actErr ? { actErr } : {}),
       exercises: Object.fromEntries(
         Object.entries({ ...(d.polar?.exercises || {}), ...exercises }).map(([k, e]) => {
           const old = d.polar?.exercises?.[k]

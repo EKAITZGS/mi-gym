@@ -165,6 +165,11 @@ export default function Settings({ data, setData }) {
                     ? `Última sincronización: ${new Date(data.polar.lastSync).toLocaleString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })} · ${Object.keys(data.polar?.exercises || {}).length} entrenos`
                     : 'Aún sin sincronizar'}
                 </div>
+                {data.polar?.actErr && (
+                  <div className="small" style={{ color: 'var(--warn)' }}>
+                    Polar no ha devuelto los pasos y calorías del día ({data.polar.actErr}).
+                  </div>
+                )}
               </div>
             </div>
             <div className="btns">
