@@ -25,12 +25,12 @@ Prefiere respuestas cortas, directas y sinceras. Las propuestas del coach nunca 
 - `src/store.js` `suggestion()` subida de peso (RIR + doble progresión; en pesos libres máx. ~12 %).
 
 ## Ejercicios
-`src/data/exercises.js` (168, fotos de free-exercise-db en `public/ex/<id>/0|1.webp`). Para añadir más: editar la lista `NEW` de `assets-src/add_exercises.py` y ejecutarlo (no toca los existentes). Las fotos NO se precachean: se bajan al verlas (runtimeCaching `ex-fotos`). La biblioteca enseña 12 y "Ver más"; busca por nombre, grupo y músculo.
+`src/data/exercises.js` (278; el generador excluye los avanzados con `NO_GEN` en plans.js; fotos de free-exercise-db en `public/ex/<id>/0|1.webp`). Para añadir más: editar la lista `NEW` de `assets-src/add_exercises.py` y ejecutarlo (no toca los existentes). Las fotos NO se precachean: se bajan al verlas (runtimeCaching `ex-fotos`). La biblioteca enseña 12 y "Ver más"; busca por nombre, grupo y músculo.
 
 ## Cloudflare Worker (`cloudflare/worker.js`)
 - URL: https://mi-gym-polar.ekaitzmartinezm.workers.dev (cuenta Cloudflare de Ekaitz, worker `mi-gym-polar`).
 - Variables: `POLAR_CLIENT_ID` (texto), `POLAR_CLIENT_SECRET` (secreto, lo pone el usuario), `GROQ_KEY` (secreto: IA sin clave para todos; opcional `GROQ_MODEL`). KV binding `PUSH` (namespace `mi-gym-push`). Cron cada 5 min (`scheduled` → `tick`).
-- Rutas: `/auth`, `/callback`, `/exercises`, `/exercise?id=`, `/activities`, `/push/key|sync|test|next|off`, `/ai` (GET = ¿activa?; POST = chat de Groq, solo con Origin de la app, 30/día por IP en KV `ai:fecha:ip`).
+- Rutas: `/auth`, `/callback`, `/exercises`, `/exercise?id=`, `/activities`, `/push/key|sync|test|next|off` (hasta 1000 móviles), `/polar/off?user=` (baja en Polar al desconectar), `/ai` (GET = ¿activa?; POST = chat de Groq, solo con Origin de la app, 30/día por IP en KV `ai:fecha:ip`).
 - App: `src/ai.js` `groqChat()` usa la clave propia si la hay; si no, el Worker (`checkServerAi()` al abrir guarda `migym.aisrv`).
 - Push sin payload: el cron manda un "toque" firmado con VAPID (claves generadas por el worker y guardadas en KV) y `push-sw.js` pide el texto a `/push/next`.
 - El editor web de Cloudflare no acepta pegar por API (WAF); se despliega escribiendo el código en el editor o con `wrangler deploy` si se configura.

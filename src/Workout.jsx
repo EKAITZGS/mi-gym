@@ -467,6 +467,36 @@ export function Generator({ data, setData, onClose }) {
   )
 }
 
+/* ---------- Crear o cambiar el plan: una sola entrada ---------- */
+export function PlanMaker({ data, setData, onClose }) {
+  const [mode, setMode] = useState(null) // 'auto' | 'manual'
+  if (mode === 'auto') return <Generator data={data} setData={setData} onClose={onClose} />
+  if (mode === 'manual') return <Setup data={data} setData={setData} onClose={onClose} />
+  return (
+    <Modal title="Crear o cambiar mi plan" onClose={() => onClose(false)}>
+      <div className="list">
+        <button className="row opt" onClick={() => setMode('auto')}>
+          <span className="rest-ic"><Icon name="sparkle" size={20} /></span>
+          <div className="grow">
+            <b>Hazlo tú por mí</b>
+            <div className="muted small">Te pregunto nivel, días, tiempo y material, y te monto el plan. Luego puedes cambiar lo que quieras.</div>
+          </div>
+          <Icon name="right" size={18} />
+        </button>
+        <button className="row opt" onClick={() => setMode('manual')}>
+          <span className="rest-ic"><Icon name="calendar" size={20} /></span>
+          <div className="grow">
+            <b>Lo elijo yo</b>
+            <div className="muted small">Marcas qué días entrenas y qué ejercicios haces cada día.</div>
+          </div>
+          <Icon name="right" size={18} />
+        </button>
+      </div>
+      <p className="muted small">Tu historial de entrenos no se toca en ningún caso.</p>
+    </Modal>
+  )
+}
+
 /* ---------- Editor de día ---------- */
 // Entradas numéricas: peso con decimales (coma o punto) y repeticiones enteras
 const kgIn = (v) => v.replace(/[^\d.,]/g, '').replace(/([.,].*)[.,]/g, '$1').slice(0, 6)
@@ -1290,8 +1320,7 @@ function Session({ data, setData, onExit }) {
 
 /* ---------- Pantalla Entreno ---------- */
 export default function Workout({ data, setData, view, setView, onStart, onStartFree }) {
-  const [gen, setGen] = useState(false)
-  const [setup, setSetup] = useState(false)
+  const [maker, setMaker] = useState(false)
   const [coach, setCoach] = useState(false)
   const [flash, setFlash] = useState(null)
   useEffect(() => {
@@ -1450,15 +1479,10 @@ export default function Workout({ data, setData, view, setView, onStart, onStart
           <span className="tile2-t">Mejorar con IA</span>
           <span className="tile2-s">Ajusta tu rutina</span>
         </button>
-        <button className="tile2" onClick={() => setSetup(true)}>
+        <button className="tile2" onClick={() => setMaker(true)}>
           <span className="tile2-ic"><Icon name="calendar" size={18} /></span>
-          <span className="tile2-t">Configurar</span>
-          <span className="tile2-s">Días y ejercicios</span>
-        </button>
-        <button className="tile2" onClick={() => setGen(true)}>
-          <span className="tile2-ic"><Icon name="trend" size={18} /></span>
-          <span className="tile2-t">Plan automático</span>
-          <span className="tile2-s">Según tu nivel</span>
+          <span className="tile2-t">Mi plan</span>
+          <span className="tile2-s">Crear o cambiar</span>
         </button>
         <button className="tile2" onClick={addDay}>
           <span className="tile2-ic"><Icon name="plus" size={18} /></span>
@@ -1471,8 +1495,7 @@ export default function Workout({ data, setData, view, setView, onStart, onStart
           <span className="tile2-s">Fotos y progreso</span>
         </button>
       </div>
-      {gen && <Generator data={data} setData={setData} onClose={() => setGen(false)} />}
-      {setup && <Setup data={data} setData={setData} onClose={() => setSetup(false)} />}
+      {maker && <PlanMaker data={data} setData={setData} onClose={() => setMaker(false)} />}
       {coach && <Coach data={data} setData={setData} onClose={() => setCoach(false)} />}
     </div>
   )

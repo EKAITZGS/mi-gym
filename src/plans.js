@@ -44,6 +44,8 @@ export const typesFor = (split, n) => Array.from({ length: n }, (_, i) => (i ===
 const STAPLES = new Set('Alternate_Incline_Dumbbell_Curl Barbell_Bench_Press_-_Medium_Grip Barbell_Curl Barbell_Hip_Thrust Barbell_Squat Bent_Over_Barbell_Row Cable_Crossover Cable_Crunch Cable_Rope_Overhead_Triceps_Extension Close-Grip_Front_Lat_Pulldown Crunches Dumbbell_Bench_Press Dumbbell_Bicep_Curl Dumbbell_Shoulder_Press Face_Pull Goblet_Squat Hammer_Curls Hanging_Leg_Raise Hyperextensions_Back_Extensions Incline_Dumbbell_Press Leg_Extensions Leg_Press Leverage_Chest_Press Leverage_Incline_Chest_Press Lying_Leg_Curls Lying_Triceps_Press Machine_Shoulder_Military_Press One-Arm_Dumbbell_Row Plank Reverse_Machine_Flyes Romanian_Deadlift Seated_Cable_Rows Seated_Calf_Raise Seated_Leg_Curl Side_Lateral_Raise Standing_Calf_Raises Triceps_Pushdown Triceps_Pushdown_-_Rope_Attachment Wide-Grip_Lat_Pulldown'.split(' '))
 
 const multi = (x) => x.sec.length > 0
+// Avanzados, de técnica difícil o de salto: están en la biblioteca, pero el generador no los mete solo
+const NO_GEN = new Set('Handstand_Push-Ups Front_Box_Jump Freehand_Jump_Squat Ring_Dips One-Arm_Medicine_Ball_Slam Zercher_Squats Cuban_Press JM_Press Tate_Press Drag_Curl Rack_Pulls Natural_Glute_Ham_Raise Glute_Ham_Raise Weighted_Pull_Ups Single-Arm_Linear_Jammer Bent_Over_One-Arm_Long_Bar_Row Superman Mountain_Climbers Flutter_Kicks Sumo_Deadlift Barbell_Deadlift Kettlebell_One-Legged_Deadlift One-Arm_Kettlebell_Swings'.split(' '))
 const equipOk = (x, equip) =>
   x.equip === 'Peso corporal' || equip.includes(x.equip) || (x.equip === 'Barra Z' && equip.includes('Barra')) || (x.equip === 'Otro' && equip.includes('Máquina'))
 
@@ -52,7 +54,7 @@ export function pickFor(slot, { equip = EQUIP, used = new Set(), avoid = [], rnd
   const tries = [slot, { ...slot, c: undefined }, { g: slot.g }]
   for (const s of tries) {
     const cands = EXERCISES.filter(
-      (x) => x.group === s.g && (!s.m || x.main.includes(s.m)) && (s.c == null || multi(x) === !!s.c) && equipOk(x, equip) && !avoid.includes(x.id),
+      (x) => x.group === s.g && (!s.m || x.main.includes(s.m)) && (s.c == null || multi(x) === !!s.c) && equipOk(x, equip) && !avoid.includes(x.id) && !NO_GEN.has(x.id),
     )
     if (!cands.length) continue
     const fresh = cands.filter((x) => !used.has(x.id))

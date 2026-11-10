@@ -1,12 +1,11 @@
 import { useState } from 'react'
 import { DEFAULT, todayStr, num } from './store'
 import { getAi, setAi, DEFAULT_MODEL, cleanKey, testKey, serverAi } from './ai'
-import Setup from './Setup'
 import Coach from './Coach.jsx'
-import { Generator } from './Workout'
+import { PlanMaker } from './Workout'
 import Icon from './icons'
 import PushCard from './PushCard'
-import { getPolar, setPolar, connectPolar, syncPolar } from './polar'
+import { getPolar, connectPolar, syncPolar, disconnectPolar } from './polar'
 import { Modal } from './ui'
 import { calcGoals, ACTIVITY } from './stats'
 
@@ -62,8 +61,7 @@ export default function Settings({ data, setData }) {
   const [paste, setPaste] = useState('')
   const [ai, setAiState] = useState(getAi())
   const [kt, setKt] = useState({ loading: false, res: null })
-  const [setup, setSetup] = useState(false)
-  const [gen, setGen] = useState(false)
+  const [maker, setMaker] = useState(false)
   const [coach, setCoach] = useState(false)
   const [polar, setPolarState] = useState(getPolar())
   const [ps, setPs] = useState({ loading: false, msg: '' })
@@ -148,11 +146,11 @@ export default function Settings({ data, setData }) {
 
       <h4>Entrenamiento</h4>
       <div className="card">
-        <button className="row nob li" onClick={() => setSetup(true)}>
+        <button className="row nob li" onClick={() => setMaker(true)}>
           <span className="rest-ic"><Icon name="calendar" size={20} /></span>
           <div className="grow">
-            <div className="li-t">Configurar entrenamiento</div>
-            <div className="muted small">Qué días entrenas y qué ejercicios haces cada día</div>
+            <div className="li-t">Crear o cambiar mi plan</div>
+            <div className="muted small">Automático según tu nivel, o eligiendo tú días y ejercicios</div>
           </div>
           <Icon name="right" size={18} />
         </button>
@@ -164,24 +162,15 @@ export default function Settings({ data, setData }) {
           </div>
           <Icon name="right" size={18} />
         </button>
-        <button className="row nob li" onClick={() => setGen(true)}>
-          <span className="rest-ic"><Icon name="sparkle" size={20} /></span>
-          <div className="grow">
-            <div className="li-t">Plan automático</div>
-            <div className="muted small">Según tu nivel, con los días que te recomiendo ir</div>
-          </div>
-          <Icon name="right" size={18} />
-        </button>
       </div>
-      {setup && <Setup data={data} setData={setData} onClose={() => setSetup(false)} />}
       {coach && <Coach data={data} setData={setData} onClose={() => setCoach(false)} />}
-      {gen && (
-        <Generator
+      {maker && (
+        <PlanMaker
           data={data}
           setData={setData}
           onClose={(ok) => {
-            setGen(false)
-            ok && flash('Plan creado. Míralo en Entreno.')
+            setMaker(false)
+            ok && flash('Plan guardado. Míralo en Entreno.')
           }}
         />
       )}
@@ -250,9 +239,9 @@ export default function Settings({ data, setData }) {
               </button>
               <button
                 className="btn"
-                onClick={() => {
-                  if (!confirm('¿Desconectar Polar de esta app?')) return
-                  setPolar(null)
+                onClick={async () => {
+                  if (!confirm('¿Desconectar Polar? La app dejará de recibir datos de tu reloj (lo ya guardado se queda).')) return
+                  await disconnectPolar()
                   setPolarState(null)
                 }}
               >

@@ -18,7 +18,8 @@ if (url.pathname === '/auth') return Response.redirect('https://flow.polar.com/o
 if (url.pathname === '/callback') return callback(url, env, redirectUri);
 const auth = req.headers.get('Authorization') || '';
 if (url.pathname === '/exercises' || url.pathname === '/activities' || url.pathname === '/exercise') return data(url, auth);
-if (url.pathname === '/') return new Response('Mi Gym - Polar OK v5', { headers: cors });
+if (url.pathname === '/polar/off') return polarOff(url, auth);
+if (url.pathname === '/') return new Response('Mi Gym - Polar OK v6', { headers: cors });
 return json({ error: 'no_encontrado' }, 404);
 }
 // IA sin clave: la clave de Groq es el secreto GROQ_KEY. Solo desde la app, 30 usos por persona (IP) y día.
@@ -69,6 +70,14 @@ if (r.status === 204) return json([]);
 const body = await r.text();
 return new Response(body || '[]', { status: r.status, headers: { ...cors, 'Content-Type': 'application/json' } });
 }
+// Desconectar: da de baja al usuario en Polar AccessLink (deja de compartir datos con la app)
+async function polarOff(url, auth) {
+if (!auth.startsWith('Bearer ')) return json({ error: 'sin_token' }, 401);
+const id = url.searchParams.get('user') || '';
+if (!/^[0-9]{1,20}$/.test(id)) return json({ error: 'usuario_no_valido' }, 400);
+const r = await fetch(API + '/users/' + id, { method: 'DELETE', headers: { Authorization: auth } });
+return json({ ok: r.ok || r.status === 404, status: r.status });
+}
 async function vapid(env) {
 let k = await env.PUSH.get('vapid', 'json');
 if (!k) {
@@ -110,7 +119,7 @@ if (!PUSH_HOSTS.test(host)) return json({ error: 'sin_suscripcion' }, 400);
 const id = await subId(endpoint);
 if (p === '/push/off') { await env.PUSH.delete('sub:' + id); return json({ ok: true }); }
 const old = await env.PUSH.get('sub:' + id, 'json');
-if (!old && (await env.PUSH.list({ prefix: 'sub:', limit: 20 })).keys.length >= 20) return json({ error: 'demasiadas_suscripciones' }, 429);
+if (!old && (await env.PUSH.list({ prefix: 'sub:', limit: 1000 })).keys.length >= 1000) return json({ error: 'demasiadas_suscripciones' }, 429);
 const rec = old || { sent: {}, queue: [] };
 if (p === '/push/sync') {
 rec.sub = { endpoint };

@@ -189,3 +189,14 @@ export const polarExercisesOn = (data, date) =>
   Object.values(data.polar?.exercises || {})
     .filter((e) => e.date === date)
     .sort((a, b) => a.time.localeCompare(b.time))
+
+// Baja en Polar (best effort: si falla, igual se desconecta en el móvil)
+export async function disconnectPolar() {
+  const p = getPolar()
+  if (p?.token && p.user) {
+    try {
+      await fetch(`${POLAR_WORKER}/polar/off?user=${encodeURIComponent(p.user)}`, { headers: { Authorization: `Bearer ${p.token}` } })
+    } catch {}
+  }
+  setPolar(null)
+}

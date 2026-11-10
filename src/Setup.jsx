@@ -82,7 +82,7 @@ export default function Setup({ data, setData, onClose }) {
     // conserva días sin día fijo que ya tuvieras (p. ej. entrenos libres guardados)
     const loose = data.plan.filter((x) => x.weekday == null)
     setData((d) => ({ ...d, plan: [...plan, ...loose], setupDone: true }))
-    onClose()
+    onClose(true)
   }
 
   const goStep = (n) => {
@@ -92,7 +92,7 @@ export default function Setup({ data, setData, onClose }) {
   }
 
   return (
-    <Modal title="Configurar entrenamiento" onClose={onClose}>
+    <Modal title="Configurar entrenamiento" onClose={() => onClose(false)}>
       <div className="steps">
         {[0, ...active.map((_, i) => i + 1), active.length + 1].map((n) => (
           <span key={n} className={'stepdot' + (n === step ? ' on' : n < step ? ' done' : '')} />

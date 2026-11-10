@@ -5,11 +5,12 @@ import { Ring, Thumb } from './ui'
 import Icon from './icons'
 import { polarExercisesOn } from './polar'
 import WeeklyReview from './Review'
-import Setup from './Setup'
 import PolarSession from './PolarSession'
-import { ProteinTip, StepsBar } from './Extras'
-import { Generator } from './Workout'
+import { ProteinTip } from './Extras'
+import { PlanMaker } from './Workout'
 import { streakWeeks, weekTotals } from './stats'
+
+const miles = (n) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.')
 
 const greeting = () => {
   const h = new Date().getHours()
@@ -17,13 +18,17 @@ const greeting = () => {
 }
 
 export default function Home({ data, setData, onStart, go }) {
-  const [setup, setSetup] = useState(false)
-  const [gen, setGen] = useState(false)
+  const [maker, setMaker] = useState(false)
   const [polarEx, setPolarEx] = useState(null)
   const wd = new Date().getDay()
   const todays = data.plan.filter((d) => d.weekday === wd)
   const others = data.plan.filter((d) => d.weekday !== wd)
   const t = dayTotals(data.food[todayStr()] || [])
+  // datos del reloj de hoy (pasos y kcal del día); sin ellos se enseñan los anillos de comida
+  const watchDay = (() => {
+    const d = data.polar?.days?.[todayStr()]
+    return d && (d.steps > 0 || d.kcal > 0) ? d : null
+  })()
   const monday = (() => {
     const d = new Date()
     d.setDate(d.getDate() - ((d.getDay() + 6) % 7))
@@ -50,27 +55,15 @@ export default function Home({ data, setData, onStart, go }) {
         <div className="card onboard">
           <b>Antes de nada: configura tu entrenamiento</b>
           <p className="muted small">Dime qué días entrenas y qué haces cada día, o deja que te haga un plan según tu nivel.</p>
-          <div className="btns">
-            <button className="btn primary" onClick={() => setSetup(true)}>
-              <Icon name="calendar" size={16} /> Configurar
-            </button>
-            <button className="btn" onClick={() => setGen(true)}>
-              <Icon name="sparkle" size={16} /> Automático
-            </button>
-          </div>
+          <button className="btn primary full" onClick={() => setMaker(true)}>
+            <Icon name="calendar" size={16} /> Crear mi plan
+          </button>
           <button className="link small" style={{ paddingLeft: 0 }} onClick={() => setData((d) => ({ ...d, setupDone: true }))}>
             Usar el plan de ejemplo
           </button>
         </div>
       )}
-      {setup && <Setup data={data} setData={setData} onClose={() => setSetup(false)} />}
-      {gen && (
-        <Generator
-          data={data}
-          setData={setData}
-          onClose={() => setGen(false)}
-        />
-      )}
+      {maker && <PlanMaker data={data} setData={setData} onClose={() => setMaker(false)} />}
 
       {todays.map((d) => {
         const cover = EX_BY_ID[d.items[0]?.ex]
@@ -156,10 +149,8 @@ export default function Home({ data, setData, onStart, go }) {
       {data.polar && (() => {
         const today = todayStr()
         const ex = polarExercisesOn(data, today)
-        const day = data.polar.days?.[today]
-        const hasDay = day && (day.steps > 0 || day.kcal > 0)
-        // sin datos del reloj de hoy (ni pasos/calorías ni entreno) el apartado no se enseña
-        if (!ex.length && !hasDay) return null
+        // pasos y kcal van en anillos más abajo; aquí solo los entrenos del reloj de hoy
+        if (!ex.length) return null
         const show = ex
         return (
           <div className="card polar-card">
@@ -168,12 +159,6 @@ export default function Home({ data, setData, onStart, go }) {
                 <Icon name="trend" size={16} className="inl" /> Reloj Polar
               </b>
             </div>
-            {hasDay && <StepsBar steps={day.steps || 0} goal={data.goals.steps || 7000} />}
-            {hasDay && day.kcal > 0 && (
-              <div className="muted small">
-                <b style={{ color: 'var(--text)' }}>{day.kcal}</b> kcal gastadas hoy según el reloj{day.active > 0 ? ` · ${day.active} en movimiento` : ''}
-              </div>
-            )}
             {show.map((e) => (
               <button className="polar-ex" key={e.id} onClick={() => setPolarEx(e)}>
                 <div className="grow">
@@ -194,6 +179,29 @@ export default function Home({ data, setData, onStart, go }) {
         )
       })()}
 
+      {watchDay ? (
+        <div className="grid2">
+          <div className="card tile">
+            <Ring value={watchDay.steps || 0} max={data.goals.steps || 7000} size={86} stroke={9}>
+              <Icon name="trend" size={20} />
+            </Ring>
+            <div>
+              <b className="tile-num">{miles(watchDay.steps || 0)}</b>
+              <span className="muted small"> / {miles(data.goals.steps || 7000)} pasos</span>
+            </div>
+          </div>
+          <button className="card tile" onClick={() => go('diet')}>
+            {/* shortcut: el anillo se llena con lo que comes frente a lo que quema el reloj; lleno = sin déficit */}
+            <Ring value={t.kcal} max={watchDay.kcal || 1} size={86} stroke={9} color="var(--amber)">
+              <Icon name="flame" size={20} />
+            </Ring>
+            <div>
+              <b className="tile-num">{miles(watchDay.kcal || 0)}</b>
+              <span className="muted small"> kcal quemadas · comidas {Math.round(t.kcal)}</span>
+            </div>
+          </button>
+        </div>
+      ) : (
       <div className="grid2">
         <button className="card tile" onClick={() => go('diet')}>
           <Ring value={t.kcal} max={data.goals.kcal} size={86} stroke={9}>
@@ -214,6 +222,7 @@ export default function Home({ data, setData, onStart, go }) {
           </div>
         </button>
       </div>
+      )}
 
       <ProteinTip data={data} setData={setData} />
 
@@ -230,7 +239,7 @@ export default function Home({ data, setData, onStart, go }) {
           const wk = weekTotals(data.sessions)
           const bits = [
             streak > 1 && `🔥 ${streak} semanas seguidas`,
-            wk.vol > 0 && `${wk.vol.toLocaleString('es-ES')} kg`,
+            wk.vol > 0 && `${miles(wk.vol)} kg`,
             wk.min > 0 && (wk.min >= 60 ? `${Math.floor(wk.min / 60)} h ${wk.min % 60} min` : `${wk.min} min`),
           ].filter(Boolean)
           return bits.length > 0 && <p className="muted small" style={{ margin: '0 0 8px' }}>{bits.join(' · ')}</p>

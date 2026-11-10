@@ -2711,6 +2711,1762 @@ export const EXERCISES = [
    "ex/Farmers_Walk/0.webp",
    "ex/Farmers_Walk/1.webp"
   ]
+ },
+ {
+  "id": "Wide-Grip_Barbell_Bench_Press",
+  "name": "Press banca agarre abierto",
+  "group": "Pecho",
+  "main": [
+   "Pecho"
+  ],
+  "sec": [
+   "Hombros",
+   "Tríceps"
+  ],
+  "equip": "Barra",
+  "imgs": [
+   "ex/Wide-Grip_Barbell_Bench_Press/0.webp",
+   "ex/Wide-Grip_Barbell_Bench_Press/1.webp"
+  ]
+ },
+ {
+  "id": "Dumbbell_Bench_Press_with_Neutral_Grip",
+  "name": "Press con mancuernas agarre neutro",
+  "group": "Pecho",
+  "main": [
+   "Pecho"
+  ],
+  "sec": [
+   "Hombros",
+   "Tríceps"
+  ],
+  "equip": "Mancuernas",
+  "imgs": [
+   "ex/Dumbbell_Bench_Press_with_Neutral_Grip/0.webp",
+   "ex/Dumbbell_Bench_Press_with_Neutral_Grip/1.webp"
+  ]
+ },
+ {
+  "id": "Decline_Dumbbell_Flyes",
+  "name": "Aperturas declinadas con mancuernas",
+  "group": "Pecho",
+  "main": [
+   "Pecho"
+  ],
+  "sec": [],
+  "equip": "Mancuernas",
+  "imgs": [
+   "ex/Decline_Dumbbell_Flyes/0.webp",
+   "ex/Decline_Dumbbell_Flyes/1.webp"
+  ]
+ },
+ {
+  "id": "Incline_Cable_Chest_Press",
+  "name": "Press inclinado en polea",
+  "group": "Pecho",
+  "main": [
+   "Pecho"
+  ],
+  "sec": [
+   "Hombros",
+   "Tríceps"
+  ],
+  "equip": "Polea",
+  "imgs": [
+   "ex/Incline_Cable_Chest_Press/0.webp",
+   "ex/Incline_Cable_Chest_Press/1.webp"
+  ]
+ },
+ {
+  "id": "Leverage_Decline_Chest_Press",
+  "name": "Press declinado en máquina",
+  "group": "Pecho",
+  "main": [
+   "Pecho"
+  ],
+  "sec": [
+   "Hombros",
+   "Tríceps"
+  ],
+  "equip": "Máquina",
+  "imgs": [
+   "ex/Leverage_Decline_Chest_Press/0.webp",
+   "ex/Leverage_Decline_Chest_Press/1.webp"
+  ]
+ },
+ {
+  "id": "One_Arm_Dumbbell_Bench_Press",
+  "name": "Press con mancuerna a una mano",
+  "group": "Pecho",
+  "main": [
+   "Pecho"
+  ],
+  "sec": [
+   "Hombros",
+   "Tríceps"
+  ],
+  "equip": "Mancuernas",
+  "imgs": [
+   "ex/One_Arm_Dumbbell_Bench_Press/0.webp",
+   "ex/One_Arm_Dumbbell_Bench_Press/1.webp"
+  ]
+ },
+ {
+  "id": "Single-Arm_Cable_Crossover",
+  "name": "Cruce de polea a una mano",
+  "group": "Pecho",
+  "main": [
+   "Pecho"
+  ],
+  "sec": [],
+  "equip": "Polea",
+  "imgs": [
+   "ex/Single-Arm_Cable_Crossover/0.webp",
+   "ex/Single-Arm_Cable_Crossover/1.webp"
+  ]
+ },
+ {
+  "id": "Standing_Cable_Chest_Press",
+  "name": "Press de pecho de pie en polea",
+  "group": "Pecho",
+  "main": [
+   "Pecho"
+  ],
+  "sec": [
+   "Hombros",
+   "Tríceps"
+  ],
+  "equip": "Polea",
+  "imgs": [
+   "ex/Standing_Cable_Chest_Press/0.webp",
+   "ex/Standing_Cable_Chest_Press/1.webp"
+  ]
+ },
+ {
+  "id": "Straight-Arm_Dumbbell_Pullover",
+  "name": "Pullover con brazos estirados",
+  "group": "Pecho",
+  "main": [
+   "Pecho"
+  ],
+  "sec": [
+   "Dorsales",
+   "Hombros",
+   "Tríceps"
+  ],
+  "equip": "Mancuernas",
+  "imgs": [
+   "ex/Straight-Arm_Dumbbell_Pullover/0.webp",
+   "ex/Straight-Arm_Dumbbell_Pullover/1.webp"
+  ]
+ },
+ {
+  "id": "Dumbbell_Floor_Press",
+  "name": "Press en el suelo con mancuernas",
+  "group": "Pecho",
+  "main": [
+   "Tríceps"
+  ],
+  "sec": [
+   "Pecho",
+   "Hombros"
+  ],
+  "equip": "Mancuernas",
+  "imgs": [
+   "ex/Dumbbell_Floor_Press/0.webp",
+   "ex/Dumbbell_Floor_Press/1.webp"
+  ]
+ },
+ {
+  "id": "Parallel_Bar_Dip",
+  "name": "Fondos en paralelas",
+  "group": "Pecho",
+  "main": [
+   "Tríceps"
+  ],
+  "sec": [
+   "Pecho",
+   "Hombros"
+  ],
+  "equip": "Peso corporal",
+  "imgs": [
+   "ex/Parallel_Bar_Dip/0.webp",
+   "ex/Parallel_Bar_Dip/1.webp"
+  ]
+ },
+ {
+  "id": "Bent_Over_Two-Dumbbell_Row",
+  "name": "Remo inclinado con dos mancuernas",
+  "group": "Espalda",
+  "main": [
+   "Espalda media"
+  ],
+  "sec": [
+   "Bíceps",
+   "Dorsales",
+   "Hombros"
+  ],
+  "equip": "Mancuernas",
+  "imgs": [
+   "ex/Bent_Over_Two-Dumbbell_Row/0.webp",
+   "ex/Bent_Over_Two-Dumbbell_Row/1.webp"
+  ]
+ },
+ {
+  "id": "Dumbbell_Incline_Row",
+  "name": "Remo con pecho apoyado (mancuernas)",
+  "group": "Espalda",
+  "main": [
+   "Espalda media"
+  ],
+  "sec": [
+   "Bíceps",
+   "Antebrazo",
+   "Dorsales",
+   "Hombros"
+  ],
+  "equip": "Mancuernas",
+  "imgs": [
+   "ex/Dumbbell_Incline_Row/0.webp",
+   "ex/Dumbbell_Incline_Row/1.webp"
+  ]
+ },
+ {
+  "id": "Bent_Over_One-Arm_Long_Bar_Row",
+  "name": "Remo landmine a una mano",
+  "group": "Espalda",
+  "main": [
+   "Espalda media"
+  ],
+  "sec": [
+   "Bíceps",
+   "Dorsales",
+   "Lumbar",
+   "Trapecio"
+  ],
+  "equip": "Barra",
+  "imgs": [
+   "ex/Bent_Over_One-Arm_Long_Bar_Row/0.webp",
+   "ex/Bent_Over_One-Arm_Long_Bar_Row/1.webp"
+  ]
+ },
+ {
+  "id": "One_Arm_Lat_Pulldown",
+  "name": "Jalón a una mano",
+  "group": "Espalda",
+  "main": [
+   "Dorsales"
+  ],
+  "sec": [
+   "Bíceps",
+   "Espalda media"
+  ],
+  "equip": "Polea",
+  "imgs": [
+   "ex/One_Arm_Lat_Pulldown/0.webp",
+   "ex/One_Arm_Lat_Pulldown/1.webp"
+  ]
+ },
+ {
+  "id": "Rope_Straight-Arm_Pulldown",
+  "name": "Pullover en polea con cuerda",
+  "group": "Espalda",
+  "main": [
+   "Dorsales"
+  ],
+  "sec": [],
+  "equip": "Polea",
+  "imgs": [
+   "ex/Rope_Straight-Arm_Pulldown/0.webp",
+   "ex/Rope_Straight-Arm_Pulldown/1.webp"
+  ]
+ },
+ {
+  "id": "Kneeling_Single-Arm_High_Pulley_Row",
+  "name": "Jalón de rodillas a una mano",
+  "group": "Espalda",
+  "main": [
+   "Dorsales"
+  ],
+  "sec": [
+   "Bíceps",
+   "Espalda media"
+  ],
+  "equip": "Polea",
+  "imgs": [
+   "ex/Kneeling_Single-Arm_High_Pulley_Row/0.webp",
+   "ex/Kneeling_Single-Arm_High_Pulley_Row/1.webp"
+  ]
+ },
+ {
+  "id": "V-Bar_Pullup",
+  "name": "Dominadas con triángulo",
+  "group": "Espalda",
+  "main": [
+   "Dorsales"
+  ],
+  "sec": [
+   "Bíceps",
+   "Espalda media",
+   "Hombros"
+  ],
+  "equip": "Peso corporal",
+  "imgs": [
+   "ex/V-Bar_Pullup/0.webp",
+   "ex/V-Bar_Pullup/1.webp"
+  ]
+ },
+ {
+  "id": "Wide-Grip_Rear_Pull-Up",
+  "name": "Dominadas agarre abierto",
+  "group": "Espalda",
+  "main": [
+   "Dorsales"
+  ],
+  "sec": [
+   "Bíceps",
+   "Espalda media",
+   "Hombros"
+  ],
+  "equip": "Peso corporal",
+  "imgs": [
+   "ex/Wide-Grip_Rear_Pull-Up/0.webp",
+   "ex/Wide-Grip_Rear_Pull-Up/1.webp"
+  ]
+ },
+ {
+  "id": "Mixed_Grip_Chin",
+  "name": "Dominadas agarre mixto",
+  "group": "Espalda",
+  "main": [
+   "Espalda media"
+  ],
+  "sec": [
+   "Bíceps",
+   "Dorsales"
+  ],
+  "equip": "Peso corporal",
+  "imgs": [
+   "ex/Mixed_Grip_Chin/0.webp",
+   "ex/Mixed_Grip_Chin/1.webp"
+  ]
+ },
+ {
+  "id": "Band_Assisted_Pull-Up",
+  "name": "Dominadas asistidas con goma",
+  "group": "Espalda",
+  "main": [
+   "Dorsales"
+  ],
+  "sec": [
+   "Abdominales",
+   "Antebrazo",
+   "Espalda media"
+  ],
+  "equip": "Bandas",
+  "imgs": [
+   "ex/Band_Assisted_Pull-Up/0.webp",
+   "ex/Band_Assisted_Pull-Up/1.webp"
+  ]
+ },
+ {
+  "id": "Rack_Pulls",
+  "name": "Peso muerto desde rack",
+  "group": "Espalda",
+  "main": [
+   "Lumbar"
+  ],
+  "sec": [
+   "Antebrazo",
+   "Glúteos",
+   "Femorales",
+   "Trapecio"
+  ],
+  "equip": "Barra",
+  "imgs": [
+   "ex/Rack_Pulls/0.webp",
+   "ex/Rack_Pulls/1.webp"
+  ]
+ },
+ {
+  "id": "Barbell_Shrug_Behind_The_Back",
+  "name": "Encogimientos con barra por detrás",
+  "group": "Espalda",
+  "main": [
+   "Trapecio"
+  ],
+  "sec": [
+   "Antebrazo",
+   "Espalda media"
+  ],
+  "equip": "Barra",
+  "imgs": [
+   "ex/Barbell_Shrug_Behind_The_Back/0.webp",
+   "ex/Barbell_Shrug_Behind_The_Back/1.webp"
+  ]
+ },
+ {
+  "id": "Cable_Shrugs",
+  "name": "Encogimientos en polea",
+  "group": "Espalda",
+  "main": [
+   "Trapecio"
+  ],
+  "sec": [],
+  "equip": "Polea",
+  "imgs": [
+   "ex/Cable_Shrugs/0.webp",
+   "ex/Cable_Shrugs/1.webp"
+  ]
+ },
+ {
+  "id": "Superman",
+  "name": "Superman (lumbar)",
+  "group": "Espalda",
+  "main": [
+   "Lumbar"
+  ],
+  "sec": [
+   "Glúteos",
+   "Femorales"
+  ],
+  "equip": "Peso corporal",
+  "imgs": [
+   "ex/Superman/0.webp",
+   "ex/Superman/1.webp"
+  ]
+ },
+ {
+  "id": "Seated_Barbell_Military_Press",
+  "name": "Press militar sentado con barra",
+  "group": "Hombro",
+  "main": [
+   "Hombros"
+  ],
+  "sec": [
+   "Tríceps"
+  ],
+  "equip": "Barra",
+  "imgs": [
+   "ex/Seated_Barbell_Military_Press/0.webp",
+   "ex/Seated_Barbell_Military_Press/1.webp"
+  ]
+ },
+ {
+  "id": "Standing_Military_Press",
+  "name": "Press militar de pie con barra",
+  "group": "Hombro",
+  "main": [
+   "Hombros"
+  ],
+  "sec": [
+   "Tríceps"
+  ],
+  "equip": "Barra",
+  "imgs": [
+   "ex/Standing_Military_Press/0.webp",
+   "ex/Standing_Military_Press/1.webp"
+  ]
+ },
+ {
+  "id": "Standing_Dumbbell_Press",
+  "name": "Press de hombro de pie con mancuernas",
+  "group": "Hombro",
+  "main": [
+   "Hombros"
+  ],
+  "sec": [
+   "Tríceps"
+  ],
+  "equip": "Mancuernas",
+  "imgs": [
+   "ex/Standing_Dumbbell_Press/0.webp",
+   "ex/Standing_Dumbbell_Press/1.webp"
+  ]
+ },
+ {
+  "id": "Standing_Palms-In_Dumbbell_Press",
+  "name": "Press de hombro agarre neutro",
+  "group": "Hombro",
+  "main": [
+   "Hombros"
+  ],
+  "sec": [
+   "Tríceps"
+  ],
+  "equip": "Mancuernas",
+  "imgs": [
+   "ex/Standing_Palms-In_Dumbbell_Press/0.webp",
+   "ex/Standing_Palms-In_Dumbbell_Press/1.webp"
+  ]
+ },
+ {
+  "id": "Dumbbell_One-Arm_Shoulder_Press",
+  "name": "Press de hombro a una mano",
+  "group": "Hombro",
+  "main": [
+   "Hombros"
+  ],
+  "sec": [
+   "Tríceps"
+  ],
+  "equip": "Mancuernas",
+  "imgs": [
+   "ex/Dumbbell_One-Arm_Shoulder_Press/0.webp",
+   "ex/Dumbbell_One-Arm_Shoulder_Press/1.webp"
+  ]
+ },
+ {
+  "id": "Seated_Side_Lateral_Raise",
+  "name": "Elevaciones laterales sentado",
+  "group": "Hombro",
+  "main": [
+   "Hombros"
+  ],
+  "sec": [],
+  "equip": "Mancuernas",
+  "imgs": [
+   "ex/Seated_Side_Lateral_Raise/0.webp",
+   "ex/Seated_Side_Lateral_Raise/1.webp"
+  ]
+ },
+ {
+  "id": "One-Arm_Incline_Lateral_Raise",
+  "name": "Elevación lateral en banco inclinado",
+  "group": "Hombro",
+  "main": [
+   "Hombros"
+  ],
+  "sec": [],
+  "equip": "Mancuernas",
+  "imgs": [
+   "ex/One-Arm_Incline_Lateral_Raise/0.webp",
+   "ex/One-Arm_Incline_Lateral_Raise/1.webp"
+  ]
+ },
+ {
+  "id": "One-Arm_Side_Laterals",
+  "name": "Elevación lateral a una mano",
+  "group": "Hombro",
+  "main": [
+   "Hombros"
+  ],
+  "sec": [],
+  "equip": "Mancuernas",
+  "imgs": [
+   "ex/One-Arm_Side_Laterals/0.webp",
+   "ex/One-Arm_Side_Laterals/1.webp"
+  ]
+ },
+ {
+  "id": "Bent_Over_Low-Pulley_Side_Lateral",
+  "name": "Pájaro en polea baja a una mano",
+  "group": "Hombro",
+  "main": [
+   "Hombros"
+  ],
+  "sec": [
+   "Lumbar",
+   "Espalda media",
+   "Trapecio"
+  ],
+  "equip": "Polea",
+  "imgs": [
+   "ex/Bent_Over_Low-Pulley_Side_Lateral/0.webp",
+   "ex/Bent_Over_Low-Pulley_Side_Lateral/1.webp"
+  ]
+ },
+ {
+  "id": "Standing_Low-Pulley_Deltoid_Raise",
+  "name": "Elevación lateral en polea baja",
+  "group": "Hombro",
+  "main": [
+   "Hombros"
+  ],
+  "sec": [
+   "Antebrazo"
+  ],
+  "equip": "Polea",
+  "imgs": [
+   "ex/Standing_Low-Pulley_Deltoid_Raise/0.webp",
+   "ex/Standing_Low-Pulley_Deltoid_Raise/1.webp"
+  ]
+ },
+ {
+  "id": "Front_Two-Dumbbell_Raise",
+  "name": "Elevación frontal con dos mancuernas",
+  "group": "Hombro",
+  "main": [
+   "Hombros"
+  ],
+  "sec": [],
+  "equip": "Mancuernas",
+  "imgs": [
+   "ex/Front_Two-Dumbbell_Raise/0.webp",
+   "ex/Front_Two-Dumbbell_Raise/1.webp"
+  ]
+ },
+ {
+  "id": "Standing_Front_Barbell_Raise_Over_Head",
+  "name": "Elevación frontal con barra",
+  "group": "Hombro",
+  "main": [
+   "Hombros"
+  ],
+  "sec": [],
+  "equip": "Barra",
+  "imgs": [
+   "ex/Standing_Front_Barbell_Raise_Over_Head/0.webp",
+   "ex/Standing_Front_Barbell_Raise_Over_Head/1.webp"
+  ]
+ },
+ {
+  "id": "Side_Laterals_to_Front_Raise",
+  "name": "Elevación lateral y frontal",
+  "group": "Hombro",
+  "main": [
+   "Hombros"
+  ],
+  "sec": [
+   "Trapecio"
+  ],
+  "equip": "Mancuernas",
+  "imgs": [
+   "ex/Side_Laterals_to_Front_Raise/0.webp",
+   "ex/Side_Laterals_to_Front_Raise/1.webp"
+  ]
+ },
+ {
+  "id": "Dumbbell_Lying_Rear_Lateral_Raise",
+  "name": "Pájaros tumbado en banco",
+  "group": "Hombro",
+  "main": [
+   "Hombros"
+  ],
+  "sec": [],
+  "equip": "Mancuernas",
+  "imgs": [
+   "ex/Dumbbell_Lying_Rear_Lateral_Raise/0.webp",
+   "ex/Dumbbell_Lying_Rear_Lateral_Raise/1.webp"
+  ]
+ },
+ {
+  "id": "Bent_Over_Dumbbell_Rear_Delt_Raise_With_Head_On_Bench",
+  "name": "Pájaros con la frente apoyada",
+  "group": "Hombro",
+  "main": [
+   "Hombros"
+  ],
+  "sec": [],
+  "equip": "Mancuernas",
+  "imgs": [
+   "ex/Bent_Over_Dumbbell_Rear_Delt_Raise_With_Head_On_Bench/0.webp",
+   "ex/Bent_Over_Dumbbell_Rear_Delt_Raise_With_Head_On_Bench/1.webp"
+  ]
+ },
+ {
+  "id": "Barbell_Rear_Delt_Row",
+  "name": "Remo al cuello con barra (deltoides posterior)",
+  "group": "Hombro",
+  "main": [
+   "Hombros"
+  ],
+  "sec": [
+   "Bíceps",
+   "Dorsales",
+   "Espalda media"
+  ],
+  "equip": "Barra",
+  "imgs": [
+   "ex/Barbell_Rear_Delt_Row/0.webp",
+   "ex/Barbell_Rear_Delt_Row/1.webp"
+  ]
+ },
+ {
+  "id": "Upright_Cable_Row",
+  "name": "Remo al mentón en polea",
+  "group": "Hombro",
+  "main": [
+   "Trapecio"
+  ],
+  "sec": [
+   "Hombros"
+  ],
+  "equip": "Polea",
+  "imgs": [
+   "ex/Upright_Cable_Row/0.webp",
+   "ex/Upright_Cable_Row/1.webp"
+  ]
+ },
+ {
+  "id": "Cuban_Press",
+  "name": "Press cubano",
+  "group": "Hombro",
+  "main": [
+   "Hombros"
+  ],
+  "sec": [
+   "Trapecio"
+  ],
+  "equip": "Mancuernas",
+  "imgs": [
+   "ex/Cuban_Press/0.webp",
+   "ex/Cuban_Press/1.webp"
+  ]
+ },
+ {
+  "id": "External_Rotation",
+  "name": "Rotación externa con mancuerna",
+  "group": "Hombro",
+  "main": [
+   "Hombros"
+  ],
+  "sec": [],
+  "equip": "Mancuernas",
+  "imgs": [
+   "ex/External_Rotation/0.webp",
+   "ex/External_Rotation/1.webp"
+  ]
+ },
+ {
+  "id": "Cable_Internal_Rotation",
+  "name": "Rotación interna en polea",
+  "group": "Hombro",
+  "main": [
+   "Hombros"
+  ],
+  "sec": [],
+  "equip": "Polea",
+  "imgs": [
+   "ex/Cable_Internal_Rotation/0.webp",
+   "ex/Cable_Internal_Rotation/1.webp"
+  ]
+ },
+ {
+  "id": "Dumbbell_Scaption",
+  "name": "Elevación en Y con mancuernas",
+  "group": "Hombro",
+  "main": [
+   "Hombros"
+  ],
+  "sec": [
+   "Trapecio"
+  ],
+  "equip": "Mancuernas",
+  "imgs": [
+   "ex/Dumbbell_Scaption/0.webp",
+   "ex/Dumbbell_Scaption/1.webp"
+  ]
+ },
+ {
+  "id": "Single-Arm_Linear_Jammer",
+  "name": "Press landmine a una mano",
+  "group": "Hombro",
+  "main": [
+   "Hombros"
+  ],
+  "sec": [
+   "Pecho",
+   "Tríceps"
+  ],
+  "equip": "Barra",
+  "imgs": [
+   "ex/Single-Arm_Linear_Jammer/0.webp",
+   "ex/Single-Arm_Linear_Jammer/1.webp"
+  ]
+ },
+ {
+  "id": "Band_Pull_Apart",
+  "name": "Aperturas con goma",
+  "group": "Hombro",
+  "main": [
+   "Hombros"
+  ],
+  "sec": [
+   "Espalda media",
+   "Trapecio"
+  ],
+  "equip": "Bandas",
+  "imgs": [
+   "ex/Band_Pull_Apart/0.webp",
+   "ex/Band_Pull_Apart/1.webp"
+  ]
+ },
+ {
+  "id": "Handstand_Push-Ups",
+  "name": "Flexiones en pino",
+  "group": "Hombro",
+  "main": [
+   "Hombros"
+  ],
+  "sec": [
+   "Tríceps"
+  ],
+  "equip": "Peso corporal",
+  "imgs": [
+   "ex/Handstand_Push-Ups/0.webp",
+   "ex/Handstand_Push-Ups/1.webp"
+  ]
+ },
+ {
+  "id": "Alternate_Hammer_Curl",
+  "name": "Curl martillo alterno",
+  "group": "Bíceps",
+  "main": [
+   "Bíceps"
+  ],
+  "sec": [
+   "Antebrazo"
+  ],
+  "equip": "Mancuernas",
+  "imgs": [
+   "ex/Alternate_Hammer_Curl/0.webp",
+   "ex/Alternate_Hammer_Curl/1.webp"
+  ]
+ },
+ {
+  "id": "Dumbbell_Alternate_Bicep_Curl",
+  "name": "Curl alterno con mancuernas",
+  "group": "Bíceps",
+  "main": [
+   "Bíceps"
+  ],
+  "sec": [
+   "Antebrazo"
+  ],
+  "equip": "Mancuernas",
+  "imgs": [
+   "ex/Dumbbell_Alternate_Bicep_Curl/0.webp",
+   "ex/Dumbbell_Alternate_Bicep_Curl/1.webp"
+  ]
+ },
+ {
+  "id": "Incline_Dumbbell_Curl",
+  "name": "Curl inclinado con mancuernas",
+  "group": "Bíceps",
+  "main": [
+   "Bíceps"
+  ],
+  "sec": [],
+  "equip": "Mancuernas",
+  "imgs": [
+   "ex/Incline_Dumbbell_Curl/0.webp",
+   "ex/Incline_Dumbbell_Curl/1.webp"
+  ]
+ },
+ {
+  "id": "Incline_Hammer_Curls",
+  "name": "Curl martillo inclinado",
+  "group": "Bíceps",
+  "main": [
+   "Bíceps"
+  ],
+  "sec": [],
+  "equip": "Mancuernas",
+  "imgs": [
+   "ex/Incline_Hammer_Curls/0.webp",
+   "ex/Incline_Hammer_Curls/1.webp"
+  ]
+ },
+ {
+  "id": "Cross_Body_Hammer_Curl",
+  "name": "Curl martillo cruzado",
+  "group": "Bíceps",
+  "main": [
+   "Bíceps"
+  ],
+  "sec": [
+   "Antebrazo"
+  ],
+  "equip": "Mancuernas",
+  "imgs": [
+   "ex/Cross_Body_Hammer_Curl/0.webp",
+   "ex/Cross_Body_Hammer_Curl/1.webp"
+  ]
+ },
+ {
+  "id": "Drag_Curl",
+  "name": "Curl arrastrado (drag curl)",
+  "group": "Bíceps",
+  "main": [
+   "Bíceps"
+  ],
+  "sec": [
+   "Antebrazo"
+  ],
+  "equip": "Barra",
+  "imgs": [
+   "ex/Drag_Curl/0.webp",
+   "ex/Drag_Curl/1.webp"
+  ]
+ },
+ {
+  "id": "Close-Grip_EZ_Bar_Curl",
+  "name": "Curl cerrado con barra Z",
+  "group": "Bíceps",
+  "main": [
+   "Bíceps"
+  ],
+  "sec": [
+   "Antebrazo"
+  ],
+  "equip": "Barra Z",
+  "imgs": [
+   "ex/Close-Grip_EZ_Bar_Curl/0.webp",
+   "ex/Close-Grip_EZ_Bar_Curl/1.webp"
+  ]
+ },
+ {
+  "id": "Wide-Grip_Standing_Barbell_Curl",
+  "name": "Curl con barra agarre abierto",
+  "group": "Bíceps",
+  "main": [
+   "Bíceps"
+  ],
+  "sec": [],
+  "equip": "Barra",
+  "imgs": [
+   "ex/Wide-Grip_Standing_Barbell_Curl/0.webp",
+   "ex/Wide-Grip_Standing_Barbell_Curl/1.webp"
+  ]
+ },
+ {
+  "id": "Reverse_Barbell_Curl",
+  "name": "Curl inverso con barra",
+  "group": "Bíceps",
+  "main": [
+   "Bíceps"
+  ],
+  "sec": [
+   "Antebrazo"
+  ],
+  "equip": "Barra",
+  "imgs": [
+   "ex/Reverse_Barbell_Curl/0.webp",
+   "ex/Reverse_Barbell_Curl/1.webp"
+  ]
+ },
+ {
+  "id": "One_Arm_Dumbbell_Preacher_Curl",
+  "name": "Curl predicador a una mano",
+  "group": "Bíceps",
+  "main": [
+   "Bíceps"
+  ],
+  "sec": [],
+  "equip": "Mancuernas",
+  "imgs": [
+   "ex/One_Arm_Dumbbell_Preacher_Curl/0.webp",
+   "ex/One_Arm_Dumbbell_Preacher_Curl/1.webp"
+  ]
+ },
+ {
+  "id": "Two-Arm_Dumbbell_Preacher_Curl",
+  "name": "Curl predicador con mancuernas",
+  "group": "Bíceps",
+  "main": [
+   "Bíceps"
+  ],
+  "sec": [],
+  "equip": "Mancuernas",
+  "imgs": [
+   "ex/Two-Arm_Dumbbell_Preacher_Curl/0.webp",
+   "ex/Two-Arm_Dumbbell_Preacher_Curl/1.webp"
+  ]
+ },
+ {
+  "id": "Preacher_Hammer_Dumbbell_Curl",
+  "name": "Curl martillo en predicador",
+  "group": "Bíceps",
+  "main": [
+   "Bíceps"
+  ],
+  "sec": [
+   "Antebrazo"
+  ],
+  "equip": "Mancuernas",
+  "imgs": [
+   "ex/Preacher_Hammer_Dumbbell_Curl/0.webp",
+   "ex/Preacher_Hammer_Dumbbell_Curl/1.webp"
+  ]
+ },
+ {
+  "id": "Seated_Dumbbell_Curl",
+  "name": "Curl sentado con mancuernas",
+  "group": "Bíceps",
+  "main": [
+   "Bíceps"
+  ],
+  "sec": [],
+  "equip": "Mancuernas",
+  "imgs": [
+   "ex/Seated_Dumbbell_Curl/0.webp",
+   "ex/Seated_Dumbbell_Curl/1.webp"
+  ]
+ },
+ {
+  "id": "Standing_One-Arm_Cable_Curl",
+  "name": "Curl a una mano en polea",
+  "group": "Bíceps",
+  "main": [
+   "Bíceps"
+  ],
+  "sec": [],
+  "equip": "Polea",
+  "imgs": [
+   "ex/Standing_One-Arm_Cable_Curl/0.webp",
+   "ex/Standing_One-Arm_Cable_Curl/1.webp"
+  ]
+ },
+ {
+  "id": "Standing_Dumbbell_Reverse_Curl",
+  "name": "Curl inverso con mancuernas",
+  "group": "Bíceps",
+  "main": [
+   "Bíceps"
+  ],
+  "sec": [
+   "Antebrazo"
+  ],
+  "equip": "Mancuernas",
+  "imgs": [
+   "ex/Standing_Dumbbell_Reverse_Curl/0.webp",
+   "ex/Standing_Dumbbell_Reverse_Curl/1.webp"
+  ]
+ },
+ {
+  "id": "Triceps_Pushdown_-_V-Bar_Attachment",
+  "name": "Extensión de tríceps en polea con barra V",
+  "group": "Tríceps",
+  "main": [
+   "Tríceps"
+  ],
+  "sec": [],
+  "equip": "Polea",
+  "imgs": [
+   "ex/Triceps_Pushdown_-_V-Bar_Attachment/0.webp",
+   "ex/Triceps_Pushdown_-_V-Bar_Attachment/1.webp"
+  ]
+ },
+ {
+  "id": "Cable_Lying_Triceps_Extension",
+  "name": "Press francés en polea",
+  "group": "Tríceps",
+  "main": [
+   "Tríceps"
+  ],
+  "sec": [],
+  "equip": "Polea",
+  "imgs": [
+   "ex/Cable_Lying_Triceps_Extension/0.webp",
+   "ex/Cable_Lying_Triceps_Extension/1.webp"
+  ]
+ },
+ {
+  "id": "Low_Cable_Triceps_Extension",
+  "name": "Extensión de tríceps en polea baja",
+  "group": "Tríceps",
+  "main": [
+   "Tríceps"
+  ],
+  "sec": [],
+  "equip": "Polea",
+  "imgs": [
+   "ex/Low_Cable_Triceps_Extension/0.webp",
+   "ex/Low_Cable_Triceps_Extension/1.webp"
+  ]
+ },
+ {
+  "id": "Standing_Overhead_Barbell_Triceps_Extension",
+  "name": "Extensión de tríceps sobre la cabeza con barra",
+  "group": "Tríceps",
+  "main": [
+   "Tríceps"
+  ],
+  "sec": [
+   "Hombros"
+  ],
+  "equip": "Barra",
+  "imgs": [
+   "ex/Standing_Overhead_Barbell_Triceps_Extension/0.webp",
+   "ex/Standing_Overhead_Barbell_Triceps_Extension/1.webp"
+  ]
+ },
+ {
+  "id": "Seated_Triceps_Press",
+  "name": "Extensión de tríceps sentado con mancuerna",
+  "group": "Tríceps",
+  "main": [
+   "Tríceps"
+  ],
+  "sec": [],
+  "equip": "Mancuernas",
+  "imgs": [
+   "ex/Seated_Triceps_Press/0.webp",
+   "ex/Seated_Triceps_Press/1.webp"
+  ]
+ },
+ {
+  "id": "Lying_Dumbbell_Tricep_Extension",
+  "name": "Press francés con mancuernas",
+  "group": "Tríceps",
+  "main": [
+   "Tríceps"
+  ],
+  "sec": [
+   "Pecho",
+   "Hombros"
+  ],
+  "equip": "Mancuernas",
+  "imgs": [
+   "ex/Lying_Dumbbell_Tricep_Extension/0.webp",
+   "ex/Lying_Dumbbell_Tricep_Extension/1.webp"
+  ]
+ },
+ {
+  "id": "Decline_EZ_Bar_Triceps_Extension",
+  "name": "Press francés declinado",
+  "group": "Tríceps",
+  "main": [
+   "Tríceps"
+  ],
+  "sec": [],
+  "equip": "Barra Z",
+  "imgs": [
+   "ex/Decline_EZ_Bar_Triceps_Extension/0.webp",
+   "ex/Decline_EZ_Bar_Triceps_Extension/1.webp"
+  ]
+ },
+ {
+  "id": "JM_Press",
+  "name": "Press JM",
+  "group": "Tríceps",
+  "main": [
+   "Tríceps"
+  ],
+  "sec": [
+   "Pecho",
+   "Hombros"
+  ],
+  "equip": "Barra",
+  "imgs": [
+   "ex/JM_Press/0.webp",
+   "ex/JM_Press/1.webp"
+  ]
+ },
+ {
+  "id": "Tate_Press",
+  "name": "Press Tate",
+  "group": "Tríceps",
+  "main": [
+   "Tríceps"
+  ],
+  "sec": [
+   "Pecho",
+   "Hombros"
+  ],
+  "equip": "Mancuernas",
+  "imgs": [
+   "ex/Tate_Press/0.webp",
+   "ex/Tate_Press/1.webp"
+  ]
+ },
+ {
+  "id": "Close-Grip_EZ-Bar_Press",
+  "name": "Press cerrado con barra Z",
+  "group": "Tríceps",
+  "main": [
+   "Tríceps"
+  ],
+  "sec": [
+   "Pecho",
+   "Hombros"
+  ],
+  "equip": "Barra Z",
+  "imgs": [
+   "ex/Close-Grip_EZ-Bar_Press/0.webp",
+   "ex/Close-Grip_EZ-Bar_Press/1.webp"
+  ]
+ },
+ {
+  "id": "Close-Grip_Dumbbell_Press",
+  "name": "Press cerrado con mancuernas",
+  "group": "Tríceps",
+  "main": [
+   "Tríceps"
+  ],
+  "sec": [
+   "Pecho",
+   "Hombros"
+  ],
+  "equip": "Mancuernas",
+  "imgs": [
+   "ex/Close-Grip_Dumbbell_Press/0.webp",
+   "ex/Close-Grip_Dumbbell_Press/1.webp"
+  ]
+ },
+ {
+  "id": "Weighted_Bench_Dip",
+  "name": "Fondos en banco con peso",
+  "group": "Tríceps",
+  "main": [
+   "Tríceps"
+  ],
+  "sec": [
+   "Pecho",
+   "Hombros"
+  ],
+  "equip": "Peso corporal",
+  "imgs": [
+   "ex/Weighted_Bench_Dip/0.webp",
+   "ex/Weighted_Bench_Dip/1.webp"
+  ]
+ },
+ {
+  "id": "Ring_Dips",
+  "name": "Fondos en anillas",
+  "group": "Tríceps",
+  "main": [
+   "Tríceps"
+  ],
+  "sec": [
+   "Pecho",
+   "Hombros"
+  ],
+  "equip": "Peso corporal",
+  "imgs": [
+   "ex/Ring_Dips/0.webp",
+   "ex/Ring_Dips/1.webp"
+  ]
+ },
+ {
+  "id": "Barbell_Lunge",
+  "name": "Zancadas con barra",
+  "group": "Pierna",
+  "main": [
+   "Cuádriceps"
+  ],
+  "sec": [
+   "Gemelos",
+   "Glúteos",
+   "Femorales"
+  ],
+  "equip": "Barra",
+  "imgs": [
+   "ex/Barbell_Lunge/0.webp",
+   "ex/Barbell_Lunge/1.webp"
+  ]
+ },
+ {
+  "id": "Barbell_Step_Ups",
+  "name": "Subidas al banco con barra",
+  "group": "Pierna",
+  "main": [
+   "Cuádriceps"
+  ],
+  "sec": [
+   "Gemelos",
+   "Glúteos",
+   "Femorales"
+  ],
+  "equip": "Barra",
+  "imgs": [
+   "ex/Barbell_Step_Ups/0.webp",
+   "ex/Barbell_Step_Ups/1.webp"
+  ]
+ },
+ {
+  "id": "Box_Squat",
+  "name": "Sentadilla al cajón",
+  "group": "Pierna",
+  "main": [
+   "Cuádriceps"
+  ],
+  "sec": [
+   "Aductores",
+   "Gemelos",
+   "Glúteos",
+   "Femorales",
+   "Lumbar"
+  ],
+  "equip": "Barra",
+  "imgs": [
+   "ex/Box_Squat/0.webp",
+   "ex/Box_Squat/1.webp"
+  ]
+ },
+ {
+  "id": "Wide_Stance_Barbell_Squat",
+  "name": "Sentadilla con piernas abiertas",
+  "group": "Pierna",
+  "main": [
+   "Cuádriceps"
+  ],
+  "sec": [
+   "Gemelos",
+   "Glúteos",
+   "Femorales",
+   "Lumbar"
+  ],
+  "equip": "Barra",
+  "imgs": [
+   "ex/Wide_Stance_Barbell_Squat/0.webp",
+   "ex/Wide_Stance_Barbell_Squat/1.webp"
+  ]
+ },
+ {
+  "id": "Narrow_Stance_Leg_Press",
+  "name": "Prensa con pies juntos",
+  "group": "Pierna",
+  "main": [
+   "Cuádriceps"
+  ],
+  "sec": [
+   "Gemelos",
+   "Glúteos",
+   "Femorales"
+  ],
+  "equip": "Máquina",
+  "imgs": [
+   "ex/Narrow_Stance_Leg_Press/0.webp",
+   "ex/Narrow_Stance_Leg_Press/1.webp"
+  ]
+ },
+ {
+  "id": "Bodyweight_Squat",
+  "name": "Sentadilla sin peso",
+  "group": "Pierna",
+  "main": [
+   "Cuádriceps"
+  ],
+  "sec": [
+   "Glúteos",
+   "Femorales"
+  ],
+  "equip": "Peso corporal",
+  "imgs": [
+   "ex/Bodyweight_Squat/0.webp",
+   "ex/Bodyweight_Squat/1.webp"
+  ]
+ },
+ {
+  "id": "Zercher_Squats",
+  "name": "Sentadilla Zercher",
+  "group": "Pierna",
+  "main": [
+   "Cuádriceps"
+  ],
+  "sec": [
+   "Gemelos",
+   "Glúteos",
+   "Femorales"
+  ],
+  "equip": "Barra",
+  "imgs": [
+   "ex/Zercher_Squats/0.webp",
+   "ex/Zercher_Squats/1.webp"
+  ]
+ },
+ {
+  "id": "Freehand_Jump_Squat",
+  "name": "Sentadilla con salto",
+  "group": "Pierna",
+  "main": [
+   "Cuádriceps"
+  ],
+  "sec": [
+   "Gemelos",
+   "Glúteos",
+   "Femorales"
+  ],
+  "equip": "Peso corporal",
+  "imgs": [
+   "ex/Freehand_Jump_Squat/0.webp",
+   "ex/Freehand_Jump_Squat/1.webp"
+  ]
+ },
+ {
+  "id": "Single-Leg_Leg_Extension",
+  "name": "Extensión de cuádriceps a una pierna",
+  "group": "Pierna",
+  "main": [
+   "Cuádriceps"
+  ],
+  "sec": [],
+  "equip": "Máquina",
+  "imgs": [
+   "ex/Single-Leg_Leg_Extension/0.webp",
+   "ex/Single-Leg_Leg_Extension/1.webp"
+  ]
+ },
+ {
+  "id": "Stiff-Legged_Barbell_Deadlift",
+  "name": "Peso muerto piernas rígidas",
+  "group": "Pierna",
+  "main": [
+   "Femorales"
+  ],
+  "sec": [
+   "Glúteos",
+   "Lumbar"
+  ],
+  "equip": "Barra",
+  "imgs": [
+   "ex/Stiff-Legged_Barbell_Deadlift/0.webp",
+   "ex/Stiff-Legged_Barbell_Deadlift/1.webp"
+  ]
+ },
+ {
+  "id": "Natural_Glute_Ham_Raise",
+  "name": "Curl nórdico",
+  "group": "Pierna",
+  "main": [
+   "Glúteos",
+   "Femorales"
+  ],
+  "sec": [
+   "Gemelos",
+   "Lumbar"
+  ],
+  "equip": "Peso corporal",
+  "imgs": [
+   "ex/Natural_Glute_Ham_Raise/0.webp",
+   "ex/Natural_Glute_Ham_Raise/1.webp"
+  ]
+ },
+ {
+  "id": "Kettlebell_One-Legged_Deadlift",
+  "name": "Peso muerto a una pierna con kettlebell",
+  "group": "Pierna",
+  "main": [
+   "Femorales"
+  ],
+  "sec": [
+   "Glúteos",
+   "Lumbar"
+  ],
+  "equip": "Kettlebell",
+  "imgs": [
+   "ex/Kettlebell_One-Legged_Deadlift/0.webp",
+   "ex/Kettlebell_One-Legged_Deadlift/1.webp"
+  ]
+ },
+ {
+  "id": "Leverage_Deadlift",
+  "name": "Peso muerto en máquina",
+  "group": "Pierna",
+  "main": [
+   "Cuádriceps"
+  ],
+  "sec": [
+   "Glúteos",
+   "Femorales"
+  ],
+  "equip": "Máquina",
+  "imgs": [
+   "ex/Leverage_Deadlift/0.webp",
+   "ex/Leverage_Deadlift/1.webp"
+  ]
+ },
+ {
+  "id": "Cable_Hip_Adduction",
+  "name": "Aducción en polea",
+  "group": "Pierna",
+  "main": [
+   "Cuádriceps"
+  ],
+  "sec": [],
+  "equip": "Polea",
+  "imgs": [
+   "ex/Cable_Hip_Adduction/0.webp",
+   "ex/Cable_Hip_Adduction/1.webp"
+  ]
+ },
+ {
+  "id": "Standing_Barbell_Calf_Raise",
+  "name": "Gemelos de pie con barra",
+  "group": "Pierna",
+  "main": [
+   "Gemelos"
+  ],
+  "sec": [],
+  "equip": "Barra",
+  "imgs": [
+   "ex/Standing_Barbell_Calf_Raise/0.webp",
+   "ex/Standing_Barbell_Calf_Raise/1.webp"
+  ]
+ },
+ {
+  "id": "Calf_Press",
+  "name": "Gemelos en máquina",
+  "group": "Pierna",
+  "main": [
+   "Gemelos"
+  ],
+  "sec": [],
+  "equip": "Máquina",
+  "imgs": [
+   "ex/Calf_Press/0.webp",
+   "ex/Calf_Press/1.webp"
+  ]
+ },
+ {
+  "id": "Front_Box_Jump",
+  "name": "Salto al cajón",
+  "group": "Pierna",
+  "main": [
+   "Femorales"
+  ],
+  "sec": [
+   "Abductores",
+   "Aductores",
+   "Gemelos",
+   "Glúteos",
+   "Cuádriceps"
+  ],
+  "equip": "Peso corporal",
+  "imgs": [
+   "ex/Front_Box_Jump/0.webp",
+   "ex/Front_Box_Jump/1.webp"
+  ]
+ },
+ {
+  "id": "Sit-Up",
+  "name": "Abdominales completos (sit-up)",
+  "group": "Core",
+  "main": [
+   "Abdominales"
+  ],
+  "sec": [],
+  "equip": "Peso corporal",
+  "imgs": [
+   "ex/Sit-Up/0.webp",
+   "ex/Sit-Up/1.webp"
+  ]
+ },
+ {
+  "id": "Cross-Body_Crunch",
+  "name": "Crunch cruzado",
+  "group": "Core",
+  "main": [
+   "Abdominales"
+  ],
+  "sec": [],
+  "equip": "Peso corporal",
+  "imgs": [
+   "ex/Cross-Body_Crunch/0.webp",
+   "ex/Cross-Body_Crunch/1.webp"
+  ]
+ },
+ {
+  "id": "Air_Bike",
+  "name": "Bicicleta abdominal",
+  "group": "Core",
+  "main": [
+   "Abdominales"
+  ],
+  "sec": [],
+  "equip": "Peso corporal",
+  "imgs": [
+   "ex/Air_Bike/0.webp",
+   "ex/Air_Bike/1.webp"
+  ]
+ },
+ {
+  "id": "Jackknife_Sit-Up",
+  "name": "Abdominal navaja",
+  "group": "Core",
+  "main": [
+   "Abdominales"
+  ],
+  "sec": [],
+  "equip": "Peso corporal",
+  "imgs": [
+   "ex/Jackknife_Sit-Up/0.webp",
+   "ex/Jackknife_Sit-Up/1.webp"
+  ]
+ },
+ {
+  "id": "Flat_Bench_Leg_Pull-In",
+  "name": "Encogimientos de piernas en banco",
+  "group": "Core",
+  "main": [
+   "Abdominales"
+  ],
+  "sec": [],
+  "equip": "Peso corporal",
+  "imgs": [
+   "ex/Flat_Bench_Leg_Pull-In/0.webp",
+   "ex/Flat_Bench_Leg_Pull-In/1.webp"
+  ]
+ },
+ {
+  "id": "Standing_Rope_Crunch",
+  "name": "Crunch de pie en polea",
+  "group": "Core",
+  "main": [
+   "Abdominales"
+  ],
+  "sec": [],
+  "equip": "Polea",
+  "imgs": [
+   "ex/Standing_Rope_Crunch/0.webp",
+   "ex/Standing_Rope_Crunch/1.webp"
+  ]
+ },
+ {
+  "id": "Pallof_Press",
+  "name": "Press Pallof",
+  "group": "Core",
+  "main": [
+   "Abdominales"
+  ],
+  "sec": [
+   "Pecho",
+   "Hombros",
+   "Tríceps"
+  ],
+  "equip": "Polea",
+  "imgs": [
+   "ex/Pallof_Press/0.webp",
+   "ex/Pallof_Press/1.webp"
+  ]
+ },
+ {
+  "id": "Standing_Cable_Lift",
+  "name": "Leñador de abajo arriba en polea",
+  "group": "Core",
+  "main": [
+   "Abdominales"
+  ],
+  "sec": [
+   "Hombros"
+  ],
+  "equip": "Polea",
+  "imgs": [
+   "ex/Standing_Cable_Lift/0.webp",
+   "ex/Standing_Cable_Lift/1.webp"
+  ]
+ },
+ {
+  "id": "Barbell_Ab_Rollout",
+  "name": "Rueda abdominal con barra",
+  "group": "Core",
+  "main": [
+   "Abdominales"
+  ],
+  "sec": [
+   "Lumbar",
+   "Hombros"
+  ],
+  "equip": "Barra",
+  "imgs": [
+   "ex/Barbell_Ab_Rollout/0.webp",
+   "ex/Barbell_Ab_Rollout/1.webp"
+  ]
+ },
+ {
+  "id": "Flutter_Kicks",
+  "name": "Patadas de tijera",
+  "group": "Core",
+  "main": [
+   "Glúteos"
+  ],
+  "sec": [
+   "Femorales"
+  ],
+  "equip": "Peso corporal",
+  "imgs": [
+   "ex/Flutter_Kicks/0.webp",
+   "ex/Flutter_Kicks/1.webp"
+  ]
+ },
+ {
+  "id": "Alternate_Heel_Touchers",
+  "name": "Toques de talón alternos",
+  "group": "Core",
+  "main": [
+   "Abdominales"
+  ],
+  "sec": [],
+  "equip": "Peso corporal",
+  "imgs": [
+   "ex/Alternate_Heel_Touchers/0.webp",
+   "ex/Alternate_Heel_Touchers/1.webp"
+  ]
+ },
+ {
+  "id": "Knee_Hip_Raise_On_Parallel_Bars",
+  "name": "Elevación de rodillas en paralelas",
+  "group": "Core",
+  "main": [
+   "Abdominales"
+  ],
+  "sec": [],
+  "equip": "Peso corporal",
+  "imgs": [
+   "ex/Knee_Hip_Raise_On_Parallel_Bars/0.webp",
+   "ex/Knee_Hip_Raise_On_Parallel_Bars/1.webp"
+  ]
+ },
+ {
+  "id": "One-Arm_Medicine_Ball_Slam",
+  "name": "Lanzamiento de balón medicinal al suelo",
+  "group": "Core",
+  "main": [
+   "Abdominales"
+  ],
+  "sec": [
+   "Dorsales",
+   "Hombros"
+  ],
+  "equip": "Otro",
+  "imgs": [
+   "ex/One-Arm_Medicine_Ball_Slam/0.webp",
+   "ex/One-Arm_Medicine_Ball_Slam/1.webp"
+  ]
+ },
+ {
+  "id": "Palms-Up_Dumbbell_Wrist_Curl_Over_A_Bench",
+  "name": "Curl de muñeca con mancuernas",
+  "group": "Antebrazo",
+  "main": [
+   "Antebrazo"
+  ],
+  "sec": [],
+  "equip": "Mancuernas",
+  "imgs": [
+   "ex/Palms-Up_Dumbbell_Wrist_Curl_Over_A_Bench/0.webp",
+   "ex/Palms-Up_Dumbbell_Wrist_Curl_Over_A_Bench/1.webp"
+  ]
+ },
+ {
+  "id": "Palms-Down_Dumbbell_Wrist_Curl_Over_A_Bench",
+  "name": "Curl de muñeca inverso con mancuernas",
+  "group": "Antebrazo",
+  "main": [
+   "Antebrazo"
+  ],
+  "sec": [],
+  "equip": "Mancuernas",
+  "imgs": [
+   "ex/Palms-Down_Dumbbell_Wrist_Curl_Over_A_Bench/0.webp",
+   "ex/Palms-Down_Dumbbell_Wrist_Curl_Over_A_Bench/1.webp"
+  ]
+ },
+ {
+  "id": "Standing_Palms-Up_Barbell_Behind_The_Back_Wrist_Curl",
+  "name": "Curl de muñeca por detrás con barra",
+  "group": "Antebrazo",
+  "main": [
+   "Antebrazo"
+  ],
+  "sec": [],
+  "equip": "Barra",
+  "imgs": [
+   "ex/Standing_Palms-Up_Barbell_Behind_The_Back_Wrist_Curl/0.webp",
+   "ex/Standing_Palms-Up_Barbell_Behind_The_Back_Wrist_Curl/1.webp"
+  ]
  }
 ];
 export const EX_BY_ID = Object.fromEntries(EXERCISES.map(e => [e.id, e]));

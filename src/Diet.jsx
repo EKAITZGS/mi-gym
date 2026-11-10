@@ -882,11 +882,20 @@ export default function Diet({ data, setData }) {
           </div>
           {(() => {
             const burned = polarExercisesOn(data, date).reduce((n, e) => n + e.kcal, 0)
-            return burned > 0 ? (
+            const dayKcal = data.polar?.days?.[date]?.kcal || 0
+            if (!burned && !dayKcal) return null
+            const bal = Math.round(t.kcal - dayKcal)
+            return (
               <div className="macro-mini">
-                <span><i className="dotc" style={{ background: 'var(--accent)' }} />Gastadas entrenando (reloj): {burned} kcal</span>
+                {dayKcal > 0 && (
+                  <span>
+                    <i className="dotc" style={{ background: 'var(--amber)' }} />
+                    Gastadas hoy (reloj): {dayKcal} kcal · {bal <= 0 ? `déficit ${-bal}` : `superávit ${bal}`}
+                  </span>
+                )}
+                {burned > 0 && <span><i className="dotc" style={{ background: 'var(--accent)' }} />Entrenando: {burned} kcal</span>}
               </div>
-            ) : null
+            )
           })()}
         </div>
       </div>
