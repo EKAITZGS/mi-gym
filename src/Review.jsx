@@ -3,7 +3,7 @@ import { EX_BY_ID } from './data/exercises'
 import { Thumb } from './ui'
 import Icon from './icons'
 import { weeklyReview, applyProposal, aiWeeklyReview } from './coach'
-import { getAi } from './ai'
+import { hasAi } from './ai'
 
 function Proposal({ p, data, onDecide }) {
   const it = data.plan.find((d) => d.id === p.dayId)?.items.find((i) => i.id === p.itemId)
@@ -55,7 +55,7 @@ export default function WeeklyReview({ data, setData, focusId }) {
   if (!rv) return null
   const aiProps = (ai.res?.props || []).filter((p) => !(data.reviews || {})[p.key])
   const pending = [...rv.pending, ...aiProps.filter((p) => !rv.pending.some((x) => x.key === p.key))]
-  const hasKey = !!getAi().key
+  const hasKey = hasAi()
   if (!pending.length && !rv.findings.length && !ai.res && !msg) return null
 
   const decide = (p, ok) => {

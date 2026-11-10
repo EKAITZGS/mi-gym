@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { DEFAULT, todayStr, num } from './store'
-import { getAi, setAi, DEFAULT_MODEL, cleanKey, testKey } from './ai'
+import { getAi, setAi, DEFAULT_MODEL, cleanKey, testKey, serverAi } from './ai'
 import Setup from './Setup'
 import Coach from './Coach.jsx'
 import { Generator } from './Workout'
@@ -277,8 +277,10 @@ export default function Settings({ data, setData }) {
       <h4>IA (Groq): fotos y entrenador</h4>
       <div className="card">
         <p className="muted small">
-          Para reconocer alimentos por foto y para el entrenador que mejora tu rutina. Crea una clave gratis en console.groq.com (API Keys) y pégala aquí. Se
-          guarda solo en este móvil y no entra en las copias de seguridad. Las fotos se envían a Groq para analizarlas.
+          {serverAi()
+            ? 'La IA ya funciona sin hacer nada, con un límite de usos al día. Si quieres usarla sin límite, crea una clave gratis en console.groq.com (API Keys) y pégala aquí.'
+            : 'Para reconocer alimentos por foto y para el entrenador que mejora tu rutina. Crea una clave gratis en console.groq.com (API Keys) y pégala aquí.'}{' '}
+          Tu clave se guarda solo en este móvil y no entra en las copias de seguridad. Las fotos se envían a Groq para analizarlas.
         </p>
         <label className="lbl">Clave de Groq</label>
         <input

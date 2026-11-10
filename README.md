@@ -15,7 +15,7 @@ Sin servidor, sin cuentas: **los datos se guardan en el propio móvil** de cada 
 - **Copia de seguridad** (exportar/importar JSON).
 
 ## Privacidad
-Todo se guarda solo en el móvil de cada persona (localStorage e IndexedDB). No hay cuentas ni servidor propio de datos. Las únicas salidas son las que activas tú: Groq (fotos/IA, con tu clave), Open Food Facts (escáner) y Polar/avisos a través de un Worker de Cloudflare.
+Todo se guarda solo en el móvil de cada persona (localStorage e IndexedDB). No hay cuentas ni servidor propio de datos. Las únicas salidas son las que usas tú: Groq (fotos/IA; sin clave propia pasa por el Worker con un límite diario), Open Food Facts (escáner) y Polar/avisos a través de un Worker de Cloudflare.
 
 ## Publicarla gratis (GitHub Pages)
 1. Crea un repositorio en GitHub y sube todo este proyecto a la rama `main`.

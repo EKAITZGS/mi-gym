@@ -1,5 +1,8 @@
-// Reconocimiento de alimentos por foto con la API de Groq (modelo con visión).
-// La clave se guarda aparte en localStorage (no entra en las copias de seguridad).
+import { POLAR_WORKER } from './polar'
+
+// IA con Groq. Con clave propia (Ajustes) se llama directo; sin clave, a través del Worker
+// (la clave vive allí como secreto, con límite diario por persona).
+// La clave propia se guarda aparte en localStorage (no entra en las copias de seguridad).
 const KEY = 'migym.groqkey'
 const MODEL = 'migym.groqmodel'
 export const DEFAULT_MODEL = 'qwen/qwen3.8-27b'
@@ -19,6 +22,56 @@ export const setAi = ({ key, model }) => {
     localStorage.setItem(KEY, cleanKey(key))
     localStorage.setItem(MODEL, (model || '').trim() || DEFAULT_MODEL)
   } catch {}
+}
+
+const SRV = 'migym.aisrv'
+export const serverAi = () => {
+  try {
+    return localStorage.getItem(SRV) === '1'
+  } catch {
+    return false
+  }
+}
+export const hasAi = () => !!getAi().key || serverAi()
+// Al abrir la app: ¿el Worker tiene la IA activada? (se recuerda para no preguntar en cada pantalla)
+export async function checkServerAi() {
+  try {
+    const j = await (await fetch(POLAR_WORKER + '/ai')).json()
+    localStorage.setItem(SRV, j.ok ? '1' : '0')
+  } catch {}
+}
+
+// Una llamada de chat; devuelve el texto de la respuesta sin el bloque <think>
+export async function groqChat(body) {
+  const { key, model } = getAi()
+  if (!key && !serverAi()) throw new Error('NO_KEY')
+  let res
+  try {
+    res = key
+      ? await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+          body: JSON.stringify({ model, ...body }),
+        })
+      : await fetch(POLAR_WORKER + '/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+  } catch {
+    throw new Error('No se pudo conectar con la IA (¿sin conexión?)')
+  }
+  if (!res.ok) {
+    if (key && res.status === 401) throw new Error('La clave de Groq no es válida')
+    if (res.status === 429)
+      throw new Error(key ? 'Has llegado al límite de Groq. Prueba más tarde' : 'Has usado mucho la IA hoy. Vuelve mañana o pon tu propia clave gratis de Groq en Ajustes')
+    if (key && (res.status === 404 || res.status === 400)) throw new Error(`Groq rechazó la petición (${res.status}). Revisa el nombre del modelo en Ajustes`)
+    if (!key && res.status === 503) {
+      try {
+        localStorage.setItem(SRV, '0')
+      } catch {}
+      throw new Error('NO_KEY')
+    }
+    throw new Error(`Error de la IA (${res.status})`)
+  }
+  const j = await res.json()
+  return (j.choices?.[0]?.message?.content || '').replace(/<think>[\s\S]*?<\/think>/g, '')
 }
 
 async function resizeImage(file, max = 768) {
@@ -64,42 +117,22 @@ Responde SOLO con este JSON, sin texto extra:
 Si no hay comida en la foto, devuelve "alimentos": [].`
 
 export async function analyzeFood(file, portion = '') {
-  const { key, model } = getAi()
-  if (!key) throw new Error('NO_KEY')
+  if (!hasAi()) throw new Error('NO_KEY')
   const dataUri = await resizeImage(file)
-  let res
-  try {
-    res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-      body: JSON.stringify({
-        model,
-        messages: [
-          {
-            role: 'user',
-            content: [
-              { type: 'text', text: PROMPT(String(portion || '').trim().slice(0, 120)) },
-              { type: 'image_url', image_url: { url: dataUri } },
-            ],
-          },
+  const txt = await groqChat({
+    messages: [
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: PROMPT(String(portion || '').trim().slice(0, 120)) },
+          { type: 'image_url', image_url: { url: dataUri } },
         ],
-        response_format: { type: 'json_object' },
-        temperature: 0.2,
-        max_completion_tokens: 1200,
-      }),
-    })
-  } catch {
-    throw new Error('No se pudo conectar con Groq (¿sin conexión?)')
-  }
-  if (!res.ok) {
-    if (res.status === 401) throw new Error('La clave de Groq no es válida')
-    if (res.status === 429) throw new Error('Has llegado al límite de Groq. Prueba más tarde')
-    if (res.status === 404 || res.status === 400) throw new Error(`Groq rechazó la petición (${res.status}). Revisa el nombre del modelo en Ajustes`)
-    throw new Error(`Error de Groq (${res.status})`)
-  }
-  const j = await res.json()
-  let txt = j.choices?.[0]?.message?.content || ''
-  txt = txt.replace(/<think>[\s\S]*?<\/think>/g, '')
+      },
+    ],
+    response_format: { type: 'json_object' },
+    temperature: 0.2,
+    max_completion_tokens: 1200,
+  })
   let o
   try {
     o = JSON.parse(txt)
@@ -133,28 +166,14 @@ Responde SOLO con JSON: {"kcal": numero, "proteina": numero, "hidratos": numero,
 Si no ves una tabla nutricional, pon kcal en -1.`
 
 export async function analyzeLabel(file) {
-  const { key, model } = getAi()
-  if (!key) throw new Error('NO_KEY')
+  if (!hasAi()) throw new Error('NO_KEY')
   const dataUri = await resizeImage(file, 1280)
-  let res
-  try {
-    res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-      body: JSON.stringify({
-        model,
-        messages: [{ role: 'user', content: [{ type: 'text', text: LABEL_PROMPT }, { type: 'image_url', image_url: { url: dataUri } }] }],
-        response_format: { type: 'json_object' },
-        temperature: 0,
-        max_completion_tokens: 400,
-      }),
-    })
-  } catch {
-    throw new Error('No se pudo conectar con Groq (¿sin conexión?)')
-  }
-  if (!res.ok) throw new Error(res.status === 401 ? 'La clave de Groq no es válida' : res.status === 429 ? 'Has llegado al límite de Groq. Prueba más tarde' : `Error de Groq (${res.status})`)
-  const j = await res.json()
-  const txt = (j.choices?.[0]?.message?.content || '').replace(/<think>[\s\S]*?<\/think>/g, '')
+  const txt = await groqChat({
+    messages: [{ role: 'user', content: [{ type: 'text', text: LABEL_PROMPT }, { type: 'image_url', image_url: { url: dataUri } }] }],
+    response_format: { type: 'json_object' },
+    temperature: 0,
+    max_completion_tokens: 400,
+  })
   let o
   try {
     o = JSON.parse(txt.match(/\{[\s\S]*\}/)?.[0] || txt)

@@ -8,6 +8,7 @@ import Settings from './Settings'
 import Progress from './Progress'
 import Icon from './icons'
 import { readPolarReturn, getPolar, syncPolar } from './polar'
+import { checkServerAi } from './ai'
 import { syncPush } from './push'
 
 const TABS = [
@@ -27,6 +28,11 @@ export default function App() {
   const [view, setView] = useState(resume ? { name: 'session' } : { name: 'list' })
   const [notice, setNotice] = useState(null)
   const storedPolarEx = () => { try { return JSON.parse(localStorage.getItem('migym.v1') || '{}').polar?.exercises || {} } catch { return {} } }
+
+  // ¿hay IA sin clave en el Worker?
+  useEffect(() => {
+    checkServerAi()
+  }, [])
 
   // Polar: al volver de dar permiso, y sincronización automática al abrir (cada 30 min como mucho)
   useEffect(() => {

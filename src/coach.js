@@ -1,5 +1,5 @@
 import { EXERCISES, EX_BY_ID } from './data/exercises'
-import { getAi } from './ai'
+import { hasAi, groqChat } from './ai'
 import { uid, todayStr, addDays, suggestion, fmtKg } from './store'
 
 // Resumen del reloj Polar de los últimos 7 días (para la revisión y para la IA)
@@ -135,8 +135,7 @@ function summarize(data) {
 }
 
 export async function improvePlan(data, { days, focus, notes }) {
-  const { key, model } = getAi()
-  if (!key) throw new Error('NO_KEY')
+  if (!hasAi()) throw new Error('NO_KEY')
   const catalog = EXERCISES.map((e) => `${e.id}|${e.name}|${e.group}`).join('\n')
   const { plan, last } = summarize(data)
   const prompt = `Eres un entrenador personal. Mejora la rutina de gimnasio de este usuario.
@@ -156,29 +155,12 @@ ${catalog}
 
 Responde SOLO con JSON:
 {"resumen":"2-3 frases de qué cambias y por qué","consejos":["consejo corto",...],"plan":[{"nombre":"...","dia":1,"ejercicios":[{"id":"...","series":3,"reps":"8-10"}]}]}`
-  let res
-  try {
-    res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-      body: JSON.stringify({
-        model,
-        messages: [{ role: 'user', content: prompt }],
-        response_format: { type: 'json_object' },
-        temperature: 0.4,
-        max_completion_tokens: 2500,
-      }),
-    })
-  } catch {
-    throw new Error('No se pudo conectar con Groq (¿sin conexión?)')
-  }
-  if (!res.ok) {
-    if (res.status === 401) throw new Error('La clave de Groq no es válida')
-    if (res.status === 429) throw new Error('Has llegado al límite de Groq. Prueba más tarde')
-    throw new Error(`Error de Groq (${res.status})`)
-  }
-  const j = await res.json()
-  let txt = (j.choices?.[0]?.message?.content || '').replace(/<think>[\s\S]*?<\/think>/g, '')
+  let txt = await groqChat({
+    messages: [{ role: 'user', content: prompt }],
+    response_format: { type: 'json_object' },
+    temperature: 0.4,
+    max_completion_tokens: 2500,
+  })
   let o
   try {
     o = JSON.parse(txt)
@@ -394,8 +376,7 @@ export function applyProposal(plan, p) {
 }
 
 export async function aiWeeklyReview(data) {
-  const { key, model } = getAi()
-  if (!key) throw new Error('NO_KEY')
+  if (!hasAi()) throw new Error('NO_KEY')
   const since = addDays(todayStr(), -7)
   const week = data.sessions
     .filter((s) => s.date >= since)
@@ -419,16 +400,12 @@ Cada cambio: sustituir un ejercicio del plan por otro del catálogo, o cambiar e
 Catálogo (id|nombre|grupo):
 ${catalog}
 Responde SOLO con JSON: {"valoracion":"2-3 frases","propuestas":[{"dia":"nombre exacto del día del plan","ejercicio":"id actual","cambiar_por":"id nuevo o vacío","series":número o null,"motivo":"frase corta"}]}`
-  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-    body: JSON.stringify({ model, messages: [{ role: 'user', content: prompt }], response_format: { type: 'json_object' }, temperature: 0.3, max_completion_tokens: 1500 }),
-  }).catch(() => {
-    throw new Error('No se pudo conectar con Groq (¿sin conexión?)')
+  const txt = await groqChat({
+    messages: [{ role: 'user', content: prompt }],
+    response_format: { type: 'json_object' },
+    temperature: 0.3,
+    max_completion_tokens: 1500,
   })
-  if (!res.ok) throw new Error(res.status === 401 ? 'La clave de Groq no es válida' : res.status === 429 ? 'Has llegado al límite de Groq. Prueba más tarde' : `Error de Groq (${res.status})`)
-  const j = await res.json()
-  const txt = (j.choices?.[0]?.message?.content || '').replace(/<think>[\s\S]*?<\/think>/g, '')
   let o
   try {
     o = JSON.parse(txt.match(/\{[\s\S]*\}/)?.[0] || txt)

@@ -29,8 +29,9 @@ Prefiere respuestas cortas, directas y sinceras. Las propuestas del coach nunca 
 
 ## Cloudflare Worker (`cloudflare/worker.js`)
 - URL: https://mi-gym-polar.ekaitzmartinezm.workers.dev (cuenta Cloudflare de Ekaitz, worker `mi-gym-polar`).
-- Variables: `POLAR_CLIENT_ID` (texto), `POLAR_CLIENT_SECRET` (secreto, lo pone el usuario). KV binding `PUSH` (namespace `mi-gym-push`). Cron cada 5 min (`scheduled` → `tick`).
-- Rutas: `/auth`, `/callback`, `/exercises`, `/exercise?id=`, `/activities`, `/push/key|sync|test|next|off`.
+- Variables: `POLAR_CLIENT_ID` (texto), `POLAR_CLIENT_SECRET` (secreto, lo pone el usuario), `GROQ_KEY` (secreto: IA sin clave para todos; opcional `GROQ_MODEL`). KV binding `PUSH` (namespace `mi-gym-push`). Cron cada 5 min (`scheduled` → `tick`).
+- Rutas: `/auth`, `/callback`, `/exercises`, `/exercise?id=`, `/activities`, `/push/key|sync|test|next|off`, `/ai` (GET = ¿activa?; POST = chat de Groq, solo con Origin de la app, 30/día por IP en KV `ai:fecha:ip`).
+- App: `src/ai.js` `groqChat()` usa la clave propia si la hay; si no, el Worker (`checkServerAi()` al abrir guarda `migym.aisrv`).
 - Push sin payload: el cron manda un "toque" firmado con VAPID (claves generadas por el worker y guardadas en KV) y `push-sw.js` pide el texto a `/push/next`.
 - El editor web de Cloudflare no acepta pegar por API (WAF); se despliega escribiendo el código en el editor o con `wrangler deploy` si se configura.
 

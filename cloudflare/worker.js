@@ -12,13 +12,37 @@ async function handle(req, env) {
 const url = new URL(req.url);
 if (req.method === 'OPTIONS') return new Response(null, { headers: cors });
 if (url.pathname.startsWith('/push/')) return push(req, url, env);
+if (url.pathname === '/ai') return ai(req, env);
 const redirectUri = url.origin + '/callback';
 if (url.pathname === '/auth') return Response.redirect('https://flow.polar.com/oauth2/authorization?' + new URLSearchParams({ response_type: 'code', client_id: env.POLAR_CLIENT_ID, redirect_uri: redirectUri, scope: 'accesslink.read_all' }), 302);
 if (url.pathname === '/callback') return callback(url, env, redirectUri);
 const auth = req.headers.get('Authorization') || '';
 if (url.pathname === '/exercises' || url.pathname === '/activities' || url.pathname === '/exercise') return data(url, auth);
-if (url.pathname === '/') return new Response('Mi Gym - Polar OK v4', { headers: cors });
+if (url.pathname === '/') return new Response('Mi Gym - Polar OK v5', { headers: cors });
 return json({ error: 'no_encontrado' }, 404);
+}
+// IA sin clave: la clave de Groq es el secreto GROQ_KEY. Solo desde la app, 30 usos por persona (IP) y día.
+const AI_MODEL = 'qwen/qwen3.8-27b';
+const AI_DAY = 30;
+async function ai(req, env) {
+if (req.method === 'GET') return json({ ok: !!env.GROQ_KEY });
+if (!env.GROQ_KEY) return json({ error: 'sin_ia' }, 503);
+if (req.method !== 'POST') return json({ error: 'metodo' }, 405);
+if (req.headers.get('Origin') !== APP_ORIGIN) return json({ error: 'origen' }, 403);
+const raw = await req.text();
+if (raw.length > 3000000) return json({ error: 'demasiado_grande' }, 413);
+let b = {};
+try { b = JSON.parse(raw) || {}; } catch {}
+if (!Array.isArray(b.messages) || !b.messages.length || b.messages.length > 4) return json({ error: 'mensajes' }, 400);
+if (env.PUSH) {
+const k = 'ai:' + new Date().toISOString().slice(0, 10) + ':' + (req.headers.get('CF-Connecting-IP') || '?');
+const n = Number(await env.PUSH.get(k)) || 0;
+if (n >= AI_DAY) return json({ error: 'limite_diario' }, 429);
+await env.PUSH.put(k, String(n + 1), { expirationTtl: 90000 });
+}
+const r = await fetch('https://api.groq.com/openai/v1/chat/completions', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + env.GROQ_KEY }, body: JSON.stringify({ model: env.GROQ_MODEL || AI_MODEL, messages: b.messages, response_format: b.response_format ? { type: 'json_object' } : undefined, temperature: Math.min(1, Math.max(0, Number(b.temperature) || 0)), max_completion_tokens: Math.min(2500, Math.max(50, Number(b.max_completion_tokens) || 1200)) }) });
+// si falla la clave del servidor no se le dice a la app "tu clave no vale"
+return new Response(await r.text(), { status: r.status === 401 || r.status === 403 ? 502 : r.status, headers: { ...cors, 'Content-Type': 'application/json' } });
 }
 async function callback(url, env, redirectUri) {
 const code = url.searchParams.get('code');
