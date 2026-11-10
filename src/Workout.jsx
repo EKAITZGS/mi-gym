@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { EXERCISES, EX_BY_ID, GROUPS } from './data/exercises'
 import { WEEKDAYS, uid, lastSets, exStats, suggestion, fmtKg, num, pad } from './store'
 import { Modal, Thumb, LineChart, ExPhoto } from './ui'
+import { techFor } from './data/technique'
 import Icon from './icons'
 import WeeklyReview from './Review'
 import { LEVELS, EQUIP, MINUTES, DAY_TYPES, SPLITS, DEFAULT_WEEKDAYS, splitFor, typesFor, pickFor, prescribe, buildDay, buildPlan, stripSlots } from './plans'
@@ -13,7 +14,10 @@ import Coach from './Coach.jsx'
 const ORDER = [1, 2, 3, 4, 5, 6, 0] // lunes primero
 
 /* ---------- Modal de ejercicio ---------- */
-export function ExerciseModal({ ex, data, onClose, onPick, pickLabel, onDelete }) {
+export function ExerciseModal({ ex, data, setData, onClose, onPick, pickLabel, onDelete }) {
+  const fav = (data.favEx || []).includes(ex.id)
+  const toggleFav = () =>
+    setData((d) => ({ ...d, favEx: fav ? (d.favEx || []).filter((x) => x !== ex.id) : [...(d.favEx || []), ex.id] }))
   const stats = useMemo(() => exStats(data.sessions, ex.id), [data.sessions, ex.id])
   const [metric, setMetric] = useState('e1rm')
   const bestAll = stats.reduce((m, x) => (!m || x.best.e > m.e ? x.best : m), null)
@@ -36,7 +40,17 @@ export function ExerciseModal({ ex, data, onClose, onPick, pickLabel, onDelete }
           <span key={m} className="tag">{m}</span>
         ))}
         <span className="tag eq">{ex.equip}</span>
+        {setData && (
+          <button className={'tag fav' + (fav ? ' on' : '')} onClick={toggleFav} aria-pressed={fav}>
+            {fav ? '★ Favorito' : '☆ Favorito'}
+          </button>
+        )}
       </div>
+      {!ex.custom && (
+        <p className="tech small">
+          <b>Técnica:</b> {techFor(ex)}
+        </p>
+      )}
       {onPick && (
         <button className="btn primary full" onClick={onPick}>
           {pickLabel || 'Añadir'}
@@ -116,17 +130,19 @@ function Library({ data, setData, onPick, onClose, inline, title }) {
   const PAGE = 12
   const [limit, setLimit] = useState(PAGE)
   useEffect(() => setLimit(PAGE), [q, group])
+  const favs = data.favEx || []
   const list = EXERCISES.filter(
     (e) =>
-      (group === 'Todos' || e.group === group) && (!q || q.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').split(/\s+/).filter(Boolean).every((w) => searchText(e).includes(w)))
+      (group === 'Todos' || (group === '★' ? favs.includes(e.id) : e.group === group)) && (!q || q.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').split(/\s+/).filter(Boolean).every((w) => searchText(e).includes(w)))
   )
+  list.sort((a, b) => favs.includes(b.id) - favs.includes(a.id))
   const body = (
     <>
       <input className="inp" placeholder="Buscar ejercicio…" value={q} onChange={(e) => setQ(e.target.value)} />
       <div className="chips">
-        {['Todos', ...GROUPS].map((g) => (
+        {['Todos', ...(favs.length ? ['★'] : []), ...GROUPS].map((g) => (
           <button key={g} className={'chip' + (g === group ? ' on' : '')} onClick={() => setGroup(g)}>
-            {g}
+            {g === '★' ? '★ Favoritos' : g}
           </button>
         ))}
       </div>
@@ -135,7 +151,10 @@ function Library({ data, setData, onPick, onClose, inline, title }) {
           <button key={e.id} className="row" onClick={() => setOpen(e)}>
             <Thumb ex={e} />
             <div className="grow">
-              <div>{e.name}</div>
+              <div>
+                {favs.includes(e.id) && <span className="gold">★ </span>}
+                {e.name}
+              </div>
               <div className="muted small">
                 {e.group} · {e.equip}
               </div>
@@ -166,6 +185,7 @@ function Library({ data, setData, onPick, onClose, inline, title }) {
         <ExerciseModal
           ex={open}
           data={data}
+          setData={setData}
           onClose={() => setOpen(null)}
           onPick={onPick ? () => (onPick(open), setOpen(null)) : null}
           onDelete={
@@ -251,7 +271,7 @@ export function Generator({ data, setData, onClose }) {
       )
     })
   const save = () => {
-    setData((d) => ({ ...d, plan: [...stripSlots(plan), ...d.plan.filter((x) => x.weekday == null)], active: null, setupDone: true }))
+    setData((d) => ({ ...d, plan: [...stripSlots(plan), ...d.plan.filter((x) => x.weekday == null)], setupDone: true }))
     onClose(true)
   }
   const nav = (back, next, label = 'Siguiente', disabled = false) => (
@@ -619,6 +639,7 @@ function CheckIn({ onSave, onSkip, exercises = [] }) {
   const [zone, setZone] = useState(null)
   const [level, setLevel] = useState('leve')
   const [note, setNote] = useState('')
+  const [sleep, setSleep] = useState(null)
   return (
     <Modal title="¿Cómo ha ido?" onClose={onSkip}>
       <p className="muted small" style={{ marginTop: 0 }}>
@@ -630,6 +651,18 @@ function CheckIn({ onSave, onSkip, exercises = [] }) {
           <button key={f.id} className={'feel' + (feel === f.id ? ' on' : '')} onClick={() => setFeel(f.id)}>
             <span className="fe">{f.emoji}</span>
             <span>{f.label}</span>
+          </button>
+        ))}
+      </div>
+      <h4>¿Cómo dormiste anoche?</h4>
+      <div className="seg seg3">
+        {[
+          [1, 'Mal'],
+          [2, 'Normal'],
+          [3, 'Bien'],
+        ].map(([v, l]) => (
+          <button key={v} className={sleep === v ? 'on' + (v === 1 ? ' warn' : '') : ''} onClick={() => setSleep(sleep === v ? null : v)}>
+            {l}
           </button>
         ))}
       </div>
@@ -696,7 +729,7 @@ function CheckIn({ onSave, onSkip, exercises = [] }) {
       <button
         className="btn primary full"
         disabled={!feel || (hasPain && !zone)}
-        onClick={() => onSave({ feel, rir, pain: hasPain && zone ? { zone, level } : null, note: note.trim() })}
+        onClick={() => onSave({ feel, rir, pain: hasPain && zone ? { zone, level } : null, note: note.trim(), ...(sleep ? { sleep } : {}) })}
       >
         Guardar y ver consejos
       </button>
@@ -758,17 +791,31 @@ function Session({ data, setData, onExit }) {
   const [detail, setDetail] = useState(null)
   const [picker, setPicker] = useState(null) // { mode: 'add' } | { mode: 'swap', itemId }
   const [done, setDone] = useState(null) // { prs, changed, items, dayId, name } al terminar
-  const [rest, setRest] = useState(null) // hora (ms) a la que acaba el descanso
-  const addRest = (d) => {
-    try {
-      localStorage.setItem(REST_KEY, Math.min(600, Math.max(15, restSecs() + d)))
-    } catch {}
-    setRest((r) => r + d * 1000)
-  }
 
   const newSets = (n, drop) =>
     Array.from({ length: n }, () => ({ w: '', r: '', done: false, drops: drop ? [{ w: '', r: '' }] : [] }))
+  const curItems = (act) => act.items || day?.items || []
   const setActive = (fn) => setData((d) => (d.active ? { ...d, active: fn(d.active) } : d))
+  // descanso: { end (ms), item }; vive en el entreno para que no se pierda al cambiar de pestaña
+  const rest = a?.rest
+  const setRest = (r) => setActive((act) => ({ ...act, rest: r }))
+  const clampRest = (s) => Math.min(600, Math.max(15, s))
+  const addRest = (d) =>
+    setActive((act) => {
+      if (!act.rest) return act
+      const its = curItems(act)
+      const it = its.find((i) => i.id === act.rest.item)
+      if (!it?.rest) {
+        try {
+          localStorage.setItem(REST_KEY, clampRest(restSecs() + d))
+        } catch {}
+      }
+      return {
+        ...act,
+        items: it?.rest ? its.map((i) => (i === it ? { ...i, rest: clampRest(i.rest + d) } : i)) : act.items,
+        rest: { ...act.rest, end: act.rest.end + d * 1000 },
+      }
+    })
   const uniOf = (it) => it.uni ?? !!data.uniEx?.[it.ex]
   const toggleUni = (it) => {
     const v = !uniOf(it)
@@ -778,7 +825,6 @@ function Session({ data, setData, onExit }) {
       active: d.active ? { ...d.active, items: (d.active.items || day?.items || []).map((i) => (i.id === it.id ? { ...i, uni: v } : i)) } : d.active,
     }))
   }
-  const curItems = (act) => act.items || day?.items || []
   const removeItem = (itemId) =>
     setActive((act) => {
       const its = curItems(act)
@@ -837,6 +883,24 @@ function Session({ data, setData, onExit }) {
     return (
       <div className="page">
         <Modal title="Entreno guardado" onClose={onExit}>
+          <div className="sum-stats">
+            {done.min > 0 && (
+              <div>
+                <b>{done.min}</b>
+                <span>min</span>
+              </div>
+            )}
+            <div>
+              <b>{done.nSets}</b>
+              <span>series</span>
+            </div>
+            {done.vol > 0 && (
+              <div>
+                <b>{done.vol.toLocaleString('es-ES')}</b>
+                <span>kg movidos</span>
+              </div>
+            )}
+          </div>
           {done.tips?.length > 0 && (
             <>
               <h4 style={{ marginTop: 0 }}>Para tu próximo entreno</h4>
@@ -957,16 +1021,20 @@ function Session({ data, setData, onExit }) {
     })
     const notes = {}
     for (const [k, v] of Object.entries(a.notes || {})) if (entries[k] && v.trim()) notes[k] = v.trim()
-    setRest(null)
+    // duración: si pasa de 4 h es que se quedó abierto, no se guarda
+    const mins = a.start ? Math.round((Date.now() - a.start) / 60000) : 0
+    const min = mins > 0 && mins <= 240 ? mins : 0
+    const vol = Math.round(Object.values(entries).reduce((t, ss) => t + setsVol(ss), 0))
+    const nSets = Object.values(entries).reduce((t, ss) => t + ss.length, 0)
     setData((d) => ({
       ...d,
       active: null,
-      sessions: [...d.sessions, { id: sid, date: a.date, dayId: a.dayId, dayName: name, entries, ...(Object.keys(notes).length ? { notes } : {}) }],
+      sessions: [...d.sessions, { id: sid, date: a.date, dayId: a.dayId, dayName: name, entries, ...(Object.keys(notes).length ? { notes } : {}), ...(min ? { min } : {}) }],
     }))
     const before = (day?.items || []).map((i) => i.ex).join('|')
     const after = items.map((i) => i.ex).join('|')
     const changed = items.length > 0 && (a.dayId === 'free' || (day && before !== after))
-    setDone({ prs, cmp, changed, items, dayId: a.dayId, name, sid, step: 'checkin', exs: Object.keys(entries), entries })
+    setDone({ prs, cmp, changed, items, dayId: a.dayId, name, sid, step: 'checkin', exs: Object.keys(entries), entries, min, vol, nSets })
   }
   const discard = () => {
     if (!confirm('¿Descartar este entreno sin guardar?')) return
@@ -1117,7 +1185,7 @@ function Session({ data, setData, onExit }) {
                         // sin reps de hoy no se da por hecha: te lleva al campo en vez de inventarlas
                         if (!s.done && !(s.r || (uni && s.r2)))
                           return e.currentTarget.parentElement.querySelector('input[aria-label^="Reps"]')?.focus()
-                        if (!s.done) setRest(Date.now() + (it.rest || restSecs()) * 1000)
+                        if (!s.done) setRest({ end: Date.now() + (it.rest || restSecs()) * 1000, item: it.id })
                         patchSet(it.ex, i, (x) =>
                           x.done
                             ? { ...x, done: false }
@@ -1196,7 +1264,7 @@ function Session({ data, setData, onExit }) {
           </div>
         )
       })}
-      {rest && <RestTimer end={rest} onAdd={addRest} onClose={() => setRest(null)} />}
+      {rest && <RestTimer end={rest.end} onAdd={addRest} onClose={() => setRest(null)} />}
       <button className="btn full" onClick={() => setPicker({ mode: 'add' })}>
         <Icon name="plus" size={18} /> Añadir ejercicio
       </button>
@@ -1215,7 +1283,7 @@ function Session({ data, setData, onExit }) {
       <button className="btn danger full" onClick={discard}>
         Descartar
       </button>
-      {detail && <ExerciseModal ex={detail} data={data} onClose={() => setDetail(null)} />}
+      {detail && <ExerciseModal ex={detail} data={data} setData={setData} onClose={() => setDetail(null)} />}
     </div>
   )
 }

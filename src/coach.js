@@ -109,6 +109,8 @@ export function adviceFor(checkin, sessions, entries = {}, items = []) {
       })
     else tips.push({ tone: 'yellow', text: 'Ha sido muy duro. Duerme bien, come proteína y no subas pesos el próximo entreno.' })
   }
+  if (checkin.sleep === 1)
+    tips.push({ tone: 'yellow', text: 'Dormiste mal: es normal rendir menos. No lo compares con tus mejores días y prioriza dormir 7-9 h esta noche.' })
   return tips
 }
 
@@ -126,6 +128,7 @@ function summarize(data) {
     sensacion: s.checkin?.feel ? FEELINGS.find((f) => f.id === s.checkin.feel)?.label : undefined,
     molestia: s.checkin?.pain?.zone ? `${s.checkin.pain.zone} (${s.checkin.pain.level})` : undefined,
     nota: s.checkin?.note || undefined,
+    sueno: s.checkin?.sleep ? ['mal', 'normal', 'bien'][s.checkin.sleep - 1] : undefined,
     ejercicios: Object.keys(s.entries || {}).length,
   }))
   return { plan, last }
@@ -297,6 +300,8 @@ export function weeklyReview(data, focusId) {
   const avg = week.reduce((n, s) => n + (s.checkin.feel || 0), 0) / week.length
   const hard = week.filter((s) => s.checkin.feel >= 4).length
   if (hard >= 2) findings.push(`${hard} de ${week.length} entrenos fueron muy duros`)
+  const badSleep = week.filter((s) => s.checkin.sleep === 1).length
+  if (badSleep >= 2) findings.push(`Dormiste mal antes de ${badSleep} entrenos: el sueño es lo que más frena la recuperación`)
 
   const zones = {}
   for (const s of pains) {
@@ -400,6 +405,7 @@ export async function aiWeeklyReview(data) {
       sensacion: s.checkin?.feel ? FEELINGS.find((f) => f.id === s.checkin.feel)?.label : 'sin datos',
       molestia: s.checkin?.pain?.zone ? `${s.checkin.pain.zone} (${s.checkin.pain.level})` : 'ninguna',
       nota: s.checkin?.note || '',
+      sueno: s.checkin?.sleep ? ['mal', 'normal', 'bien'][s.checkin.sleep - 1] : 'sin datos',
       hecho: Object.entries(s.entries || {}).map(([id, sets]) => `${EX_BY_ID[id]?.name || id}: ${sets.map((x) => `${x.w || '?'}x${x.r || '?'}`).join(', ')}`),
     }))
   const plan = data.plan.map((d) => ({ dia: d.name, ejercicios: d.items.map((i) => `${i.ex} (${EX_BY_ID[i.ex]?.name}) ${i.sets}x${i.reps}`) }))

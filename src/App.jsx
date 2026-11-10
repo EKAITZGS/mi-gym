@@ -107,7 +107,7 @@ export default function App() {
       }
       setData((d) => ({
         ...d,
-        active: { dayId, name: day.name, date: todayStr(), items: day.items.map((i) => ({ ...i })), entries },
+        active: { dayId, name: day.name, date: todayStr(), start: Date.now(), items: day.items.map((i) => ({ ...i })), entries },
       }))
     }
     setTab('train')
@@ -116,7 +116,7 @@ export default function App() {
 
   const startFree = () => {
     if (data.active && !confirm('Tienes otro entreno en curso. ¿Empezar uno libre y descartar el otro?')) return
-    setData((d) => ({ ...d, active: { dayId: 'free', name: 'Entreno libre', date: todayStr(), items: [], entries: {} } }))
+    setData((d) => ({ ...d, active: { dayId: 'free', name: 'Entreno libre', date: todayStr(), start: Date.now(), items: [], entries: {} } }))
     setTab('train')
     setView({ name: 'session' })
   }

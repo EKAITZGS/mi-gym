@@ -81,7 +81,7 @@ export default function Setup({ data, setData, onClose }) {
     })
     // conserva días sin día fijo que ya tuvieras (p. ej. entrenos libres guardados)
     const loose = data.plan.filter((x) => x.weekday == null)
-    setData((d) => ({ ...d, plan: [...plan, ...loose], setupDone: true, active: null }))
+    setData((d) => ({ ...d, plan: [...plan, ...loose], setupDone: true }))
     onClose()
   }
 

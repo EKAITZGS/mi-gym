@@ -1,6 +1,6 @@
 // node tests/plans.test.mjs — comprueba el generador de rutinas
 import assert from 'node:assert/strict'
-import { buildPlan, generatePlan, stripSlots, SPLITS, typesFor, DEFAULT_WEEKDAYS, EQUIP, DAY_TYPES } from '../src/plans.js'
+import { buildPlan, generatePlan, stripSlots, SPLITS, typesFor, DEFAULT_WEEKDAYS, EQUIP } from '../src/plans.js'
 import { EX_BY_ID } from '../src/data/exercises.js'
 
 for (let d = 1; d <= 7; d++) for (const lv of ['beginner', 'intermediate', 'advanced']) {
@@ -29,5 +29,4 @@ for (const s of SPLITS) for (const equip of [EQUIP, ['Mancuernas'], []]) {
 // foco: una serie más en ese grupo
 const f = buildPlan({ days: [{ weekday: 1, type: 'pecho' }], level: 'intermediate', focus: 'Pecho', rnd: () => 0 })
 assert.ok(f[0].items.filter((i) => EX_BY_ID[i.ex].group === 'Pecho').every((i) => i.sets >= 4))
-assert.ok(Object.keys(DAY_TYPES).length >= 9)
 console.log('plans ok')

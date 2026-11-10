@@ -1778,3 +1778,15 @@ body.modal-open .savebar { display: none; }
 .cmp-h { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
 .cmp-h .up { color: var(--accent); font-weight: 700; }
 .cmp-h .down { color: var(--amber); font-weight: 700; }
+
+/* resumen al terminar */
+.sum-stats { display: flex; gap: 8px; margin: 0 0 12px; }
+.sum-stats > div { flex: 1; background: var(--card2); border-radius: 12px; padding: 10px; text-align: center; }
+.sum-stats b { display: block; font-family: var(--font-head); font-size: 22px; color: var(--accent); }
+.sum-stats span { font-size: 12px; color: var(--muted); }
+
+/* ficha de ejercicio: favorito y técnica */
+.tag.fav { cursor: pointer; border: 1px solid var(--line); background: transparent; color: var(--text2); font: inherit; font-size: 12px; }
+.tag.fav.on { border-color: var(--accent); color: var(--accent); }
+.tech { background: var(--card2); border-radius: 12px; padding: 10px 12px; color: var(--text2); line-height: 1.45; }
+.tech b { color: var(--text); }

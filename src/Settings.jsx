@@ -7,9 +7,58 @@ import { Generator } from './Workout'
 import Icon from './icons'
 import PushCard from './PushCard'
 import { getPolar, setPolar, connectPolar, syncPolar } from './polar'
+import { Modal } from './ui'
+import { calcGoals, ACTIVITY } from './stats'
+
+// Calcula kcal y proteína; los datos que pide no se guardan, solo el resultado si lo aceptas
+function GoalCalc({ onApply, onClose }) {
+  const [f, setF] = useState({ kg: '', cm: '', age: '', male: true, act: 1.375, aim: 'lose' })
+  const set = (k, v) => setF((s) => ({ ...s, [k]: v }))
+  const r = calcGoals({ ...f, kg: num(f.kg), cm: num(f.cm), age: num(f.age) })
+  const numIn = (k, ph) => (
+    <input className="inp" inputMode="decimal" placeholder={ph} value={f[k]} onChange={(e) => set(k, e.target.value.replace(/[^\d.,]/g, '').slice(0, 5))} />
+  )
+  return (
+    <Modal title="Calcular mis objetivos" onClose={onClose}>
+      <div className="seg">
+        <button className={f.male ? 'on' : ''} onClick={() => set('male', true)}>Hombre</button>
+        <button className={!f.male ? 'on' : ''} onClick={() => set('male', false)}>Mujer</button>
+      </div>
+      <label className="lbl">Peso (kg)</label>
+      {numIn('kg', 'Ej: 75')}
+      <label className="lbl">Altura (cm)</label>
+      {numIn('cm', 'Ej: 175')}
+      <label className="lbl">Edad</label>
+      {numIn('age', 'Ej: 25')}
+      <label className="lbl">Actividad</label>
+      <select className="inp" value={f.act} onChange={(e) => set('act', Number(e.target.value))}>
+        {ACTIVITY.map((a) => (
+          <option key={a.f} value={a.f}>{a.label}</option>
+        ))}
+      </select>
+      <label className="lbl">Objetivo</label>
+      <div className="seg seg3">
+        {[['lose', 'Bajar grasa'], ['keep', 'Mantener'], ['gain', 'Ganar músculo']].map(([v, l]) => (
+          <button key={v} className={f.aim === v ? 'on' : ''} onClick={() => set('aim', v)}>{l}</button>
+        ))}
+      </div>
+      {r && (
+        <div className="advice green sm" style={{ marginTop: 12 }}>
+          <b>{r.kcal} kcal</b> y <b>{r.protein} g de proteína</b> al día. Es una estimación: si en 2-3 semanas tu peso medio no va
+          como quieres, ajusta unas 150-200 kcal.
+        </div>
+      )}
+      <button className="btn primary full" disabled={!r} onClick={() => onApply(r)}>
+        Usar estos objetivos
+      </button>
+      <p className="muted small">Tu peso, altura y edad no se guardan; solo las kcal y la proteína.</p>
+    </Modal>
+  )
+}
 
 export default function Settings({ data, setData }) {
   const [msg, setMsg] = useState('')
+  const [calc, setCalc] = useState(false)
   const [paste, setPaste] = useState('')
   const [ai, setAiState] = useState(getAi())
   const [kt, setKt] = useState({ loading: false, res: null })
@@ -146,7 +195,19 @@ export default function Settings({ data, setData }) {
         <label className="lbl">Pasos al día</label>
         <input className="inp" inputMode="numeric" value={goalVal('steps', 7000)} onFocus={(e) => e.target.select()} onChange={(e) => editGoal('steps', e.target.value)} onBlur={() => commitGoal('steps')} />
         <p className="muted small">Ponlos tú como quieras. Son solo una guía para las barras de progreso.</p>
+        <button className="btn full" onClick={() => setCalc(true)}>
+          <Icon name="sparkle" size={16} /> Calcular por mí
+        </button>
       </div>
+      {calc && (
+        <GoalCalc
+          onClose={() => setCalc(false)}
+          onApply={(r) => {
+            setData((d) => ({ ...d, goals: { ...d.goals, kcal: r.kcal, protein: r.protein } }))
+            setCalc(false)
+          }}
+        />
+      )}
 
       <h4>Avisos en el móvil</h4>
       <PushCard data={data} setData={setData} />

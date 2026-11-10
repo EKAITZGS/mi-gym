@@ -4,14 +4,18 @@ App web (PWA) para planes de entreno, ejercicios con fotos y calorías/proteína
 Sin servidor, sin cuentas: **los datos se guardan en el propio móvil** de cada persona.
 
 ## Qué hace
-- **Entreno:** plan por días y por día de la semana, totalmente editable. Generador automático de plan (3 a 7 días).
-- **Series con peso y reps**, con "última vez" de cada ejercicio y **drop sets** (10 kg → 5 kg al fallo).
-- **Progreso:** gráfica de fuerza (1RM estimado) y volumen por ejercicio, aviso de récord al terminar el entreno y resumen en la pantalla Hoy.
-- **Sugerencia de subir peso** (doble progresión): si la última vez llegaste al tope de reps en todas las series, te propone el siguiente peso.
-- **66 ejercicios con fotos** + ejercicios propios.
-- **Dieta:** calorías y proteína por comida, lista de alimentos básicos, **escáner de código de barras con la cámara** (productos de súper vía Open Food Facts, necesita conexión), búsqueda por nombre y alimentos propios. Escaneas, pones los gramos (o raciones) y calcula las calorías.
-- **Foto del alimento con IA (opcional, Groq):** haces una foto, la IA propone qué es y sus valores por 100 g, tú los revisas y pones los gramos. Necesita una clave gratuita de Groq (console.groq.com) en Ajustes. La clave se guarda solo en el móvil y no entra en las copias.
-- **Copia de seguridad** (exportar/importar JSON). Sin báscula ni pesaje.
+- **Plan automático paso a paso:** nivel, días que vas (los eliges tú), tiempo por entreno, reparto (cuerpo completo, torso/pierna, empuje/tirón/pierna, un grupo por día o el que quieras día a día), material disponible y músculo a priorizar. Cada ejercicio trae series, reps, RIR (reps en reserva) y descanso. Puedes cambiar un ejercicio o rehacer un día antes de guardar, o pulsar *Sorpréndeme*.
+- **Entreno en curso:** peso y reps por serie, "última vez" como referencia (nunca copia las reps), drop sets, ejercicios unilaterales (izq/der), notas por ejercicio y temporizador de descanso que no se pierde al cambiar de pestaña.
+- **Al terminar:** duración, series, kg movidos, récords, comparación con la última vez y un check-in (sensación, sueño, molestias) que ajusta los consejos.
+- **Progreso:** rangos por músculo, series por músculo a la semana, récords del último mes, ejercicios estancados, fuerza por ejercicio (1RM estimado) y cintura/peso como tendencia.
+- **Inicio:** entreno del día, racha de semanas, kg y tiempo de la semana, y revisión semanal con propuestas que solo se aplican si las aceptas.
+- **Biblioteca:** 168 ejercicios con fotos, claves de técnica, favoritos y ejercicios propios.
+- **Dieta:** calorías y proteína por comida, escáner de código de barras (Open Food Facts), foto del plato con IA (opcional, clave gratis de Groq) y calculadora de objetivos (kcal y proteína) que no guarda tu peso ni tu edad.
+- **Reloj Polar (opcional):** pasos, calorías y pulso de tus entrenos.
+- **Copia de seguridad** (exportar/importar JSON).
+
+## Privacidad
+Todo se guarda solo en el móvil de cada persona (localStorage e IndexedDB). No hay cuentas ni servidor propio de datos. Las únicas salidas son las que activas tú: Groq (fotos/IA, con tu clave), Open Food Facts (escáner) y Polar/avisos a través de un Worker de Cloudflare.
 
 ## Publicarla gratis (GitHub Pages)
 1. Crea un repositorio en GitHub y sube todo este proyecto a la rama `main`.
@@ -29,6 +33,7 @@ Instalada así, iOS no borra los datos por inactividad. Haz copias de seguridad 
 npm install
 npm run dev      # servidor local
 npm run build    # genera dist/
+npm test         # pruebas de la lógica (generador, estadísticas)
 ```
 
 ## Créditos

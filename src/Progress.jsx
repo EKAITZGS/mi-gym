@@ -8,6 +8,58 @@ import BodyCard from './Body'
 import MonthModal from './Month'
 import RankCard from './Rank'
 import { MuscleSets } from './Extras'
+import { recentPRs, stalled } from './stats'
+
+// Récords del último mes y ejercicios que llevan 3 entrenos sin mejorar
+function Highlights({ data, onOpen }) {
+  const prs = useMemo(() => recentPRs(data.sessions).slice(0, 5), [data.sessions])
+  const stuck = useMemo(() => stalled(data.sessions).filter((x) => EX_BY_ID[x.id]), [data.sessions])
+  if (!prs.length && !stuck.length) return null
+  return (
+    <div className="card list-card">
+      {prs.length > 0 && (
+        <>
+          <div className="sec-head nm">
+            <b>
+              <Icon name="trophy" size={16} className="inl gold" /> Récords del último mes
+            </b>
+          </div>
+          {prs.map((p) => (
+            <button key={p.id} className="row nob li" onClick={() => onOpen(EX_BY_ID[p.id])}>
+              <Thumb ex={EX_BY_ID[p.id]} size={38} />
+              <div className="grow">
+                <div className="li-t">{EX_BY_ID[p.id]?.name || p.id}</div>
+                <div className="muted small">
+                  {fmtKg(p.w)} kg × {p.r} · {p.date.slice(8)}/{p.date.slice(5, 7)}
+                </div>
+              </div>
+              <span className="delta up">+{fmtKg(Math.round((p.e - p.prev) * 10) / 10)} kg</span>
+            </button>
+          ))}
+        </>
+      )}
+      {stuck.length > 0 && (
+        <>
+          <div className="sec-head nm" style={{ marginTop: prs.length ? 10 : 0 }}>
+            <b>Estancados</b>
+          </div>
+          <p className="muted small" style={{ marginTop: 0 }}>
+            3 entrenos sin mejorar. Prueba otro rango de reps, una semana de descarga o una variante del ejercicio.
+          </p>
+          {stuck.map((x) => (
+            <button key={x.id} className="row nob li" onClick={() => onOpen(EX_BY_ID[x.id])}>
+              <Thumb ex={EX_BY_ID[x.id]} size={38} />
+              <div className="grow">
+                <div className="li-t">{EX_BY_ID[x.id].name}</div>
+                <div className="muted small">Mejor 1RM est. {fmtKg(Math.round(x.best * 10) / 10)} kg</div>
+              </div>
+            </button>
+          ))}
+        </>
+      )}
+    </div>
+  )
+}
 
 // Pestaña Progreso: lo que antes iba al final de Inicio (rangos, series por músculo, cuerpo y fuerza)
 export default function Progress({ data, setData }) {
@@ -32,6 +84,7 @@ export default function Progress({ data, setData }) {
       <h1 className="title">Progreso</h1>
       <RankCard data={data} />
       <MuscleSets data={data} />
+      <Highlights data={data} onOpen={setOpen} />
       <BodyCard data={data} setData={setData} />
 
       <div className="sec-head">
@@ -70,7 +123,7 @@ export default function Progress({ data, setData }) {
         <Icon name="trend" size={15} /> Ver resumen del mes
       </button>
       {month && <MonthModal data={data} onClose={() => setMonth(false)} />}
-      {open && <ExerciseModal ex={open} data={data} onClose={() => setOpen(null)} />}
+      {open && <ExerciseModal ex={open} data={data} setData={setData} onClose={() => setOpen(null)} />}
     </div>
   )
 }

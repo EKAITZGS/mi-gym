@@ -9,6 +9,7 @@ import Setup from './Setup'
 import PolarSession from './PolarSession'
 import { ProteinTip, StepsBar } from './Extras'
 import { Generator } from './Workout'
+import { streakWeeks, weekTotals } from './stats'
 
 const greeting = () => {
   const h = new Date().getHours()
@@ -91,7 +92,7 @@ export default function Home({ data, setData, onStart, go }) {
                 <h2>{doneToday.dayId === d.id ? d.name : doneToday.dayName || d.name}</h2>
                 <p className="hero-sum">
                   {nEx} {nEx === 1 ? 'ejercicio' : 'ejercicios'} · {sets} {sets === 1 ? 'serie' : 'series'}
-                  {watch ? ` · ${watch.min} min · ${watch.kcal} kcal` : ''}
+                  {watch ? ` · ${watch.min} min · ${watch.kcal} kcal` : doneToday.min ? ` · ${doneToday.min} min` : ''}
                 </p>
                 <p className="small hero-note">¡Buen trabajo! Ahora toca comer bien y descansar.</p>
                 <button className="link small hero-again" onClick={() => onStart(d.id)}>
@@ -224,6 +225,16 @@ export default function Home({ data, setData, onStart, go }) {
             {planned ? ` de ${planned}` : ''}
           </span>
         </div>
+        {(() => {
+          const streak = streakWeeks(data.sessions)
+          const wk = weekTotals(data.sessions)
+          const bits = [
+            streak > 1 && `🔥 ${streak} semanas seguidas`,
+            wk.vol > 0 && `${wk.vol.toLocaleString('es-ES')} kg`,
+            wk.min > 0 && (wk.min >= 60 ? `${Math.floor(wk.min / 60)} h ${wk.min % 60} min` : `${wk.min} min`),
+          ].filter(Boolean)
+          return bits.length > 0 && <p className="muted small" style={{ margin: '0 0 8px' }}>{bits.join(' · ')}</p>
+        })()}
         <div className="wdots">
           {weekDots.map((d) => (
             <div key={d.s} className={'wdot' + (d.done ? ' done' : '') + (d.today ? ' today' : '')}>
