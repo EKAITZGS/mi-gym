@@ -87,6 +87,12 @@ export default function App() {
     if (data.active && data.active.dayId !== dayId) {
       if (!confirm('Tienes otro entreno en curso. ¿Empezar este y descartar el otro?')) return
     }
+    // mismo día del plan pero empezado otra fecha: se sigue con lo apuntado, guardado con la fecha de hoy
+    const stale = data.active && data.active.dayId === dayId && data.active.date !== todayStr()
+    if (stale) {
+      if (!confirm('Tienes este entreno a medias de otro día. ¿Seguir con lo apuntado, con fecha de hoy? (Para empezar de cero, entra y pulsa Descartar.)')) return
+      setData((d) => (d.active ? { ...d, active: { ...d.active, date: todayStr() } } : d))
+    }
     if (!data.active || data.active.dayId !== dayId) {
       const entries = {}
       for (const it of day.items) {

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { EXERCISES, EX_BY_ID, GROUPS } from './data/exercises'
-import { WEEKDAYS, uid, lastSets, exStats, suggestion, fmtKg, num } from './store'
+import { WEEKDAYS, uid, lastSets, exStats, suggestion, fmtKg, num, pad } from './store'
 import { Modal, Thumb, LineChart, ExPhoto } from './ui'
 import Icon from './icons'
 import WeeklyReview from './Review'
@@ -506,6 +506,48 @@ function CheckIn({ onSave, onSkip, exercises = [] }) {
 }
 
 /* ---------- Entreno en curso ---------- */
+/* ---------- Descanso entre series ---------- */
+const REST_KEY = 'migym.rest'
+const restSecs = () => {
+  try {
+    return Number(localStorage.getItem(REST_KEY)) || 90
+  } catch {
+    return 90
+  }
+}
+// shortcut: sin sonido (iOS no deja sonar ni vibrar a una PWA sin toque), solo aviso visual; si hace falta, usar un aviso push
+function RestTimer({ end, onAdd, onClose }) {
+  const [now, setNow] = useState(Date.now())
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 500)
+    return () => clearInterval(t)
+  }, [])
+  const left = Math.ceil((end - now) / 1000)
+  useEffect(() => {
+    if (left === 0) navigator.vibrate?.(300)
+    if (left < -8) onClose()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [left])
+  return (
+    <div className={'rest' + (left <= 0 ? ' go' : '')} role="timer">
+      <span className="rest-t">{left > 0 ? `${Math.floor(left / 60)}:${pad(left % 60)}` : '¡Siguiente serie!'}</span>
+      {left > 0 && <span className="muted small grow">descanso</span>}
+      {left > 0 && <button onClick={() => onAdd(-15)}>−15 s</button>}
+      {left > 0 && <button onClick={() => onAdd(15)}>+15 s</button>}
+      <button aria-label="Cerrar descanso" onClick={onClose}>
+        <Icon name="x" size={16} />
+      </button>
+    </div>
+  )
+}
+const lastNote = (sessions, exId) => {
+  for (let i = sessions.length - 1; i >= 0; i--) if (sessions[i].notes?.[exId]) return sessions[i].notes[exId]
+  return null
+}
+const setsVol = (sets) =>
+  sets.reduce((t, s) => t + num(s.w) * num(s.r) + (s.drops || []).reduce((q, x) => q + num(x.w) * num(x.r), 0), 0)
+const setsTxt = (sets) => sets.map((s) => `${s.w || '?'}×${s.r || '?'}`).join(', ')
+
 function Session({ data, setData, onExit }) {
   const a = data.active
   const day = a ? data.plan.find((d) => d.id === a.dayId) : null
@@ -514,6 +556,13 @@ function Session({ data, setData, onExit }) {
   const [detail, setDetail] = useState(null)
   const [picker, setPicker] = useState(null) // { mode: 'add' } | { mode: 'swap', itemId }
   const [done, setDone] = useState(null) // { prs, changed, items, dayId, name } al terminar
+  const [rest, setRest] = useState(null) // hora (ms) a la que acaba el descanso
+  const addRest = (d) => {
+    try {
+      localStorage.setItem(REST_KEY, Math.min(600, Math.max(15, restSecs() + d)))
+    } catch {}
+    setRest((r) => r + d * 1000)
+  }
 
   const newSets = (n, drop) =>
     Array.from({ length: n }, () => ({ w: '', r: '', done: false, drops: drop ? [{ w: '', r: '' }] : [] }))
@@ -611,6 +660,22 @@ function Session({ data, setData, onExit }) {
           ) : (
             <p className="muted">Entreno registrado. Cada serie que anotas hace más fiable tu progreso.</p>
           )}
+          {done.cmp?.length > 0 && (
+            <>
+              <h4>Hoy frente a la última vez</h4>
+              {done.cmp.map((c) => (
+                <div className="cmp" key={c.name}>
+                  <div className="cmp-h">
+                    <b>{c.name}</b>
+                    {c.d != null && <span className={c.d >= 0 ? 'up' : 'down'}>{c.d > 0 ? '+' : ''}{c.d} %</span>}
+                  </div>
+                  <div className="muted small">Hoy: {c.now}</div>
+                  <div className="muted small">{c.prev ? `Antes: ${c.prev}` : 'Primera vez que lo registras'}</div>
+                </div>
+              ))}
+              <p className="muted small">El % compara el volumen (kg × reps de todas las series) con el de la última vez.</p>
+            </>
+          )}
           {done.changed && (
             <div className="card save-plan">
               <b>{done.dayId === 'free' ? '¿Guardar este entreno como un día?' : 'Has cambiado ejercicios'}</b>
@@ -682,15 +747,24 @@ function Session({ data, setData, onExit }) {
         prs.push({ name: EX_BY_ID[exId]?.name || exId, w: cur.best.w, r: cur.best.r, e: cur.best.e, prev: prevBest })
       }
     }
+    // comparación con la última vez de cada ejercicio (data.sessions aún no incluye el de hoy)
+    const cmp = Object.entries(entries).map(([exId, sets]) => {
+      const prev = lastSets(data.sessions, exId)
+      const pv = prev ? setsVol(prev.sets) : 0
+      return { name: EX_BY_ID[exId]?.name || exId, now: setsTxt(sets), prev: prev && setsTxt(prev.sets), d: pv > 0 ? Math.round((setsVol(sets) / pv - 1) * 100) : null }
+    })
+    const notes = {}
+    for (const [k, v] of Object.entries(a.notes || {})) if (entries[k] && v.trim()) notes[k] = v.trim()
+    setRest(null)
     setData((d) => ({
       ...d,
       active: null,
-      sessions: [...d.sessions, { id: sid, date: a.date, dayId: a.dayId, dayName: name, entries }],
+      sessions: [...d.sessions, { id: sid, date: a.date, dayId: a.dayId, dayName: name, entries, ...(Object.keys(notes).length ? { notes } : {}) }],
     }))
     const before = (day?.items || []).map((i) => i.ex).join('|')
     const after = items.map((i) => i.ex).join('|')
     const changed = items.length > 0 && (a.dayId === 'free' || (day && before !== after))
-    setDone({ prs, changed, items, dayId: a.dayId, name, sid, step: 'checkin', exs: Object.keys(entries), entries })
+    setDone({ prs, cmp, changed, items, dayId: a.dayId, name, sid, step: 'checkin', exs: Object.keys(entries), entries })
   }
   const discard = () => {
     if (!confirm('¿Descartar este entreno sin guardar?')) return
@@ -729,11 +803,12 @@ function Session({ data, setData, onExit }) {
         const s0 = pain ? null : suggestion(data.sessions, it.ex, it.reps, it.sets, ex?.equip)
         const sug = s0?.action === 'up' ? s0 : null
         const hold = s0?.action === 'hold' ? s0 : null
+        // referencia: solo el PESO de la última vez. Las reps de hoy empiezan vacías y nunca se copian.
         const phOf = (i) => {
           const b0 = last?.sets[i] || last?.sets[last.sets.length - 1] || {}
-          const base = b0.rl || b0.rr ? { ...b0, r: b0.rl || b0.r, r2: b0.rr || b0.r } : { ...b0, r2: b0.r }
-          return sug ? { ...base, w: fmtKg(sug.w), r: String(sug.reps), r2: String(sug.reps) } : base
+          return { w: b0.w, drops: (b0.drops || []).map((x) => ({ w: x.w })) }
         }
+        const note = lastNote(data.sessions, it.ex)
         return (
           <div className="card" key={it.id}>
             <div className="ex-tools">
@@ -762,6 +837,7 @@ function Session({ data, setData, onExit }) {
                     Última vez: {last.sets.map((s) => `${s.w || '?'}×${s.rl || s.rr ? `${s.rl || '?'}/${s.rr || '?'}` : s.r || '?'}`).join(', ')}
                   </div>
                 )}
+                {note && <div className="muted small">Nota anterior: {note}</div>}
                 {pain && (
                   <div className={'advice ' + (pain.level === 'fuerte' ? 'red' : 'yellow') + ' sm'}>
                     Molestia {pain.level} en {pain.zone.toLowerCase()} el {pain.date.slice(8)}/{pain.date.slice(5, 7)}.{' '}
@@ -816,7 +892,7 @@ function Session({ data, setData, onExit }) {
                       className="inp sm"
                       inputMode="numeric"
                       aria-label={uni ? 'Reps izquierdo' : 'Reps'}
-                      placeholder={ph.r || (uni ? 'izq' : 'reps')}
+                      placeholder={uni ? 'izq' : 'reps'}
                       value={s.r}
                       onChange={(e) => patchSet(it.ex, i, (x) => ({ ...x, r: repIn(e.target.value) }))}
                     />
@@ -825,14 +901,19 @@ function Session({ data, setData, onExit }) {
                         className="inp sm"
                         inputMode="numeric"
                         aria-label="Reps derecho"
-                        placeholder={ph.r2 || 'der'}
+                        placeholder="der"
                         value={s.r2 || ''}
                         onChange={(e) => patchSet(it.ex, i, (x) => ({ ...x, r2: repIn(e.target.value) }))}
                       />
                     )}
                     <button
                       className={'chk' + (s.done ? ' on' : '')}
-                      onClick={() =>
+                      aria-label={s.done ? 'Desmarcar serie' : 'Serie hecha'}
+                      onClick={(e) => {
+                        // sin reps de hoy no se da por hecha: te lleva al campo en vez de inventarlas
+                        if (!s.done && !(s.r || (uni && s.r2)))
+                          return e.currentTarget.parentElement.querySelector('input[aria-label^="Reps"]')?.focus()
+                        if (!s.done) setRest(Date.now() + restSecs() * 1000)
                         patchSet(it.ex, i, (x) =>
                           x.done
                             ? { ...x, done: false }
@@ -840,15 +921,10 @@ function Session({ data, setData, onExit }) {
                                 ...x,
                                 done: true,
                                 w: x.w || ph.w || '',
-                                r: x.r || ph.r || '',
-                                r2: uni ? x.r2 || ph.r2 || x.r || ph.r || '' : x.r2,
-                                drops: x.drops.map((dr, j) => ({
-                                  w: dr.w || ph.drops?.[j]?.w || '',
-                                  r: dr.r || ph.drops?.[j]?.r || '',
-                                })),
+                                drops: x.drops.map((dr, j) => ({ ...dr, w: dr.w || (dr.r && ph.drops?.[j]?.w) || '' })),
                               }
                         )
-                      }
+                      }}
                     >
                       <Icon name="check" size={18} />
                     </button>
@@ -872,7 +948,7 @@ function Session({ data, setData, onExit }) {
                       <input
                         className="inp sm"
                         inputMode="numeric"
-                        placeholder={ph.drops?.[j]?.r || 'reps'}
+                        placeholder="reps"
                         value={dr.r}
                         onChange={(e) =>
                           patchSet(it.ex, i, (x) => ({
@@ -905,9 +981,18 @@ function Session({ data, setData, onExit }) {
                 </div>
               )
             })}
+            <input
+              className="inp note"
+              aria-label="Nota del ejercicio"
+              placeholder="Nota: agarre, asiento, sensaciones…"
+              maxLength={200}
+              value={a.notes?.[it.ex] || ''}
+              onChange={(e) => setActive((act) => ({ ...act, notes: { ...(act.notes || {}), [it.ex]: e.target.value } }))}
+            />
           </div>
         )
       })}
+      {rest && <RestTimer end={rest} onAdd={addRest} onClose={() => setRest(null)} />}
       <button className="btn full" onClick={() => setPicker({ mode: 'add' })}>
         <Icon name="plus" size={18} /> Añadir ejercicio
       </button>
