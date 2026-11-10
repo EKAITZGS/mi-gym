@@ -14,7 +14,7 @@ export default defineConfig({
       manifestFilename: 'manifest-v4.webmanifest',
       includeAssets: ['favicon.png', 'logo.svg'],
       workbox: {
-        globPatterns: ['**/*.{js,css,html,jpg,webp,svg}', 'favicon.png', 'body/*.png'],
+        globPatterns: ['**/*.{js,css,html,jpg,webp,svg,woff2}', 'favicon.png', 'body/*.png'],
         // las fotos de ejercicios no se descargan al instalar: se bajan al verlas y se guardan (ver runtimeCaching)
         globIgnores: ['**/ios-icon-*.png', '**/app-icon-*.png', '**/icono.html', '**/ex/**'],
         runtimeCaching: [
@@ -31,7 +31,7 @@ export default defineConfig({
         clientsClaim: true,
         skipWaiting: true,
         // avisos push: muestra la notificación y abre la app al tocarla
-        importScripts: ['push-sw.js?v=1'],
+        importScripts: ['push-sw.js?v=2'],
       },
       manifest: {
         name: 'Mi Gym',
@@ -42,11 +42,11 @@ export default defineConfig({
         scope: './',
         display: 'standalone',
         orientation: 'portrait',
-        background_color: '#0a0b0e',
-        theme_color: '#0a0b0e',
+        background_color: '#0b0b0b',
+        theme_color: '#0b0b0b',
         icons: [
-          { src: 'icon-192.png?v=4', sizes: '192x192', type: 'image/png' },
-          { src: 'icon-512.png?v=4', sizes: '512x512', type: 'image/png' },
+          { src: 'icon-192.png?v=5', sizes: '192x192', type: 'image/png' },
+          { src: 'icon-512.png?v=5', sizes: '512x512', type: 'image/png' },
         ],
       },
     }),

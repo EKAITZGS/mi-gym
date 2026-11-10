@@ -2,7 +2,7 @@ import { useId } from 'react'
 import { Modal } from './ui'
 
 const ZONE_NAMES = ['Muy suave', 'Suave', 'Moderado', 'Intenso', 'Máximo']
-const ZONE_COLORS = ['#7b8494', '#4ea8ff', '#3ee08f', '#ffb547', '#ff5d6c']
+const ZONE_COLORS = ['#7b8494', '#4ea8ff', '#a3ff12', '#ffb547', '#ff5d6c']
 
 const fmtMin = (s) => {
   const m = Math.floor(s / 60)

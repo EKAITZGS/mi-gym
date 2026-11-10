@@ -27,8 +27,8 @@ self.addEventListener('push', (event) => {
       } catch (e) {}
       await self.registration.showNotification(msg.title, {
         body: msg.body,
-        icon: 'icon-192.png?v=4',
-        badge: 'icon-192.png?v=4',
+        icon: 'icon-192.png?v=5',
+        badge: 'icon-192.png?v=5',
         data: { url: './' },
       })
     })()
