@@ -9,6 +9,7 @@ import PolarSession from './PolarSession'
 import { ProteinTip } from './Extras'
 import { PlanMaker } from './Workout'
 import { streakWeeks, weekTotals } from './stats'
+import { SleepLine } from './Sleep'
 
 const miles = (n) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.')
 
@@ -144,6 +145,7 @@ export default function Home({ data, setData, onStart, go }) {
         </div>
       )}
 
+      <SleepLine data={data} onOpen={() => go('progress')} />
       <WeeklyReview data={data} setData={setData} focusId={todays[0]?.id} rest={todays.length === 0} />
 
       {data.polar && (() => {

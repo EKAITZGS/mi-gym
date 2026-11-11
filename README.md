@@ -11,7 +11,7 @@ Sin servidor, sin cuentas: **los datos se guardan en el propio móvil** de cada 
 - **Inicio:** entreno del día, racha de semanas, kg y tiempo de la semana, y revisión semanal con propuestas que solo se aplican si las aceptas.
 - **Biblioteca:** 873 ejercicios con fotos (fuerza, cardio, estiramientos, pliometría, halterofilia y strongman); cada uno se puede medir por peso y reps, tiempo, distancia o km y minutos,, claves de técnica, favoritos y ejercicios propios.
 - **Dieta:** calorías y proteína por comida, escáner de código de barras (Open Food Facts), foto del plato con IA (opcional, clave gratis de Groq) y calculadora de objetivos (kcal y proteína) que no guarda tu peso ni tu edad.
-- **Reloj Polar (opcional):** pasos, calorías y pulso de tus entrenos.
+- **Reloj Polar (opcional):** pasos, calorías, pulso de tus entrenos y **sueño** (horas, hora de acostarte, regularidad, fases si tu reloj las tiene) con análisis y consejos.
 - **Copia de seguridad** (exportar/importar JSON).
 
 ## Privacidad

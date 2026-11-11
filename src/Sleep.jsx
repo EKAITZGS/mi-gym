@@ -1,0 +1,108 @@
+import { sleepAnalysis, hm } from './stats'
+import Icon from './icons'
+
+// Apartado de sueño (Progreso): noches del reloj Polar, medias de 7 días y análisis con consejos
+export default function SleepCard({ data }) {
+  const a = sleepAnalysis(data.polar?.sleep, data.polar?.recharge)
+  if (!data.polar) return null
+  if (!a)
+    return (
+      <div className="card">
+        <div className="sec-head nm">
+          <b>
+            <Icon name="calendar" size={16} className="inl" /> Sueño
+          </b>
+        </div>
+        <p className="muted small" style={{ margin: 0 }}>
+          Aún no hay noches del reloj. Duerme con él puesto y sincroniza con Polar Flow: aquí verás tus horas, la regularidad y
+          consejos.
+        </p>
+      </div>
+    )
+  const max = Math.max(a.goal, ...a.week.map((n) => n.total || 0))
+  return (
+    <div className="card sleep">
+      <div className="sec-head nm">
+        <b>
+          <Icon name="calendar" size={16} className="inl" /> Sueño
+        </b>
+        <span className="muted small">últimas 7 noches</span>
+      </div>
+      {a.last && (
+        <div className="sleep-last">
+          <b className="tile-num">{hm(a.last.total)}</b>
+          <span className="muted small">
+            {' '}
+            anoche{a.last.start ? ` · ${a.last.start}–${a.last.end}` : ''}
+            {a.last.score != null ? ` · puntuación ${a.last.score}` : ''}
+          </span>
+        </div>
+      )}
+      <div className="sleep-bars" aria-label="Horas de sueño por noche">
+        {a.week.map((n) => (
+          <div key={n.date} className="sleep-col">
+            <span className={'sleep-bar' + (n.total && n.total < a.goal - 60 ? ' low' : '')} style={{ height: `${n.total ? Math.max(6, (n.total / max) * 100) : 0}%` }} />
+            <span className="sleep-day">{'DLMXJVS'[new Date(n.date + 'T12:00').getDay()]}</span>
+          </div>
+        ))}
+      </div>
+      <div className="sleep-stats">
+        <div>
+          <b>{hm(a.avg)}</b>
+          <span>
+            media
+            {a.prevAvg ? ` (${a.avg >= a.prevAvg ? '+' : '−'}${Math.abs(a.avg - a.prevAvg)} min)` : ''}
+          </span>
+        </div>
+        {a.bed && (
+          <div>
+            <b>{a.bed}</b>
+            <span>te acuestas{a.spread != null ? ` ±${a.spread} min` : ''}</span>
+          </div>
+        )}
+        {a.deepPct != null ? (
+          <div>
+            <b>{a.deepPct} %</b>
+            <span>profundo · REM {a.remPct} %</span>
+          </div>
+        ) : a.interr != null ? (
+          <div>
+            <b>{a.interr} min</b>
+            <span>despierto por noche</span>
+          </div>
+        ) : null}
+      </div>
+      {a.hrv != null && (
+        <p className="muted small" style={{ margin: '0 0 6px' }}>
+          Recarga nocturna: VFC media {a.hrv} ms{a.hr ? ` · pulso en reposo ${a.hr} ppm` : ''}
+        </p>
+      )}
+      <ul className="tips-list">
+        {a.tips.map((t, i) => (
+          <li key={i}>{t}</li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+// Resumen corto para Inicio
+export function SleepLine({ data, onOpen }) {
+  const a = sleepAnalysis(data.polar?.sleep, data.polar?.recharge)
+  if (!a?.last || !a.lastIsToday) return null
+  return (
+    <button className="card sleep-line" onClick={onOpen}>
+      <span className="rest-ic">
+        <Icon name="calendar" size={18} />
+      </span>
+      <div className="grow">
+        <div className="li-t">
+          Anoche dormiste {hm(a.last.total)}
+          {a.last.score != null ? ` · ${a.last.score}/100` : ''}
+        </div>
+        <div className="muted small">{a.tips[0]}</div>
+      </div>
+      <Icon name="right" size={16} className="muted" />
+    </button>
+  )
+}

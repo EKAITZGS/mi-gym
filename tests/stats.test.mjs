@@ -45,3 +45,34 @@ import { restDayTips } from '../src/coach.js'
   assert.equal(restDayTips(done).length, 1)
   console.log('rest tips ok')
 }
+
+// sueño: lectura de Polar y análisis
+import { sleepAnalysis, hm } from '../src/stats.js'
+import { parseNights } from '../src/polar.js'
+{
+  const p = parseNights({ nights: [
+    { date: '2026-11-10', sleep_start_time: '2026-11-10T00:30:00+01:00', sleep_end_time: '2026-11-10T07:00:00+01:00', total_interruption_duration: 1800, sleep_score: 70, heart_rate_samples: { a: 1 } },
+    { date: '2026-11-11', sleep_start_time: '2026-11-10T23:00:00+01:00', sleep_end_time: '2026-11-11T07:00:00+01:00', light_sleep: 14400, deep_sleep: 5400, rem_sleep: 6000, unrecognized_sleep_stage: 0, total_interruption_duration: 600 },
+  ] })
+  assert.deepEqual(p['2026-11-10'], { start: '00:30', end: '07:00', total: 360, interr: 30, score: 70 }) // sin fases: duración menos interrupciones
+  assert.equal(p['2026-11-11'].total, 430) // con fases: suma de fases
+  assert.equal(p['2026-11-11'].deep, 90)
+  assert.equal(hm(430), '7 h 10 min')
+  const now = new Date('2026-11-11T10:00')
+  const nights = {}
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(now); d.setDate(d.getDate() - i)
+    const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    nights[k] = { start: i % 2 ? '02:00' : '23:00', end: '07:00', total: i < 3 ? 330 : 400, interr: 40 }
+  }
+  const a = sleepAnalysis(nights, null, now)
+  assert.equal(a.lastIsToday, true)
+  assert.equal(a.avg, Math.round((330 * 3 + 400 * 4) / 7))
+  assert.ok(a.tips.some((t) => t.startsWith('Duermes de media')))
+  assert.ok(a.tips.some((t) => t.startsWith('3 noches de menos de 6 h')))
+  assert.ok(a.tips.some((t) => t.includes('horas muy distintas')))
+  assert.ok(a.tips.some((t) => t.includes('despierto por noche')))
+  assert.equal(a.bed, '00:17') // media de 23:00 y 02:00 cruzando medianoche
+  assert.equal(sleepAnalysis({}, null, now), null)
+  console.log('sleep ok')
+}

@@ -1794,3 +1794,16 @@ body.modal-open .savebar { display: none; }
 /* cómo se mide cada ejercicio */
 .track-row { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
 .track-row select { width: auto; flex: 1; margin: 0; }
+
+/* sueño */
+.sleep-last { margin: 2px 0 10px; }
+.sleep-bars { position: relative; display: flex; gap: 8px; align-items: flex-end; height: 110px; margin: 0 0 10px; }
+.sleep-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 4px; }
+.sleep-bar { width: 100%; max-width: 28px; border-radius: 8px 8px 4px 4px; background: var(--accent); }
+.sleep-bar.low { background: var(--amber); }
+.sleep-day { font-size: 11px; color: var(--muted); }
+.sleep-stats { display: flex; gap: 8px; margin: 0 0 10px; }
+.sleep-stats > div { flex: 1; background: var(--card2); border-radius: 12px; padding: 8px; text-align: center; }
+.sleep-stats b { display: block; font-family: var(--font-head); font-size: 17px; }
+.sleep-stats span { font-size: 11px; color: var(--muted); }
+.sleep-line { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; }

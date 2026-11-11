@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { EXERCISES, EX_BY_ID, GROUPS } from './data/exercises'
-import { WEEKDAYS, uid, lastSets, exStats, suggestion, fmtKg, num, pad, TRACKS, trackOf, setFilled, setTxt } from './store'
+import { WEEKDAYS, uid, lastSets, exStats, suggestion, fmtKg, num, pad, TRACKS, trackOf, setFilled, setTxt, todayStr } from './store'
 import { Modal, Thumb, LineChart, ExPhoto } from './ui'
 import { techFor } from './data/technique'
 import Icon from './icons'
@@ -672,14 +672,15 @@ function DayEditor({ data, setData, dayId, isNew, onBack }) {
 }
 
 /* ---------- Check-in al terminar ---------- */
-function CheckIn({ onSave, onSkip, exercises = [] }) {
+function CheckIn({ onSave, onSkip, exercises = [], night }) {
   const [feel, setFeel] = useState(null)
   const [rir, setRir] = useState({})
   const [hasPain, setHasPain] = useState(false)
   const [zone, setZone] = useState(null)
   const [level, setLevel] = useState('leve')
   const [note, setNote] = useState('')
-  const [sleep, setSleep] = useState(null)
+  // si el reloj tiene la noche de hoy, viene marcado: menos de 6 h mal, hasta 7 h 30 normal, más bien
+  const [sleep, setSleep] = useState(night ? (night.total < 360 ? 1 : night.total < 450 ? 2 : 3) : null)
   return (
     <Modal title="¿Cómo ha ido?" onClose={onSkip}>
       <p className="muted small" style={{ marginTop: 0 }}>
@@ -695,6 +696,7 @@ function CheckIn({ onSave, onSkip, exercises = [] }) {
         ))}
       </div>
       <h4>¿Cómo dormiste anoche?</h4>
+      {night && <p className="muted small" style={{ marginTop: -4 }}>Según el reloj: {Math.floor(night.total / 60)} h {night.total % 60} min</p>}
       <div className="seg seg3">
         {[
           [1, 'Mal'],
@@ -910,6 +912,7 @@ function Session({ data, setData, onExit }) {
     return (
       <div className="page">
         <CheckIn
+          night={data.polar?.sleep?.[todayStr()]}
           exercises={done.exs || []}
           onSkip={() => setDone({ ...done, step: 'summary', tips: [] })}
           onSave={(ck) => {

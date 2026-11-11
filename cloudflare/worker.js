@@ -17,9 +17,9 @@ const redirectUri = url.origin + '/callback';
 if (url.pathname === '/auth') return Response.redirect('https://flow.polar.com/oauth2/authorization?' + new URLSearchParams({ response_type: 'code', client_id: env.POLAR_CLIENT_ID, redirect_uri: redirectUri, scope: 'accesslink.read_all' }), 302);
 if (url.pathname === '/callback') return callback(url, env, redirectUri);
 const auth = req.headers.get('Authorization') || '';
-if (url.pathname === '/exercises' || url.pathname === '/activities' || url.pathname === '/exercise') return data(url, auth);
+if (url.pathname === '/exercises' || url.pathname === '/activities' || url.pathname === '/exercise' || url.pathname === '/sleep' || url.pathname === '/recharge') return data(url, auth);
 if (url.pathname === '/polar/off') return polarOff(url, auth);
-if (url.pathname === '/') return new Response('Mi Gym - Polar OK v6', { headers: cors });
+if (url.pathname === '/') return new Response('Mi Gym - Polar OK v7', { headers: cors });
 return json({ error: 'no_encontrado' }, 404);
 }
 // IA sin clave: la clave de Groq es el secreto GROQ_KEY. Solo desde la app, 30 usos por persona (IP) y día.
@@ -64,7 +64,9 @@ else if (url.pathname === '/exercise') {
 const id = url.searchParams.get('id') || '';
 if (!/^[A-Za-z0-9_-]{1,80}$/.test(id)) return json({ error: 'id_no_valido' }, 400);
 target = API + '/exercises/' + id + '?samples=true&zones=true';
-} else target = API + '/users/activities?' + new URLSearchParams([...url.searchParams].filter(([k, v]) => (k === 'from' || k === 'to') && /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(v)));
+} else if (url.pathname === '/sleep') target = API + '/users/sleep';
+else if (url.pathname === '/recharge') target = API + '/users/nightly-recharge';
+else target = API + '/users/activities?' + new URLSearchParams([...url.searchParams].filter(([k, v]) => (k === 'from' || k === 'to') && /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(v)));
 const r = await fetch(target, { headers: { Authorization: auth, Accept: 'application/json' } });
 if (r.status === 204) return json([]);
 const body = await r.text();

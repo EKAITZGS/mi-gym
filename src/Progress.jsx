@@ -9,6 +9,7 @@ import MonthModal from './Month'
 import RankCard from './Rank'
 import { MuscleSets } from './Extras'
 import { recentPRs, stalled } from './stats'
+import SleepCard from './Sleep'
 
 // Récords del último mes y ejercicios que llevan 3 entrenos sin mejorar
 function Highlights({ data, onOpen }) {
@@ -85,6 +86,7 @@ export default function Progress({ data, setData }) {
       <RankCard data={data} />
       <MuscleSets data={data} />
       <Highlights data={data} onOpen={setOpen} />
+      <SleepCard data={data} />
       <BodyCard data={data} setData={setData} />
 
       <div className="sec-head">

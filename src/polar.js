@@ -125,16 +125,63 @@ async function get(path, token) {
   return r.json()
 }
 
-// Trae entrenos (30 días) y actividad diaria (última semana) y los guarda en data.polar
+// Sueño (Polar Sleep Plus / Sleep Plus Stages): duraciones en segundos -> minutos; sin hipnograma ni pulso para no llenar el móvil
+const mins = (v) => (v == null || isNaN(Number(v)) ? null : Math.round(Number(v) / 60))
+export function parseNights(json) {
+  const out = {}
+  const list = Array.isArray(json) ? json : json?.nights || []
+  for (const n of list) {
+    const date = String(n.date || '').slice(0, 10)
+    if (!date) continue
+    const st = String(n.sleep_start_time || ''), en = String(n.sleep_end_time || '')
+    const light = mins(n.light_sleep), deep = mins(n.deep_sleep), rem = mins(n.rem_sleep), unrec = mins(n.unrecognized_sleep_stage)
+    const staged = (light || 0) + (deep || 0) + (rem || 0) + (unrec || 0)
+    const span = st && en ? Math.round((new Date(en) - new Date(st)) / 60000) : 0
+    const interr = mins(n.total_interruption_duration) || 0
+    const total = staged || Math.max(0, span - interr)
+    if (!total) continue
+    out[date] = {
+      start: st.slice(11, 16), end: en.slice(11, 16), total, interr,
+      ...(staged ? { light, deep, rem } : {}),
+      ...(n.sleep_score != null ? { score: Math.round(n.sleep_score) } : {}),
+      ...(n.continuity != null ? { cont: Number(n.continuity) } : {}),
+      ...(n.sleep_rating != null ? { rating: Number(n.sleep_rating) } : {}),
+      ...(n.sleep_cycles != null ? { cycles: Number(n.sleep_cycles) } : {}),
+      ...(n.sleep_goal ? { goal: mins(n.sleep_goal) } : {}),
+    }
+  }
+  return out
+}
+export function parseRecharge(json) {
+  const out = {}
+  for (const r of Array.isArray(json) ? json : json?.recharges || []) {
+    const date = String(r.date || '').slice(0, 10)
+    if (!date) continue
+    out[date] = {
+      hrv: r.heart_rate_variability_avg ?? null, hr: r.heart_rate_avg ?? null,
+      status: r.nightly_recharge_status ?? null, ans: r.ans_charge ?? null, breath: r.breathing_rate_avg ?? null,
+    }
+  }
+  return out
+}
+// se guardan como mucho 120 noches
+const lastN = (obj, n = 120) => Object.fromEntries(Object.entries(obj).sort(([a], [b]) => (a < b ? -1 : 1)).slice(-n))
+
+// Trae entrenos (30 días), actividad diaria (última semana) y sueño (28 noches) y los guarda en data.polar
 export async function syncPolar(setData) {
   const p = getPolar()
   if (!p?.token) throw new Error('NO_TOKEN')
   let actErr = null
-  const [ex, act] =await Promise.all([
+  const [ex, act, slp, rch] = await Promise.all([
     get('/exercises?samples=true&zones=true', p.token),
     // si falla la actividad diaria no se pierden los entrenos, pero el fallo se guarda para enseñarlo en Ajustes
     get(`/activities?from=${addDays(todayStr(), -6)}&to=${todayStr()}`, p.token).catch((e) => ((actErr = e.message), [])),
+    // el sueño y la recarga nocturna son opcionales (no todos los relojes los tienen)
+    get('/sleep', p.token).catch(() => null),
+    get('/recharge', p.token).catch(() => null),
   ])
+  const sleep = slp ? parseNights(slp) : {}
+  const recharge = rch ? parseRecharge(rch) : {}
   const exercises = {}
   for (const e of Array.isArray(ex) ? ex : []) {
     exercises[e.id] = {
@@ -180,6 +227,8 @@ export async function syncPolar(setData) {
         })
       ),
       days: { ...(d.polar?.days || {}), ...days },
+      ...(Object.keys(sleep).length || d.polar?.sleep ? { sleep: lastN({ ...(d.polar?.sleep || {}), ...sleep }) } : {}),
+      ...(Object.keys(recharge).length || d.polar?.recharge ? { recharge: lastN({ ...(d.polar?.recharge || {}), ...recharge }) } : {}),
     },
   }))
   return { exercises: Object.keys(exercises).length, days: Object.keys(days).length, list: Object.values(exercises) }
