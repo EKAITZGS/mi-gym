@@ -134,6 +134,34 @@ function summarize(data) {
   return { plan, last }
 }
 
+// Chat libre con el entrenador. El Worker solo acepta pocos mensajes, así que la conversación va resumida en uno.
+export async function askCoach(data, history, question) {
+  if (!hasAi()) throw new Error('NO_KEY')
+  const { plan, last } = summarize(data)
+  const nights = Object.entries(data.polar?.sleep || {}).slice(-7).map(([d, n]) => ({ fecha: d, horas: Math.round((n.total / 60) * 10) / 10 }))
+  const ctx = {
+    objetivos: data.goals,
+    plan,
+    ultimos_entrenos: last,
+    reloj_semana: polarWeek(data),
+    sueno_ultimas_noches: nights.length ? nights : undefined,
+  }
+  const prev = history.slice(-8).map((m) => `${m.role === 'user' ? 'Usuario' : 'Entrenador'}: ${m.text}`).join('\n')
+  const system = `Eres el entrenador personal y nutricionista de la app Mi Gym. Respondes en español de España, cercano y directo, en 2-6 frases o una lista corta.
+Usa los datos del usuario cuando sirvan; no inventes datos que no tengas. Si preguntan por dolor fuerte, lesión, mareos o algo médico, da una pauta prudente y recomienda ir a un profesional sanitario; no diagnostiques.
+Datos del usuario: ${JSON.stringify(ctx)}`
+  const user = `${prev ? `Conversación hasta ahora:\n${prev}\n\n` : ''}Pregunta: ${question}`
+  const txt = await groqChat({
+    messages: [
+      { role: 'system', content: system },
+      { role: 'user', content: user },
+    ],
+    temperature: 0.5,
+    max_completion_tokens: 700,
+  })
+  return txt.trim() || 'No he sabido responder a eso, prueba a preguntarlo de otra forma.'
+}
+
 export async function improvePlan(data, { days, focus, notes }) {
   if (!hasAi()) throw new Error('NO_KEY')
   const catalog = EXERCISES.map((e) => `${e.id}|${e.name}|${e.group}`).join('\n')

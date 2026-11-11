@@ -10,7 +10,7 @@ import { Modal } from './ui'
 import { calcGoals, ACTIVITY } from './stats'
 
 // Calcula kcal y proteína; los datos que pide no se guardan, solo el resultado si lo aceptas
-function GoalCalc({ onApply, onClose }) {
+export function GoalCalc({ onApply, onClose, skipLabel }) {
   const [f, setF] = useState({ kg: '', cm: '', age: '', male: true, act: 1.375, aim: 'lose' })
   const set = (k, v) => setF((s) => ({ ...s, [k]: v }))
   const r = calcGoals({ ...f, kg: num(f.kg), cm: num(f.cm), age: num(f.age) })
@@ -50,7 +50,12 @@ function GoalCalc({ onApply, onClose }) {
       <button className="btn primary full" disabled={!r} onClick={() => onApply(r)}>
         Usar estos objetivos
       </button>
-      <p className="muted small">Tu peso, altura y edad no se guardan; solo las kcal y la proteína.</p>
+      {skipLabel && (
+        <button className="btn full" onClick={onClose}>
+          {skipLabel}
+        </button>
+      )}
+      <p className="muted small">Tu peso, altura y edad no se guardan; solo las kcal y la proteína. Es orientativo y no sustituye a un profesional de la salud.</p>
     </Modal>
   )
 }

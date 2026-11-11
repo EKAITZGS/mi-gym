@@ -8,6 +8,7 @@ import WeeklyReview from './Review'
 import PolarSession from './PolarSession'
 import { ProteinTip } from './Extras'
 import { PlanMaker } from './Workout'
+import { GoalCalc } from './Settings'
 import { streakWeeks, weekTotals } from './stats'
 import { SleepLine } from './Sleep'
 
@@ -20,6 +21,7 @@ const greeting = () => {
 
 export default function Home({ data, setData, onStart, go }) {
   const [maker, setMaker] = useState(false)
+  const [welcome, setWelcome] = useState(null) // 'goals' | 'plan': bienvenida paso a paso
   const [polarEx, setPolarEx] = useState(null)
   const wd = new Date().getDay()
   const todays = data.plan.filter((d) => d.weekday === wd)
@@ -54,10 +56,15 @@ export default function Home({ data, setData, onStart, go }) {
 
       {!data.setupDone && data.sessions.length === 0 && (
         <div className="card onboard">
-          <b>Antes de nada: configura tu entrenamiento</b>
-          <p className="muted small">Dime qué días entrenas y qué haces cada día, o deja que te haga un plan según tu nivel.</p>
-          <button className="btn primary full" onClick={() => setMaker(true)}>
-            <Icon name="calendar" size={16} /> Crear mi plan
+          <b>Bienvenido a Mi Gym</b>
+          <p className="muted small">En 2 minutos lo dejamos listo:</p>
+          <ol className="small welcome-steps">
+            <li>Tus objetivos de calorías y proteína.</li>
+            <li>Tu plan de entreno (automático o eligiéndolo tú).</li>
+            <li>¡A entrenar! Tus datos se guardan solo en este móvil.</li>
+          </ol>
+          <button className="btn primary full" onClick={() => setWelcome('goals')}>
+            <Icon name="play" size={14} fill="currentColor" stroke={0} /> Empezar
           </button>
           <button className="link small" style={{ paddingLeft: 0 }} onClick={() => setData((d) => ({ ...d, setupDone: true }))}>
             Usar el plan de ejemplo
@@ -65,6 +72,17 @@ export default function Home({ data, setData, onStart, go }) {
         </div>
       )}
       {maker && <PlanMaker data={data} setData={setData} onClose={() => setMaker(false)} />}
+      {welcome === 'goals' && (
+        <GoalCalc
+          skipLabel="Saltar: lo pondré luego en Ajustes"
+          onClose={() => setWelcome('plan')}
+          onApply={(r) => {
+            setData((d) => ({ ...d, goals: { ...d.goals, kcal: r.kcal, protein: r.protein } }))
+            setWelcome('plan')
+          }}
+        />
+      )}
+      {welcome === 'plan' && <PlanMaker data={data} setData={setData} onClose={() => setWelcome(null)} />}
 
       {todays.map((d) => {
         const cover = EX_BY_ID[d.items[0]?.ex]

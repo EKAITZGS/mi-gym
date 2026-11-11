@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
+import { Modal } from './ui'
 import { EX_BY_ID } from './data/exercises'
 import { Thumb } from './ui'
 import Icon from './icons'
-import { weeklyReview, applyProposal, aiWeeklyReview, restDayTips } from './coach'
+import { weeklyReview, applyProposal, aiWeeklyReview, restDayTips, askCoach } from './coach'
 import { hasAi } from './ai'
 
 function Proposal({ p, data, onDecide }) {
@@ -48,6 +49,81 @@ function Proposal({ p, data, onDecide }) {
   )
 }
 
+const IDEAS = ['¿Qué ceno hoy para llegar a la proteína?', 'Me duele un poco el hombro, ¿qué cambio en mi plan?', '¿Cómo salgo de un estancamiento en press banca?']
+
+// Chat con el entrenador (IA). La conversación no se guarda: al cerrar se borra.
+export function CoachChat({ data, onClose }) {
+  const [msgs, setMsgs] = useState([])
+  const [q, setQ] = useState('')
+  const [busy, setBusy] = useState(false)
+  const end = useRef(null)
+  useEffect(() => end.current?.scrollIntoView({ block: 'end' }), [msgs, busy])
+  const send = async (text) => {
+    const t = (text || q).trim().slice(0, 500)
+    if (!t || busy) return
+    setQ('')
+    const hist = [...msgs, { role: 'user', text: t }]
+    setMsgs(hist)
+    setBusy(true)
+    try {
+      const a = await askCoach(data, msgs, t)
+      setMsgs([...hist, { role: 'coach', text: a }])
+    } catch (e) {
+      setMsgs([...hist, { role: 'coach', err: true, text: e.message === 'NO_KEY' ? 'La IA no está disponible ahora. Puedes poner tu clave gratis de Groq en Ajustes.' : e.message }])
+    }
+    setBusy(false)
+  }
+  return (
+    <Modal title="Pregunta al entrenador" onClose={onClose}>
+      <div className="chat">
+        {msgs.length === 0 && (
+          <>
+            <p className="muted small" style={{ marginTop: 0 }}>
+              Conoce tu plan, tus últimos entrenos, molestias y sueño. Es orientativo: no sustituye a un médico ni a un fisio.
+            </p>
+            {IDEAS.map((i) => (
+              <button key={i} className="chip sm chat-idea" onClick={() => send(i)}>
+                {i}
+              </button>
+            ))}
+          </>
+        )}
+        {msgs.map((m, i) => (
+          <div key={i} className={'bubble ' + (m.role === 'user' ? 'me' : 'coach') + (m.err ? ' err' : '')}>
+            {m.text}
+          </div>
+        ))}
+        {busy && <div className="bubble coach muted">Pensando…</div>}
+        <div ref={end} />
+      </div>
+      <form
+        className="chat-in"
+        onSubmit={(e) => {
+          e.preventDefault()
+          send()
+        }}
+      >
+        <input className="inp" placeholder="Escribe tu pregunta…" value={q} onChange={(e) => setQ(e.target.value)} />
+        <button className="btn primary" disabled={busy || !q.trim()} aria-label="Enviar">
+          <Icon name="right" size={18} />
+        </button>
+      </form>
+    </Modal>
+  )
+}
+
+function AskButton({ data }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <>
+      <button className="btn full" onClick={() => setOpen(true)}>
+        <Icon name="sparkle" size={16} /> Pregunta al entrenador
+      </button>
+      {open && <CoachChat data={data} onClose={() => setOpen(false)} />}
+    </>
+  )
+}
+
 // rest: hoy no toca pesas (Inicio) -> solo recomendaciones de andar o correr
 export default function WeeklyReview({ data, setData, focusId, rest }) {
   if (rest) {
@@ -64,6 +140,7 @@ export default function WeeklyReview({ data, setData, focusId, rest }) {
             <li key={i}>{t}</li>
           ))}
         </ul>
+        <AskButton data={data} />
       </div>
     )
   }
@@ -127,6 +204,7 @@ function TrainingReview({ data, setData, focusId }) {
         </button>
       )}
       {ai.err && <p className="toast warn small">{ai.err}</p>}
+      <AskButton data={data} />
     </div>
   )
 }

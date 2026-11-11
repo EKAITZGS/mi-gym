@@ -4,7 +4,7 @@ import { WEEKDAYS, uid, lastSets, exStats, suggestion, fmtKg, num, pad, TRACKS, 
 import { Modal, Thumb, LineChart, ExPhoto } from './ui'
 import { techFor } from './data/technique'
 import Icon from './icons'
-import WeeklyReview from './Review'
+import WeeklyReview, { CoachChat } from './Review'
 import { LEVELS, EQUIP, MINUTES, DAY_TYPES, SPLITS, DEFAULT_WEEKDAYS, splitFor, typesFor, pickFor, prescribe, buildDay, buildPlan, stripSlots } from './plans'
 import Setup from './Setup'
 import { PlanVolume } from './Extras'
@@ -625,6 +625,38 @@ function DayEditor({ data, setData, dayId, isNew, onBack }) {
               <label className="chk-l">
                 <input type="checkbox" checked={!!it.drop} onChange={(e) => patchItem(it.id, { drop: e.target.checked })} />
                 Drop set
+              </label>
+            </div>
+            <div className="fields">
+              <label>
+                Descanso
+                <select
+                  className="inp sm"
+                  value={it.rest || ''}
+                  onChange={(e) => patchItem(it.id, { rest: e.target.value ? Number(e.target.value) : undefined })}
+                >
+                  <option value="">Por defecto</option>
+                  {[45, 60, 75, 90, 120, 150, 180, 240].map((v) => (
+                    <option key={v} value={v}>
+                      {restTxt(v)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Intensidad (RIR)
+                <select
+                  className="inp sm"
+                  value={it.rir ?? ''}
+                  onChange={(e) => patchItem(it.id, { rir: e.target.value === '' ? undefined : Number(e.target.value) })}
+                >
+                  <option value="">Sin indicar</option>
+                  {[0, 1, 2, 3, 4].map((v) => (
+                    <option key={v} value={v}>
+                      {v === 0 ? '0 (al fallo)' : `${v} en reserva`}
+                    </option>
+                  ))}
+                </select>
               </label>
             </div>
             <label className="chk-l uni-l">
@@ -1352,6 +1384,7 @@ function Session({ data, setData, onExit }) {
 /* ---------- Pantalla Entreno ---------- */
 export default function Workout({ data, setData, view, setView, onStart, onStartFree }) {
   const [maker, setMaker] = useState(false)
+  const [chat, setChat] = useState(false)
   const [coach, setCoach] = useState(false)
   const [flash, setFlash] = useState(null)
   useEffect(() => {
@@ -1510,6 +1543,11 @@ export default function Workout({ data, setData, view, setView, onStart, onStart
           <span className="tile2-t">Mejorar con IA</span>
           <span className="tile2-s">Ajusta tu rutina</span>
         </button>
+        <button className="tile2 accent" onClick={() => setChat(true)}>
+          <span className="tile2-ic"><Icon name="sparkle" size={18} /></span>
+          <span className="tile2-t">Preguntar</span>
+          <span className="tile2-s">Chat con el entrenador</span>
+        </button>
         <button className="tile2" onClick={() => setMaker(true)}>
           <span className="tile2-ic"><Icon name="calendar" size={18} /></span>
           <span className="tile2-t">Mi plan</span>
@@ -1527,6 +1565,7 @@ export default function Workout({ data, setData, view, setView, onStart, onStart
         </button>
       </div>
       {maker && <PlanMaker data={data} setData={setData} onClose={() => setMaker(false)} />}
+      {chat && <CoachChat data={data} onClose={() => setChat(false)} />}
       {coach && <Coach data={data} setData={setData} onClose={() => setCoach(false)} />}
     </div>
   )
