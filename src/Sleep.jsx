@@ -1,9 +1,18 @@
-import { sleepAnalysis, hm, hmc } from './stats'
+import { useState } from 'react'
+import { sleepAnalysis, nightsOf, hm, hmc } from './stats'
 import Icon from './icons'
 
 // Apartado de sueño (Progreso): noches del reloj Polar, medias de 7 días y análisis con consejos
-export default function SleepCard({ data }) {
-  const a = sleepAnalysis(data.polar?.sleep, data.polar?.recharge)
+export default function SleepCard({ data, setData }) {
+  const a = sleepAnalysis(nightsOf(data), data.polar?.recharge)
+  const [fix, setFix] = useState(null) // { start, end } mientras se corrige la última noche
+  const saveFix = (v) =>
+    setData((d) => {
+      const all = { ...(d.sleepFix || {}) }
+      if (v) all[a.lastDate] = v
+      else delete all[a.lastDate]
+      return { ...d, sleepFix: all }
+    })
   if (!data.polar) return null
   if (!a)
     return (
@@ -36,7 +45,43 @@ export default function SleepCard({ data }) {
             anoche{a.last.start ? ` · ${a.last.start}–${a.last.end}` : ''}
             {a.last.interr ? ` · ${a.last.interr} min despierto` : ''}
             {a.last.score > 0 ? ` · puntuación ${a.last.score}` : ''}
+            {a.last.fixed ? ' · corregida' : ''}
           </span>
+          {!fix && (
+            <button className="link small" style={{ paddingLeft: 0, display: 'block' }} onClick={() => setFix({ start: a.last.start, end: a.last.end })}>
+              ¿No es correcto? Corregir la hora
+            </button>
+          )}
+          {fix && (
+            <div className="sleep-fix">
+              <p className="muted small" style={{ margin: '4px 0' }}>
+                Si te pusiste el reloj antes de dormirte, el reloj cuenta ese rato como sueño. Pon tus horas reales:
+              </p>
+              <div className="fields">
+                <label>
+                  Me dormí
+                  <input className="inp sm" type="time" value={fix.start} onChange={(e) => setFix({ ...fix, start: e.target.value })} />
+                </label>
+                <label>
+                  Me desperté
+                  <input className="inp sm" type="time" value={fix.end} onChange={(e) => setFix({ ...fix, end: e.target.value })} />
+                </label>
+              </div>
+              <div className="btns">
+                {a.last.fixed && (
+                  <button className="btn" onClick={() => (saveFix(null), setFix(null))}>
+                    Quitar corrección
+                  </button>
+                )}
+                <button className="btn" onClick={() => setFix(null)}>
+                  Cancelar
+                </button>
+                <button className="btn primary" disabled={!fix.start || !fix.end} onClick={() => (saveFix(fix), setFix(null))}>
+                  Guardar
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
       <div className="sleep-bars" aria-label="Horas de sueño por noche">
@@ -89,7 +134,7 @@ export default function SleepCard({ data }) {
 
 // Resumen corto para Inicio
 export function SleepLine({ data, onOpen }) {
-  const a = sleepAnalysis(data.polar?.sleep, data.polar?.recharge)
+  const a = sleepAnalysis(nightsOf(data), data.polar?.recharge)
   if (!a?.last || !a.lastIsToday) return null
   return (
     <button className="card sleep-line" onClick={onOpen}>

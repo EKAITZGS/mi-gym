@@ -86,7 +86,7 @@ export default function Progress({ data, setData }) {
       <RankCard data={data} />
       <MuscleSets data={data} />
       <Highlights data={data} onOpen={setOpen} />
-      <SleepCard data={data} />
+      <SleepCard data={data} setData={setData} />
       <BodyCard data={data} setData={setData} />
 
       <div className="sec-head">

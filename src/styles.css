@@ -1821,3 +1821,6 @@ body.modal-open .savebar { display: none; }
 .chat-in { display: flex; gap: 8px; margin-top: 10px; }
 .chat-in .inp { margin: 0; flex: 1; }
 .chat-in .btn { margin: 0; min-width: 48px; }
+
+.sleep-fix { background: var(--card2); border-radius: 12px; padding: 8px 10px; margin-top: 6px; }
+.sleep-fix .btns { flex-wrap: wrap; }

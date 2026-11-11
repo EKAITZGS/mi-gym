@@ -47,7 +47,7 @@ import { restDayTips } from '../src/coach.js'
 }
 
 // sueño: lectura de Polar y análisis
-import { sleepAnalysis, hm } from '../src/stats.js'
+import { sleepAnalysis, hm, nightsOf } from '../src/stats.js'
 import { parseNights } from '../src/polar.js'
 {
   const p = parseNights({ nights: [
@@ -81,5 +81,12 @@ import { parseNights } from '../src/polar.js'
   assert.ok(a.tips.some((t) => t.includes('despierto por noche')))
   assert.equal(a.bed, '00:17') // media de 23:00 y 02:00 cruzando medianoche
   assert.equal(sleepAnalysis({}, null, now), null)
+  // corrección: el reloj contó desde las 22:46 pero se durmió a las 02:30
+  const fixed = nightsOf({ polar: { sleep: { '2026-11-12': { start: '22:46', end: '10:17', total: 626, interr: 66, deep: 626 } } }, sleepFix: { '2026-11-12': { start: '02:30', end: '10:17' } } })['2026-11-12']
+  assert.equal(fixed.interr, Math.round(66 * 467 / 691))
+  assert.equal(fixed.total, 467 - fixed.interr)
+  assert.equal(fixed.deep, undefined)
+  assert.equal(fixed.fixed, true)
+  assert.equal(nightsOf({ polar: { sleep: { a: 1 } } }).a, 1) // sin correcciones, igual
   console.log('sleep ok')
 }

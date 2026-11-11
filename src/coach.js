@@ -1,6 +1,7 @@
 import { EXERCISES, EX_BY_ID } from './data/exercises'
 import { hasAi, groqChat } from './ai'
 import { uid, todayStr, addDays, suggestion, fmtKg, setTxt } from './store'
+import { nightsOf } from './stats'
 
 // Resumen del reloj Polar de los últimos 7 días (para la revisión y para la IA)
 export function polarWeek(data) {
@@ -138,7 +139,7 @@ function summarize(data) {
 export async function askCoach(data, history, question) {
   if (!hasAi()) throw new Error('NO_KEY')
   const { plan, last } = summarize(data)
-  const nights = Object.entries(data.polar?.sleep || {}).slice(-7).map(([d, n]) => ({ fecha: d, horas: Math.round((n.total / 60) * 10) / 10 }))
+  const nights = Object.entries(nightsOf(data)).slice(-7).map(([d, n]) => ({ fecha: d, horas: Math.round((n.total / 60) * 10) / 10 }))
   const ctx = {
     objetivos: data.goals,
     plan,

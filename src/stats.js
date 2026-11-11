@@ -144,8 +144,31 @@ export function sleepAnalysis(sleep, recharge, now = new Date()) {
   if (prevAvg != null && avg - prevAvg <= -30) tips.push(`Esta semana duermes ${prevAvg - avg} min menos que la anterior.`)
   if (!tips.length) tips.push('Tu sueño va bien esta semana. Sigue así.')
   return {
-    last, lastIsToday: dates[dates.length - 1] === today, week, goal, avg, prevAvg,
+    last, lastDate: dates[dates.length - 1], lastIsToday: dates[dates.length - 1] === today, week, goal, avg, prevAvg,
     bed: bedAvg != null ? clock(bedAvg) : null, spread, deepPct, remPct, interr, cont,
     hrv: hrvs.length ? Math.round(avgOf(hrvs)) : null, hr: hrs.length ? Math.round(avgOf(hrs)) : null, tips,
   }
+}
+
+// Noches con las correcciones del usuario (data.sleepFix: { fecha: { start, end } }), p. ej. cuando el reloj
+// cuenta como sueño el rato que estuvo en la mesilla. Las interrupciones se reparten en proporción al nuevo horario.
+const toMin = (t) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3))
+const spanOf = (a, b) => (/^\d\d:\d\d$/.test(a || '') && /^\d\d:\d\d$/.test(b || '') ? (toMin(b) - toMin(a) + 1440) % 1440 : 0)
+export function nightsOf(data) {
+  const sleep = data.polar?.sleep || {}
+  const fix = data.sleepFix || {}
+  if (!Object.keys(fix).length) return sleep
+  const out = { ...sleep }
+  for (const [d, f] of Object.entries(fix)) {
+    const n = sleep[d]
+    if (!n) continue
+    const start = f.start || n.start, end = f.end || n.end
+    const span = spanOf(start, end)
+    if (!span) continue
+    const old = spanOf(n.start, n.end) || n.total + (n.interr || 0)
+    const interr = Math.round((n.interr || 0) * Math.min(1, span / old))
+    const { light, deep, rem, score, ...rest } = n // las fases y la puntuación del reloj ya no valen
+    out[d] = { ...rest, start, end, interr, total: Math.max(0, span - interr), fixed: true }
+  }
+  return out
 }

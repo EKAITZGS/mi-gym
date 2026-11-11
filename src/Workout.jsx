@@ -3,6 +3,7 @@ import { EXERCISES, EX_BY_ID, GROUPS } from './data/exercises'
 import { WEEKDAYS, uid, lastSets, exStats, suggestion, fmtKg, num, pad, TRACKS, trackOf, setFilled, setTxt, todayStr } from './store'
 import { Modal, Thumb, LineChart, ExPhoto } from './ui'
 import { techFor } from './data/technique'
+import { nightsOf } from './stats'
 import Icon from './icons'
 import WeeklyReview, { CoachChat } from './Review'
 import { LEVELS, EQUIP, MINUTES, DAY_TYPES, SPLITS, DEFAULT_WEEKDAYS, splitFor, typesFor, pickFor, prescribe, buildDay, buildPlan, stripSlots } from './plans'
@@ -952,7 +953,7 @@ function Session({ data, setData, onExit }) {
     return (
       <div className="page">
         <CheckIn
-          night={data.polar?.sleep?.[todayStr()]}
+          night={nightsOf(data)[todayStr()]}
           exercises={done.exs || []}
           onSkip={() => setDone({ ...done, step: 'summary', tips: [] })}
           onSave={(ck) => {
