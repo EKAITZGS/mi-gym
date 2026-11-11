@@ -817,6 +817,14 @@ function CheckIn({ onSave, onSkip, exercises = [], night }) {
 /* ---------- Entreno en curso ---------- */
 /* ---------- Descanso entre series ---------- */
 const REST_KEY = 'migym.rest'
+// cuenta atrás al marcar una serie (se puede apagar en Ajustes)
+const restOn = () => {
+  try {
+    return localStorage.getItem('migym.restOn') !== '0'
+  } catch {
+    return true
+  }
+}
 const restSecs = () => {
   try {
     return Number(localStorage.getItem(REST_KEY)) || 90
@@ -1278,7 +1286,7 @@ function Session({ data, setData, onExit }) {
                         // sin reps de hoy no se da por hecha: te lleva al campo en vez de inventarlas
                         if (!s.done && !(s[T.b[0]] || (uni && s.r2)))
                           return e.currentTarget.parentElement.querySelector('input[data-b]')?.focus()
-                        if (!s.done) setRest({ end: Date.now() + (it.rest || restSecs()) * 1000, item: it.id })
+                        if (!s.done && restOn()) setRest({ end: Date.now() + (it.rest || restSecs()) * 1000, item: it.id })
                         patchSet(it.ex, i, (x) =>
                           x.done
                             ? { ...x, done: false }

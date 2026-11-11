@@ -63,6 +63,22 @@ export function GoalCalc({ onApply, onClose, skipLabel }) {
 export default function Settings({ data, setData }) {
   const [msg, setMsg] = useState('')
   const [calc, setCalc] = useState(false)
+  // preferencia de este móvil (no va en la copia de seguridad)
+  const [restPref, setRestPref] = useState(() => {
+    try {
+      return { on: localStorage.getItem('migym.restOn') !== '0', secs: Number(localStorage.getItem('migym.rest')) || 90 }
+    } catch {
+      return { on: true, secs: 90 }
+    }
+  })
+  const saveRest = (p) => {
+    const v = { ...restPref, ...p }
+    setRestPref(v)
+    try {
+      localStorage.setItem('migym.restOn', v.on ? '1' : '0')
+      localStorage.setItem('migym.rest', String(v.secs))
+    } catch {}
+  }
   const [paste, setPaste] = useState('')
   const [ai, setAiState] = useState(getAi())
   const [kt, setKt] = useState({ loading: false, res: null })
@@ -179,6 +195,34 @@ export default function Settings({ data, setData }) {
           }}
         />
       )}
+
+      <h4>Descanso entre series</h4>
+      <div className="card">
+        <label className="lbl">Cuenta atrás al marcar una serie</label>
+        <div className="seg">
+          <button className={restPref.on ? 'on' : ''} onClick={() => saveRest({ on: true })}>
+            Sí
+          </button>
+          <button className={!restPref.on ? 'on' : ''} onClick={() => saveRest({ on: false })}>
+            No
+          </button>
+        </div>
+        {restPref.on && (
+          <>
+            <label className="lbl">Tiempo de descanso</label>
+            <select className="inp" value={restPref.secs} onChange={(e) => saveRest({ secs: Number(e.target.value) })}>
+              {[...new Set([30, 45, 60, 75, 90, 120, 150, 180, 240, 300, restPref.secs])].sort((x, y) => x - y).map((v) => (
+                <option key={v} value={v}>
+                  {v < 60 ? `${v} segundos` : `${Math.floor(v / 60)}:${String(v % 60).padStart(2, '0')} min`}
+                </option>
+              ))}
+            </select>
+          </>
+        )}
+        <p className="muted small">
+          Al tocar el ✓ de una serie empieza la cuenta atrás. Si un ejercicio tiene su propio descanso (en Editar día), se usa ese.
+        </p>
+      </div>
 
       <h4>Objetivos diarios</h4>
       <div className="card">
