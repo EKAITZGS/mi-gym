@@ -20,9 +20,21 @@ const RULES = [
 const BY_GROUP = {
   Core: 'Aprieta el abdomen como si fueran a darte un golpe y no tires del cuello. Movimientos lentos y controlados.',
   Antebrazo: 'Movimiento corto y controlado; aguanta 1 s en la contracción.',
+  Estiramientos: 'Aguanta 20–30 s por lado respirando tranquilo. Tensión suave, nunca dolor, y sin rebotes.',
+  Cardio: 'La mayor parte a un ritmo en el que puedas hablar. Apunta minutos y distancia para ver cómo mejoras.',
+}
+const BY_KIND = {
+  Halterofilia: 'Movimiento muy técnico: aprende con barra vacía o con un entrenador antes de cargar peso.',
+  Pliometría: 'Aterriza suave, con las rodillas alineadas con los pies. Calidad antes que cantidad: para si pierdes la técnica.',
+  Strongman: 'Espalda neutra y abdomen apretado todo el rato. Empieza ligero y sube poco a poco.',
 }
 const GENERAL = 'Controla la bajada (2-3 s), recorrido completo y sin rebotes. Esfuerzo sí, dolor punzante no: si aparece, para.'
 
 // Core va primero: "Leg_Press" no debe ganar a un ejercicio de abdomen, pero sí a un press de pecho
 export const techFor = (ex) =>
-  (ex && ((ex.group === 'Core' && BY_GROUP.Core) || RULES.find(([re]) => re.test(ex.id))?.[1] || BY_GROUP[ex.group])) || GENERAL
+  (ex &&
+    (((ex.group === 'Core' || ex.group === 'Estiramientos' || ex.group === 'Cardio') && BY_GROUP[ex.group]) ||
+      BY_KIND[ex.kind] ||
+      RULES.find(([re]) => re.test(ex.id))?.[1] ||
+      BY_GROUP[ex.group])) ||
+  GENERAL

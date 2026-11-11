@@ -20,7 +20,7 @@ export const SEC_FACTOR = 0.7
 // Grupos que trabaja un ejercicio: principal (1) y secundarios (SEC_FACTOR para rangos, 0,5 para contar series)
 export function groupsOf(id) {
   const ex = EX_BY_ID[id]
-  if (!ex) return []
+  if (!ex || !GROUPS.includes(ex.group)) return [] // cardio y estiramientos no suman a ningún músculo
   const main = ex.group
   const sec = new Set([...(ex.sec || []).map((m) => TO_GROUP[m]), ...(EXTRA_SEC[id] || [])].filter((g) => g && g !== main))
   return [{ g: main, main: true }, ...[...sec].map((g) => ({ g, main: false }))]

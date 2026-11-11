@@ -1,6 +1,6 @@
 import { EXERCISES, EX_BY_ID } from './data/exercises'
 import { hasAi, groqChat } from './ai'
-import { uid, todayStr, addDays, suggestion, fmtKg } from './store'
+import { uid, todayStr, addDays, suggestion, fmtKg, setTxt } from './store'
 
 // Resumen del reloj Polar de los últimos 7 días (para la revisión y para la IA)
 export function polarWeek(data) {
@@ -404,7 +404,7 @@ export async function aiWeeklyReview(data) {
       molestia: s.checkin?.pain?.zone ? `${s.checkin.pain.zone} (${s.checkin.pain.level})` : 'ninguna',
       nota: s.checkin?.note || '',
       sueno: s.checkin?.sleep ? ['mal', 'normal', 'bien'][s.checkin.sleep - 1] : 'sin datos',
-      hecho: Object.entries(s.entries || {}).map(([id, sets]) => `${EX_BY_ID[id]?.name || id}: ${sets.map((x) => `${x.w || '?'}x${x.r || '?'}`).join(', ')}`),
+      hecho: Object.entries(s.entries || {}).map(([id, sets]) => `${EX_BY_ID[id]?.name || id}: ${sets.map(setTxt).join(', ')}`),
     }))
   const plan = data.plan.map((d) => ({ dia: d.name, ejercicios: d.items.map((i) => `${i.ex} (${EX_BY_ID[i.ex]?.name}) ${i.sets}x${i.reps}`) }))
   const catalog = EXERCISES.map((e) => `${e.id}|${e.name}|${e.group}`).join('\n')

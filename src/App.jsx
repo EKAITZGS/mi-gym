@@ -34,7 +34,7 @@ export default function App() {
     checkServerAi()
   }, [])
 
-  // Polar: al volver de dar permiso, y sincronización automática al abrir (cada 30 min como mucho)
+  // Polar: al volver de dar permiso, y sincronización automática al abrir, al volver a la app y cada 5 min con la app abierta
   useEffect(() => {
     const ret = readPolarReturn()
     if (ret) {
@@ -45,7 +45,7 @@ export default function App() {
     const auto = (force) => {
       const p = getPolar()
       if (!p?.token) return
-      if (!force && Date.now() - lastTry < 3 * 60 * 1000) return
+      if (!force && Date.now() - lastTry < 60 * 1000) return
       lastTry = Date.now()
       const before = new Set(Object.keys(storedPolarEx()))
       const hadSync = (() => { try { return !!JSON.parse(localStorage.getItem('migym.v1') || '{}').polar?.lastSync } catch { return false } })()
@@ -64,7 +64,11 @@ export default function App() {
     // Al volver a la app (iOS la deja dormida en segundo plano) vuelve a mirar si hay entreno nuevo
     const onVis = () => document.visibilityState === 'visible' && auto(false)
     document.addEventListener('visibilitychange', onVis)
-    return () => document.removeEventListener('visibilitychange', onVis)
+    const every = setInterval(() => document.visibilityState === 'visible' && auto(false), 5 * 60 * 1000)
+    return () => {
+      document.removeEventListener('visibilitychange', onVis)
+      clearInterval(every)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
   // Avisos: cuando cambian tus datos, se recalcula la lista de avisos programados (con un pequeño retraso)

@@ -106,10 +106,29 @@ export function useStore() {
 }
 
 // Última vez que se hizo un ejercicio (series de la sesión más reciente que lo tenga)
+// Cómo se mide un ejercicio: dos campos por serie. Las series que no son de reps no tienen `r`,
+// así que no cuentan en 1RM, récords ni volumen (todo eso necesita peso y reps).
+export const TRACKS = {
+  reps: { label: 'Peso y repeticiones', a: ['w', 'kg'], b: ['r', 'reps'] },
+  time: { label: 'Tiempo (segundos)', a: ['w', 'kg'], b: ['s', 'seg'] },
+  dist: { label: 'Distancia (metros)', a: ['w', 'kg'], b: ['m', 'm'] },
+  cardio: { label: 'Cardio (km y minutos)', a: ['km', 'km'], b: ['min', 'min'] },
+}
+export const trackOf = (it, ex) => (TRACKS[it?.track] ? it.track : TRACKS[ex?.track] ? ex.track : 'reps')
+export const setFilled = (s) => !!(s.w || s.r || s.s || s.m || s.km || s.min)
+export const setTxt = (s) =>
+  s.km || s.min
+    ? `${s.km || '?'} km · ${s.min || '?'} min`
+    : s.m
+      ? `${s.w ? s.w + ' kg · ' : ''}${s.m} m`
+      : s.s
+        ? `${s.w ? s.w + ' kg · ' : ''}${s.s} s`
+        : `${s.w || '?'}×${s.rl || s.rr ? `${s.rl || '?'}/${s.rr || '?'}` : s.r || '?'}`
+
 export function lastSets(sessions, exId) {
   for (let i = sessions.length - 1; i >= 0; i--) {
     const sets = sessions[i].entries?.[exId]
-    if (sets && sets.some((s) => s.w || s.r)) return { date: sessions[i].date, sets }
+    if (sets && sets.some(setFilled)) return { date: sessions[i].date, sets }
   }
   return null
 }

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { EXERCISES, EX_BY_ID, GROUPS } from './data/exercises'
-import { WEEKDAYS, uid, lastSets, exStats, suggestion, fmtKg, num, pad } from './store'
+import { WEEKDAYS, uid, lastSets, exStats, suggestion, fmtKg, num, pad, TRACKS, trackOf, setFilled, setTxt } from './store'
 import { Modal, Thumb, LineChart, ExPhoto } from './ui'
 import { techFor } from './data/technique'
 import Icon from './icons'
@@ -40,6 +40,7 @@ export function ExerciseModal({ ex, data, setData, onClose, onPick, pickLabel, o
           <span key={m} className="tag">{m}</span>
         ))}
         <span className="tag eq">{ex.equip}</span>
+        {ex.kind && <span className="tag eq">{ex.kind}</span>}
         {setData && (
           <button className={'tag fav' + (fav ? ' on' : '')} onClick={toggleFav} aria-pressed={fav}>
             {fav ? '★ Favorito' : '☆ Favorito'}
@@ -86,7 +87,7 @@ export function ExerciseModal({ ex, data, setData, onClose, onPick, pickLabel, o
           <div>
             {h.sets.map((s, i) => (
               <span key={i} className="pill">
-                {s.w || '?'}kg×{s.r || '?'}
+                {s.s || s.m || s.km || s.min ? setTxt(s) : `${s.w || '?'}kg×${s.r || '?'}`}
                 {s.drops?.length ? ' ↓' + s.drops.map((d) => `${d.w || '?'}×${d.r || '?'}`).join('↓') : ''}
               </span>
             ))}
@@ -104,6 +105,7 @@ const searchText = (e) => (e._s ??= norm([e.name, e.group, ...(e.main || []), e.
 function CreateExercise({ onClose, onCreate }) {
   const [name, setName] = useState('')
   const [group, setGroup] = useState(GROUPS[0])
+  const [track, setTrack] = useState('reps')
   return (
     <Modal title="Ejercicio propio" onClose={onClose}>
       <label className="lbl">Nombre</label>
@@ -114,7 +116,15 @@ function CreateExercise({ onClose, onCreate }) {
           <option key={g}>{g}</option>
         ))}
       </select>
-      <button className="btn primary full" disabled={!name.trim()} onClick={() => onCreate(name.trim(), group)}>
+      <label className="lbl">Cómo se mide</label>
+      <select className="inp" value={track} onChange={(e) => setTrack(e.target.value)}>
+        {Object.entries(TRACKS).map(([id, t]) => (
+          <option key={id} value={id}>
+            {t.label}
+          </option>
+        ))}
+      </select>
+      <button className="btn primary full" disabled={!name.trim()} onClick={() => onCreate(name.trim(), group, track)}>
         Crear
       </button>
     </Modal>
@@ -140,7 +150,7 @@ function Library({ data, setData, onPick, onClose, inline, title }) {
     <>
       <input className="inp" placeholder="Buscar ejercicio…" value={q} onChange={(e) => setQ(e.target.value)} />
       <div className="chips">
-        {['Todos', ...(favs.length ? ['★'] : []), ...GROUPS].map((g) => (
+        {['Todos', ...(favs.length ? ['★'] : []), ...GROUPS, 'Cardio', 'Estiramientos'].map((g) => (
           <button key={g} className={'chip' + (g === group ? ' on' : '')} onClick={() => setGroup(g)}>
             {g === '★' ? '★ Favoritos' : g}
           </button>
@@ -175,8 +185,8 @@ function Library({ data, setData, onPick, onClose, inline, title }) {
       {creating && (
         <CreateExercise
           onClose={() => setCreating(false)}
-          onCreate={(name, grp) => {
-            setData((d) => ({ ...d, myExercises: [...(d.myExercises || []), { id: 'c-' + uid(), name, group: grp }] }))
+          onCreate={(name, grp, track) => {
+            setData((d) => ({ ...d, myExercises: [...(d.myExercises || []), { id: 'c-' + uid(), name, group: grp, ...(track !== 'reps' ? { track } : {}) }] }))
             setCreating(false)
           }}
         />
@@ -811,7 +821,7 @@ const lastNote = (sessions, exId) => {
 }
 const setsVol = (sets) =>
   sets.reduce((t, s) => t + num(s.w) * num(s.r) + (s.drops || []).reduce((q, x) => q + num(x.w) * num(x.r), 0), 0)
-const setsTxt = (sets) => sets.map((s) => `${s.w || '?'}×${s.r || '?'}`).join(', ')
+const setsTxt = (sets) => sets.map(setTxt).join(', ')
 
 function Session({ data, setData, onExit }) {
   const a = data.active
@@ -825,6 +835,7 @@ function Session({ data, setData, onExit }) {
   const newSets = (n, drop) =>
     Array.from({ length: n }, () => ({ w: '', r: '', done: false, drops: drop ? [{ w: '', r: '' }] : [] }))
   const curItems = (act) => act.items || day?.items || []
+  const setTrack = (it, v) => setActive((act) => ({ ...act, items: curItems(act).map((i) => (i.id === it.id ? { ...i, track: v } : i)) }))
   const setActive = (fn) => setData((d) => (d.active ? { ...d, active: fn(d.active) } : d))
   // descanso: { end (ms), item }; vive en el entreno para que no se pierda al cambiar de pestaña
   const rest = a?.rest
@@ -1021,9 +1032,10 @@ function Session({ data, setData, onExit }) {
     for (const [k, sets] of Object.entries(a.entries)) {
       const uni = uniOf(items.find((i) => i.ex === k) || { ex: k })
       const kept = sets
-        .filter((s) => s.done || s.w || s.r || s.r2 || s.drops.some((x) => x.w || x.r))
+        .filter((s) => s.done || setFilled(s) || s.r2 || s.drops.some((x) => x.w || x.r))
         .map((s) => {
-          const base = { w: s.w, r: s.r, drops: s.drops.filter((x) => x.w || x.r) }
+          const extra = Object.fromEntries(['s', 'm', 'km', 'min'].filter((k) => s[k]).map((k) => [k, s[k]]))
+          const base = { w: s.w || '', r: s.r || '', ...extra, drops: s.drops.filter((x) => x.w || x.r) }
           if (!uni || !(s.r || s.r2)) return base
           // unilateral: cuenta el lado más flojo para progresar; se guardan los dos
           const l = num(s.r), rr = num(s.r2)
@@ -1092,7 +1104,9 @@ function Session({ data, setData, onExit }) {
         const ex = EX_BY_ID[it.ex]
         const sets = a.entries[it.ex] || []
         const last = lastSets(data.sessions, it.ex)
-        const uni = uniOf(it)
+        const tr = trackOf(it, ex)
+        const T = TRACKS[tr]
+        const uni = tr === 'reps' && uniOf(it)
         const imb = (() => {
           if (!last) return null
           let d = 0
@@ -1129,14 +1143,14 @@ function Session({ data, setData, onExit }) {
                   <b>{ex?.name || it.ex}</b>
                 </div>
                 <div className="muted small">
-                  Objetivo: {it.sets}×{it.reps}
+                  Objetivo: {tr === 'reps' ? `${it.sets}×${it.reps}` : `${it.sets} series`}
                   {it.drop ? ' · drop set' : ''}
                   {it.rir != null ? ` · RIR ${it.rir}` : ''}
                   {it.rest ? ` · descanso ${restTxt(it.rest)}` : ''}
                 </div>
                 {last && (
                   <div className="muted small">
-                    Última vez: {last.sets.map((s) => `${s.w || '?'}×${s.rl || s.rr ? `${s.rl || '?'}/${s.rr || '?'}` : s.r || '?'}`).join(', ')}
+                    Última vez: {last.sets.map(setTxt).join(', ')}
                   </div>
                 )}
                 {note && <div className="muted small">Nota anterior: {note}</div>}
@@ -1163,9 +1177,21 @@ function Session({ data, setData, onExit }) {
                 )}
               </div>
             </div>
-            <button className={'uni-tg' + (uni ? ' on' : '')} onClick={() => toggleUni(it)}>
-              <span className="uni-dot" /> {uni ? 'Por lados: izquierdo / derecho' : 'Unilateral (un lado y luego otro)'}
-            </button>
+            <div className="track-row">
+              <span className="muted small">Medir por</span>
+              <select className="inp sm" aria-label="Cómo se mide" value={tr} onChange={(e) => setTrack(it, e.target.value)}>
+                {Object.entries(TRACKS).map(([id, t]) => (
+                  <option key={id} value={id}>
+                    {t.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {tr === 'reps' && (
+              <button className={'uni-tg' + (uni ? ' on' : '')} onClick={() => toggleUni(it)}>
+                <span className="uni-dot" /> {uni ? 'Por lados: izquierdo / derecho' : 'Unilateral (un lado y luego otro)'}
+              </button>
+            )}
             {uni && sets.length > 0 && (
               <div className="setrow uni-head">
                 <span className="setn" />
@@ -1185,18 +1211,20 @@ function Session({ data, setData, onExit }) {
                     <input
                       className="inp sm"
                       inputMode="decimal"
-                      placeholder={ph.w || 'kg'}
-                      value={s.w}
-                      onChange={(e) => patchSet(it.ex, i, (x) => ({ ...x, w: kgIn(e.target.value) }))}
+                      aria-label={T.a[1]}
+                      placeholder={(T.a[0] === 'w' && ph.w) || T.a[1]}
+                      value={s[T.a[0]] || ''}
+                      onChange={(e) => patchSet(it.ex, i, (x) => ({ ...x, [T.a[0]]: kgIn(e.target.value) }))}
                     />
-                    <span className="x">{uni ? 'kg' : 'kg ×'}</span>
+                    <span className="x">{tr !== 'reps' ? T.a[1] : uni ? 'kg' : 'kg ×'}</span>
                     <input
                       className="inp sm"
-                      inputMode="numeric"
-                      aria-label={uni ? 'Reps izquierdo' : 'Reps'}
-                      placeholder={uni ? 'izq' : 'reps'}
-                      value={s.r}
-                      onChange={(e) => patchSet(it.ex, i, (x) => ({ ...x, r: repIn(e.target.value) }))}
+                      inputMode={T.b[0] === 'min' ? 'decimal' : 'numeric'}
+                      data-b
+                      aria-label={uni ? 'Reps izquierdo' : T.b[1]}
+                      placeholder={uni ? 'izq' : T.b[1]}
+                      value={s[T.b[0]] || ''}
+                      onChange={(e) => patchSet(it.ex, i, (x) => ({ ...x, [T.b[0]]: T.b[0] === 'min' ? kgIn(e.target.value) : repIn(e.target.value) }))}
                     />
                     {uni && (
                       <input
@@ -1213,8 +1241,8 @@ function Session({ data, setData, onExit }) {
                       aria-label={s.done ? 'Desmarcar serie' : 'Serie hecha'}
                       onClick={(e) => {
                         // sin reps de hoy no se da por hecha: te lleva al campo en vez de inventarlas
-                        if (!s.done && !(s.r || (uni && s.r2)))
-                          return e.currentTarget.parentElement.querySelector('input[aria-label^="Reps"]')?.focus()
+                        if (!s.done && !(s[T.b[0]] || (uni && s.r2)))
+                          return e.currentTarget.parentElement.querySelector('input[data-b]')?.focus()
                         if (!s.done) setRest({ end: Date.now() + (it.rest || restSecs()) * 1000, item: it.id })
                         patchSet(it.ex, i, (x) =>
                           x.done
@@ -1222,7 +1250,7 @@ function Session({ data, setData, onExit }) {
                             : {
                                 ...x,
                                 done: true,
-                                w: x.w || ph.w || '',
+                                w: T.a[0] === 'w' ? x.w || ph.w || '' : x.w,
                                 drops: x.drops.map((dr, j) => ({ ...dr, w: dr.w || (dr.r && ph.drops?.[j]?.w) || '' })),
                               }
                         )

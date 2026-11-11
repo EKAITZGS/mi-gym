@@ -1790,3 +1790,7 @@ body.modal-open .savebar { display: none; }
 .tag.fav.on { border-color: var(--accent); color: var(--accent); }
 .tech { background: var(--card2); border-radius: 12px; padding: 10px 12px; color: var(--text2); line-height: 1.45; }
 .tech b { color: var(--text); }
+
+/* cómo se mide cada ejercicio */
+.track-row { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
+.track-row select { width: auto; flex: 1; margin: 0; }

@@ -54,7 +54,7 @@ export function pickFor(slot, { equip = EQUIP, used = new Set(), avoid = [], rnd
   const tries = [slot, { ...slot, c: undefined }, { g: slot.g }]
   for (const s of tries) {
     const cands = EXERCISES.filter(
-      (x) => x.group === s.g && (!s.m || x.main.includes(s.m)) && (s.c == null || multi(x) === !!s.c) && equipOk(x, equip) && !avoid.includes(x.id) && !NO_GEN.has(x.id),
+      (x) => x.group === s.g && (!s.m || x.main.includes(s.m)) && (s.c == null || multi(x) === !!s.c) && equipOk(x, equip) && !avoid.includes(x.id) && !NO_GEN.has(x.id) && !x.more,
     )
     if (!cands.length) continue
     const fresh = cands.filter((x) => !used.has(x.id))
