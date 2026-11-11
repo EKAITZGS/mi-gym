@@ -24,7 +24,7 @@ export default function Home({ data, setData, onStart, go }) {
   const todays = data.plan.filter((d) => d.weekday === wd)
   const others = data.plan.filter((d) => d.weekday !== wd)
   const t = dayTotals(data.food[todayStr()] || [])
-  // datos del reloj de hoy (pasos y kcal del día); sin ellos se enseñan los anillos de comida
+  // datos del reloj de hoy (pasos y kcal del día)
   const watchDay = (() => {
     const d = data.polar?.days?.[todayStr()]
     return d && (d.steps > 0 || d.kcal > 0) ? d : null
@@ -179,50 +179,33 @@ export default function Home({ data, setData, onStart, go }) {
         )
       })()}
 
-      {watchDay ? (
-        <div className="grid2">
-          <div className="card tile">
-            <Ring value={watchDay.steps || 0} max={data.goals.steps || 7000} size={86} stroke={9}>
-              <Icon name="trend" size={20} />
-            </Ring>
-            <div>
-              <b className="tile-num">{miles(watchDay.steps || 0)}</b>
-              <span className="muted small"> / {miles(data.goals.steps || 7000)} pasos</span>
-            </div>
-          </div>
-          <button className="card tile" onClick={() => go('diet')}>
-            {/* shortcut: el anillo se llena con lo que comes frente a lo que quema el reloj; lleno = sin déficit */}
-            <Ring value={t.kcal} max={watchDay.kcal || 1} size={86} stroke={9} color="var(--amber)">
-              <Icon name="flame" size={20} />
-            </Ring>
-            <div>
-              <b className="tile-num">{miles(watchDay.kcal || 0)}</b>
-              <span className="muted small"> kcal quemadas · comidas {Math.round(t.kcal)}</span>
-            </div>
-          </button>
-        </div>
-      ) : (
+      {/* Inicio: siempre pasos y kcal quemadas del reloj (lo que comes está en Dieta) */}
       <div className="grid2">
-        <button className="card tile" onClick={() => go('diet')}>
-          <Ring value={t.kcal} max={data.goals.kcal} size={86} stroke={9}>
+        <button className="card tile" onClick={() => !data.polar && go('settings')}>
+          <Ring value={watchDay?.steps || 0} max={data.goals.steps || 7000} size={86} stroke={9}>
+            <Icon name="trend" size={20} />
+          </Ring>
+          <div>
+            <b className="tile-num">{miles(watchDay?.steps || 0)}</b>
+            <span className="muted small"> / {miles(data.goals.steps || 7000)} pasos hoy</span>
+          </div>
+        </button>
+        <button className="card tile" onClick={() => !data.polar && go('settings')}>
+          {/* el anillo se llena según lo quemado frente a lo que te toca comer al día */}
+          <Ring value={watchDay?.kcal || 0} max={data.goals.kcal || 2200} size={86} stroke={9} color="var(--amber)">
             <Icon name="flame" size={20} />
           </Ring>
           <div>
-            <b className="tile-num">{Math.round(t.kcal)}</b>
-            <span className="muted small"> / {data.goals.kcal} kcal</span>
-          </div>
-        </button>
-        <button className="card tile" onClick={() => go('diet')}>
-          <Ring value={t.p} max={data.goals.protein} size={86} stroke={9} color="var(--blue)">
-            <b className="ring-p">P</b>
-          </Ring>
-          <div>
-            <b className="tile-num">{Math.round(t.p)}</b>
-            <span className="muted small"> / {data.goals.protein} g prot.</span>
+            <b className="tile-num">{miles(watchDay?.kcal || 0)}</b>
+            <span className="muted small"> kcal quemadas hoy</span>
           </div>
         </button>
       </div>
-      )}
+      {!data.polar ? (
+        <p className="muted small" style={{ margin: '-4px 4px 10px' }}>Conecta tu reloj en Ajustes para ver pasos y calorías quemadas.</p>
+      ) : !watchDay ? (
+        <p className="muted small" style={{ margin: '-4px 4px 10px' }}>Aún no hay datos del reloj de hoy: se actualizan al sincronizar.</p>
+      ) : null}
 
       <ProteinTip data={data} setData={setData} />
 
