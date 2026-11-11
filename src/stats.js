@@ -97,6 +97,9 @@ const clock = (m) => `${String(Math.floor((m % 1440) / 60)).padStart(2, '0')}:${
 const avgOf = (xs) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null)
 
 // sleep: { 'YYYY-MM-DD': { start, end, total, interr, light?, deep?, rem?, score?, goal? } } (minutos)
+// tiempo de sueño como lo cuenta Polar: de dormirse a despertarse (las interrupciones van aparte)
+const lenOf = (n) => spanOf(n.start, n.end) || n.total
+
 export function sleepAnalysis(sleep, recharge, now = new Date()) {
   const dates = Object.keys(sleep || {}).sort()
   if (!dates.length) return null
@@ -105,7 +108,8 @@ export function sleepAnalysis(sleep, recharge, now = new Date()) {
     const d = new Date(now)
     d.setDate(d.getDate() - 6 + i)
     const k = fmtDate(d)
-    return { date: k, ...(sleep[k] || {}) }
+    const n = sleep[k]
+    return { date: k, ...(n || {}), ...(n?.total ? { len: lenOf(n) } : {}) }
   })
   const nights = week.filter((n) => n.total)
   const prev = Array.from({ length: 7 }, (_, i) => {
@@ -113,11 +117,12 @@ export function sleepAnalysis(sleep, recharge, now = new Date()) {
     d.setDate(d.getDate() - 13 + i)
     return sleep[fmtDate(d)]
   }).filter((n) => n?.total)
-  const last = sleep[dates[dates.length - 1]]
-  if (!nights.length) return { last, lastIsToday: false, week, avg: last.total, goal: last.goal || 480, tips: ['No hay noches de esta semana: duerme con el reloj puesto para ver tu análisis.'] }
+  const lastN = sleep[dates[dates.length - 1]]
+  const last = { ...lastN, len: lenOf(lastN) }
+  if (!nights.length) return { last, lastIsToday: false, week, avg: last.len, goal: last.goal || 480, tips: ['No hay noches de esta semana: duerme con el reloj puesto para ver tu análisis.'] }
   const goal = last.goal || 480
-  const avg = Math.round(avgOf(nights.map((n) => n.total)))
-  const prevAvg = prev.length >= 3 ? Math.round(avgOf(prev.map((n) => n.total))) : null
+  const avg = Math.round(avgOf(nights.map((n) => n.len)))
+  const prevAvg = prev.length >= 3 ? Math.round(avgOf(prev.map(lenOf))) : null
   const beds = nights.map((n) => bedMin(n.start)).filter((x) => x != null)
   const bedAvg = avgOf(beds)
   const spread = beds.length >= 3 ? Math.round(Math.sqrt(avgOf(beds.map((b) => (b - bedAvg) ** 2)))) : null
@@ -127,7 +132,7 @@ export function sleepAnalysis(sleep, recharge, now = new Date()) {
   const deepPct = staged.length ? Math.round(avgOf(staged.map((n) => (n.deep / n.total) * 100))) : null
   const remPct = staged.length ? Math.round(avgOf(staged.map((n) => ((n.rem || 0) / n.total) * 100))) : null
   const interr = Math.round(avgOf(nights.map((n) => n.interr || 0)))
-  const short = nights.filter((n) => n.total < 360).length
+  const short = nights.filter((n) => n.len < 360).length
   const rKeys = Object.keys(recharge || {}).sort().slice(-7)
   const hrvs = rKeys.map((k) => recharge[k].hrv).filter((v) => v != null)
   const hrs = rKeys.map((k) => recharge[k].hr).filter((v) => v != null)

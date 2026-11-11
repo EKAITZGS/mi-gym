@@ -28,7 +28,7 @@ export default function SleepCard({ data, setData }) {
         </p>
       </div>
     )
-  const max = Math.max(a.goal, ...a.week.map((n) => n.total || 0))
+  const max = Math.max(a.goal, ...a.week.map((n) => n.len || 0))
   return (
     <div className="card sleep">
       <div className="sec-head nm">
@@ -39,11 +39,11 @@ export default function SleepCard({ data, setData }) {
       </div>
       {a.last && (
         <div className="sleep-last">
-          <b className="tile-num">{hm(a.last.total)}</b>
+          <b className="tile-num">{hm(a.last.len)}</b>
           <span className="muted small">
             {' '}
-            anoche{a.last.start ? ` · ${a.last.start}–${a.last.end}` : ''}
-            {a.last.interr ? ` · ${a.last.interr} min despierto` : ''}
+            de sueño anoche{a.last.start ? ` · ${a.last.start}–${a.last.end}` : ''}
+            {a.last.total < a.last.len ? ` · sueño real ${hm(a.last.total)} (${Math.round((a.last.total / a.last.len) * 100)} %)` : ''}
             {a.last.score > 0 ? ` · puntuación ${a.last.score}` : ''}
             {a.last.fixed ? ' · corregida' : ''}
           </span>
@@ -87,7 +87,7 @@ export default function SleepCard({ data, setData }) {
       <div className="sleep-bars" aria-label="Horas de sueño por noche">
         {a.week.map((n) => (
           <div key={n.date} className="sleep-col">
-            <span className={'sleep-bar' + (n.total && n.total < a.goal - 60 ? ' low' : '')} style={{ height: `${n.total ? Math.max(6, (n.total / max) * 100) : 0}%` }} />
+            <span className={'sleep-bar' + (n.len && n.len < a.goal - 60 ? ' low' : '')} style={{ height: `${n.len ? Math.max(6, (n.len / max) * 100) : 0}%` }} />
             <span className="sleep-day">{'DLMXJVS'[new Date(n.date + 'T12:00').getDay()]}</span>
           </div>
         ))}
@@ -143,7 +143,7 @@ export function SleepLine({ data, onOpen }) {
       </span>
       <div className="grow">
         <div className="li-t">
-          Anoche dormiste {hm(a.last.total)}
+          Anoche dormiste {hm(a.last.len)}
           {a.last.score > 0 ? ` · ${a.last.score}/100` : ''}
         </div>
         <div className="muted small">{a.tips[0]}</div>

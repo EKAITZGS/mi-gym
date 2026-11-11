@@ -74,7 +74,7 @@ import { parseNights } from '../src/polar.js'
   }
   const a = sleepAnalysis(nights, null, now)
   assert.equal(a.lastIsToday, true)
-  assert.equal(a.avg, Math.round((330 * 3 + 400 * 4) / 7))
+  assert.equal(a.avg, Math.round((480 * 4 + 300 * 3) / 7)) // tiempo de sueño = de dormirse a despertarse, como Polar
   assert.ok(a.tips.some((t) => t.startsWith('Duermes de media')))
   assert.ok(a.tips.some((t) => t.startsWith('3 noches de menos de 6 h')))
   assert.ok(a.tips.some((t) => t.includes('horas muy distintas')))
