@@ -42,7 +42,7 @@ Prefiere respuestas cortas, directas y sinceras. Las propuestas del coach nunca 
 Él prueba directamente en el iPhone; no abrir vistas previas en el PC ni pedirle que mire nada ahí. Tras cada cambio:
 1. `npm run build`; si falla, arreglar antes de seguir.
 2. Prueba rápida si se puede, sin abrir previews.
-3. Commit y push a `main` sin preguntar (Actions publica en ~2 min).
+3. Commit y push a `main` sin preguntar (Actions publica en ~2 min). Los mensajes de commit van **sin** la línea `Co-Authored-By: Claude` (el usuario no quiere a Claude como colaborador en GitHub).
 4. Decirle en 2–3 líneas qué cambió y que cierre y abra la app en el iPhone.
 Si algo falla en el móvil, él manda captura y se arregla igual. **Preguntar antes** si el cambio puede borrar o estropear datos guardados, o si hay que tocar Cloudflare.
 
