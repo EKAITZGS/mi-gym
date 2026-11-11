@@ -142,7 +142,6 @@ export function sleepAnalysis(sleep, recharge, now = new Date()) {
   else if (avg >= 420 && avg <= 560) tips.push(`Buena media: ${hm(avg)} por noche. Mantén ese horario.`)
   if (short >= 2) tips.push(`${short} noches de menos de 6 h esta semana: esos días baja la intensidad y no busques récords.`)
   if (spread != null && spread > 60) tips.push(`Te acuestas a horas muy distintas (±${spread} min). Una hora fija, también el fin de semana, mejora mucho la calidad.`)
-  if (bedAvg != null && bedAvg % 1440 > 60 && bedAvg % 1440 < 12 * 60) tips.push(`Te acuestas de media a las ${clock(bedAvg)}: si madrugas, adelantarlo te dará horas de sueño fáciles.`)
   if (deepPct != null && deepPct < 13) tips.push(`Poco sueño profundo (${deepPct} %): evita cenar fuerte, alcohol y pantallas en la última hora.`)
   if (cont != null && cont < 3) tips.push(`Sueño poco continuo (${String(cont).replace('.', ',')}/5): te despiertas a menudo. Evita líquidos y pantallas antes de dormir.`)
   if (interr > 30) tips.push(`Pasas unos ${interr} min despierto por noche: habitación fresca y a oscuras, y nada de cafeína después de las 16 h.`)
