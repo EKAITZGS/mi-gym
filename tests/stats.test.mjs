@@ -58,6 +58,13 @@ import { parseNights } from '../src/polar.js'
   assert.equal(p['2026-11-11'].total, 430) // con fases: suma de fases
   assert.equal(p['2026-11-11'].deep, 90)
   assert.equal(hm(430), '7 h 10 min')
+  // M430: todo como profundo, ligero/REM a 0, puntuación 0 e interrupciones cortas + largas
+  const m = parseNights([{ date: '2026-11-09', sleep_start_time: '2026-11-08T23:41:00+01:00', sleep_end_time: '2026-11-09T06:19:00+01:00', deep_sleep: 22500, light_sleep: 0, rem_sleep: 0, sleep_score: 0, total_interruption_duration: 0, short_interruption_duration: 900, long_interruption_duration: 480, continuity: 2.6 }])['2026-11-09']
+  assert.equal(m.deep, undefined)
+  assert.equal(m.score, undefined)
+  assert.equal(m.interr, 23)
+  assert.equal(m.total, 375)
+  assert.equal(m.cont, 2.6)
   const now = new Date('2026-11-11T10:00')
   const nights = {}
   for (let i = 0; i < 7; i++) {

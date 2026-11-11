@@ -85,6 +85,7 @@ export function calcGoals({ kg, cm, age, male, act = 1.375, aim = 'lose' }) {
 }
 
 // ---------- Sueño ----------
+export const hmc = (min) => `${Math.floor(min / 60)}h ${String(Math.round(min % 60)).padStart(2, '0')}`
 export const hm = (min) => `${Math.floor(min / 60)} h ${String(Math.round(min % 60)).padStart(2, '0')} min`
 // hora de acostarse en minutos, contando las de después de medianoche como 24:xx para poder hacer medias
 const bedMin = (t) => {
@@ -120,7 +121,9 @@ export function sleepAnalysis(sleep, recharge, now = new Date()) {
   const beds = nights.map((n) => bedMin(n.start)).filter((x) => x != null)
   const bedAvg = avgOf(beds)
   const spread = beds.length >= 3 ? Math.round(Math.sqrt(avgOf(beds.map((b) => (b - bedAvg) ** 2)))) : null
-  const staged = nights.filter((n) => n.deep != null && n.total)
+  const staged = nights.filter((n) => n.deep != null && n.total && (n.light || n.rem))
+  const conts = nights.map((n) => n.cont).filter((v) => v > 0)
+  const cont = conts.length ? Math.round(avgOf(conts) * 10) / 10 : null
   const deepPct = staged.length ? Math.round(avgOf(staged.map((n) => (n.deep / n.total) * 100))) : null
   const remPct = staged.length ? Math.round(avgOf(staged.map((n) => ((n.rem || 0) / n.total) * 100))) : null
   const interr = Math.round(avgOf(nights.map((n) => n.interr || 0)))
@@ -136,12 +139,13 @@ export function sleepAnalysis(sleep, recharge, now = new Date()) {
   if (spread != null && spread > 60) tips.push(`Te acuestas a horas muy distintas (±${spread} min). Una hora fija, también el fin de semana, mejora mucho la calidad.`)
   if (bedAvg != null && bedAvg % 1440 > 60 && bedAvg % 1440 < 12 * 60) tips.push(`Te acuestas de media a las ${clock(bedAvg)}: si madrugas, adelantarlo te dará horas de sueño fáciles.`)
   if (deepPct != null && deepPct < 13) tips.push(`Poco sueño profundo (${deepPct} %): evita cenar fuerte, alcohol y pantallas en la última hora.`)
+  if (cont != null && cont < 3) tips.push(`Sueño poco continuo (${String(cont).replace('.', ',')}/5): te despiertas a menudo. Evita líquidos y pantallas antes de dormir.`)
   if (interr > 30) tips.push(`Pasas unos ${interr} min despierto por noche: habitación fresca y a oscuras, y nada de cafeína después de las 16 h.`)
   if (prevAvg != null && avg - prevAvg <= -30) tips.push(`Esta semana duermes ${prevAvg - avg} min menos que la anterior.`)
   if (!tips.length) tips.push('Tu sueño va bien esta semana. Sigue así.')
   return {
     last, lastIsToday: dates[dates.length - 1] === today, week, goal, avg, prevAvg,
-    bed: bedAvg != null ? clock(bedAvg) : null, spread, deepPct, remPct, interr,
+    bed: bedAvg != null ? clock(bedAvg) : null, spread, deepPct, remPct, interr, cont,
     hrv: hrvs.length ? Math.round(avgOf(hrvs)) : null, hr: hrs.length ? Math.round(avgOf(hrs)) : null, tips,
   }
 }

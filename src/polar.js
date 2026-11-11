@@ -135,15 +135,17 @@ export function parseNights(json) {
     if (!date) continue
     const st = String(n.sleep_start_time || ''), en = String(n.sleep_end_time || '')
     const light = mins(n.light_sleep), deep = mins(n.deep_sleep), rem = mins(n.rem_sleep), unrec = mins(n.unrecognized_sleep_stage)
+    // sin ligero ni REM es que el reloj no mide fases (p. ej. M430: lo pone todo como profundo)
+    const hasStages = (light || 0) + (rem || 0) > 0
     const staged = (light || 0) + (deep || 0) + (rem || 0) + (unrec || 0)
     const span = st && en ? Math.round((new Date(en) - new Date(st)) / 60000) : 0
-    const interr = mins(n.total_interruption_duration) || 0
+    const interr = Math.max(mins(n.total_interruption_duration) || 0, (mins(n.short_interruption_duration) || 0) + (mins(n.long_interruption_duration) || 0))
     const total = staged || Math.max(0, span - interr)
     if (!total) continue
     out[date] = {
       start: st.slice(11, 16), end: en.slice(11, 16), total, interr,
-      ...(staged ? { light, deep, rem } : {}),
-      ...(n.sleep_score != null ? { score: Math.round(n.sleep_score) } : {}),
+      ...(hasStages ? { light, deep, rem } : {}),
+      ...(n.sleep_score > 0 ? { score: Math.round(n.sleep_score) } : {}),
       ...(n.continuity != null ? { cont: Number(n.continuity) } : {}),
       ...(n.sleep_rating != null ? { rating: Number(n.sleep_rating) } : {}),
       ...(n.sleep_cycles != null ? { cycles: Number(n.sleep_cycles) } : {}),

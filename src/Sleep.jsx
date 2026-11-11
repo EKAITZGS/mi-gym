@@ -1,4 +1,4 @@
-import { sleepAnalysis, hm } from './stats'
+import { sleepAnalysis, hm, hmc } from './stats'
 import Icon from './icons'
 
 // Apartado de sueño (Progreso): noches del reloj Polar, medias de 7 días y análisis con consejos
@@ -34,7 +34,8 @@ export default function SleepCard({ data }) {
           <span className="muted small">
             {' '}
             anoche{a.last.start ? ` · ${a.last.start}–${a.last.end}` : ''}
-            {a.last.score != null ? ` · puntuación ${a.last.score}` : ''}
+            {a.last.interr ? ` · ${a.last.interr} min despierto` : ''}
+            {a.last.score > 0 ? ` · puntuación ${a.last.score}` : ''}
           </span>
         </div>
       )}
@@ -48,7 +49,7 @@ export default function SleepCard({ data }) {
       </div>
       <div className="sleep-stats">
         <div>
-          <b>{hm(a.avg)}</b>
+          <b>{hmc(a.avg)}</b>
           <span>
             media
             {a.prevAvg ? ` (${a.avg >= a.prevAvg ? '+' : '−'}${Math.abs(a.avg - a.prevAvg)} min)` : ''}
@@ -60,18 +61,18 @@ export default function SleepCard({ data }) {
             <span>te acuestas{a.spread != null ? ` ±${a.spread} min` : ''}</span>
           </div>
         )}
-        {a.deepPct != null ? (
-          <div>
-            <b>{a.deepPct} %</b>
-            <span>profundo · REM {a.remPct} %</span>
-          </div>
-        ) : a.interr != null ? (
-          <div>
-            <b>{a.interr} min</b>
-            <span>despierto por noche</span>
-          </div>
-        ) : null}
+        <div>
+          <b>{a.interr} min</b>
+          <span>despierto por noche</span>
+        </div>
       </div>
+      {(a.deepPct != null || a.cont != null) && (
+        <p className="muted small" style={{ margin: '0 0 6px' }}>
+          {a.deepPct != null ? `Fases: profundo ${a.deepPct} % · REM ${a.remPct} %` : ''}
+          {a.deepPct != null && a.cont != null ? ' · ' : ''}
+          {a.cont != null ? `Continuidad ${String(a.cont).replace('.', ',')}/5` : ''}
+        </p>
+      )}
       {a.hrv != null && (
         <p className="muted small" style={{ margin: '0 0 6px' }}>
           Recarga nocturna: VFC media {a.hrv} ms{a.hr ? ` · pulso en reposo ${a.hr} ppm` : ''}
@@ -98,7 +99,7 @@ export function SleepLine({ data, onOpen }) {
       <div className="grow">
         <div className="li-t">
           Anoche dormiste {hm(a.last.total)}
-          {a.last.score != null ? ` · ${a.last.score}/100` : ''}
+          {a.last.score > 0 ? ` · ${a.last.score}/100` : ''}
         </div>
         <div className="muted small">{a.tips[0]}</div>
       </div>
