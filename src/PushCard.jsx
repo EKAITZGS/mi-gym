@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Icon from './icons'
-import { pushSupported, isStandalone, pushState, enablePush, disablePush, testPush, syncPush, DEFAULT_PREFS, pushPlan } from './push'
+import { pushSupported, isStandalone, pushState, enablePush, disablePush, testPush, syncPush, DEFAULT_PREFS, pushPlan, pushHealth } from './push'
 
 const OPTS = [
   { k: 'train', t: 'Entreno del día', s: 'Por la mañana, los días que toca entrenar', time: 'trainAt' },
@@ -13,6 +13,10 @@ export default function PushCard({ data, setData }) {
   const [on, setOn] = useState(!!pushState()?.on)
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState('')
+  const [health, setHealth] = useState(null)
+  useEffect(() => {
+    if (on) pushHealth().then(setHealth).catch(() => {})
+  }, [on])
   const pr = { ...DEFAULT_PREFS, ...(data.pushPrefs || {}) }
   const setPr = (p) => setData((d) => ({ ...d, pushPrefs: { ...DEFAULT_PREFS, ...(d.pushPrefs || {}), ...p } }))
 
@@ -34,7 +38,8 @@ export default function PushCard({ data, setData }) {
       await enablePush()
       setOn(true)
       await syncPush(data, true)
-      await testPush()
+      await testPush(data)
+      setHealth({ ok: true })
       setMsg('Avisos activados. Te acaba de llegar uno de prueba.')
     } catch (e) {
       setMsg(e.message === 'DENIED' ? 'Has denegado el permiso. Actívalo en Ajustes del iPhone → Notificaciones → Mi Gym.' : 'No se pudieron activar ahora. Prueba otra vez en un momento.')
@@ -68,6 +73,13 @@ export default function PushCard({ data, setData }) {
         </>
       ) : (
         <>
+          {health && !health.ok && (
+            <div className="advice yellow sm" style={{ marginBottom: 10 }}>
+              {health.why === 'perm'
+                ? 'El iPhone tiene los avisos de Mi Gym bloqueados, por eso no te llegan. Actívalos en Ajustes → Notificaciones → Mi Gym y pulsa "Probar aviso".'
+                : 'Los avisos se han desconectado en este móvil (pasa al reinstalar la app o al actualizar iOS). Pulsa "Probar aviso" para volver a conectarlos.'}
+            </div>
+          )}
           {OPTS.map((o) => (
             <div className="push-opt" key={o.k}>
               <label className="chk-l">
@@ -99,11 +111,21 @@ export default function PushCard({ data, setData }) {
               onClick={async () => {
                 setBusy(true)
                 try {
+                  // primero, aún dentro del toque (iOS lo exige para pedir permiso), reconecta si hace falta
+                  if (!health?.ok) await enablePush()
                   await syncPush(data, true)
-                  await testPush()
-                  setMsg('Aviso de prueba enviado.')
-                } catch {
-                  setMsg('No se pudo enviar la prueba.')
+                  await testPush(data)
+                  setHealth({ ok: true })
+                  setMsg('Enviado: debería llegarte en unos segundos. Si no llega, mira Ajustes del iPhone → Notificaciones → Mi Gym (permitir y "Inmediata").')
+                } catch (e) {
+                  const m = String(e.message || '')
+                  setMsg(
+                    m === 'DENIED'
+                      ? 'El iPhone tiene los avisos bloqueados para Mi Gym. Actívalos en Ajustes → Notificaciones → Mi Gym.'
+                      : m.startsWith('PUSH_')
+                        ? `Apple ha rechazado el aviso (código ${m.slice(5)}). Pulsa Desactivar y vuelve a activarlos.`
+                        : 'No se pudo contactar con el servidor de avisos. Prueba en un momento.'
+                  )
                 }
                 setBusy(false)
               }}

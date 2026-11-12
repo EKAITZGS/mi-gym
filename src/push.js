@@ -116,17 +116,43 @@ export async function disablePush() {
   setState({ on: false })
 }
 
-export async function testPush() {
-  const sub = await currentSub()
-  if (!sub) throw new Error('NO_SUB')
-  return post('/push/test', { sub: sub.toJSON() })
+// Prueba de verdad: si Apple dice que la suscripción ya no vale (404/410), se crea otra y se reintenta
+export async function testPush(data) {
+  let sub = await currentSub()
+  if (!sub) sub = await enablePush()
+  let r = await post('/push/test', { sub: sub.toJSON() })
+  if (!r.ok && (r.status === 404 || r.status === 410)) {
+    await sub.unsubscribe().catch(() => {})
+    await enablePush()
+    if (data) await syncPush(data, true)
+    sub = await currentSub()
+    r = await post('/push/test', { sub: sub.toJSON() })
+  }
+  if (!r.ok) throw new Error('PUSH_' + (r.status || 'ERR'))
+  return r
+}
+
+// Estado real en el móvil: permiso y suscripción (la app puede creer que están activos y no estarlo)
+export async function pushHealth() {
+  if (!pushSupported()) return { ok: false, why: 'support' }
+  if (Notification.permission !== 'granted') return { ok: false, why: 'perm' }
+  const sub = await currentSub().catch(() => null)
+  return sub ? { ok: true } : { ok: false, why: 'sub' }
 }
 
 // Sube la lista de avisos solo si ha cambiado (para no gastar escrituras)
 export async function syncPush(data, force = false) {
   const st = pushState()
   if (!st?.on || !pushSupported()) return
-  const sub = await currentSub().catch(() => null)
+  let sub = await currentSub().catch(() => null)
+  // la suscripción puede desaparecer (reinstalar la app, iOS): si el permiso sigue dado, se crea otra sola
+  if (!sub && Notification.permission === 'granted') {
+    try {
+      const { key } = await fetch(POLAR_WORKER + '/push/key').then((r) => r.json())
+      const reg = await navigator.serviceWorker.ready
+      sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToBytes(key) })
+    } catch {}
+  }
   if (!sub) return
   const items = pushPlan(data)
   const sig = JSON.stringify(items) + sub.endpoint
