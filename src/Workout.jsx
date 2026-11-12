@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { EXERCISES, EX_BY_ID, GROUPS } from './data/exercises'
-import { WEEKDAYS, uid, lastSets, exStats, suggestion, fmtKg, num, pad, TRACKS, trackOf, setFilled, setTxt, todayStr } from './store'
+import { WEEKDAYS, uid, lastSets, prefillSets, exStats, suggestion, fmtKg, num, pad, TRACKS, trackOf, setFilled, setTxt, todayStr } from './store'
 import { Modal, Thumb, LineChart, ExPhoto } from './ui'
 import { techFor } from './data/technique'
 import { nightsOf } from './stats'
@@ -875,8 +875,8 @@ function Session({ data, setData, onExit }) {
   const [picker, setPicker] = useState(null) // { mode: 'add' } | { mode: 'swap', itemId }
   const [done, setDone] = useState(null) // { prs, changed, items, dayId, name } al terminar
 
-  const newSets = (n, drop) =>
-    Array.from({ length: n }, () => ({ w: '', r: '', done: false, drops: drop ? [{ w: '', r: '' }] : [] }))
+  // series nuevas: ya traen el peso de la última vez (las reps de hoy, vacías)
+  const newSets = (exId, n, drop, from = 0) => prefillSets(data.sessions, exId, n, drop, from)
   const curItems = (act) => act.items || day?.items || []
   const setTrack = (it, v) => setActive((act) => ({ ...act, items: curItems(act).map((i) => (i.id === it.id ? { ...i, track: v } : i)) }))
   const setActive = (fn) => setData((d) => (d.active ? { ...d, active: fn(d.active) } : d))
@@ -920,7 +920,7 @@ function Session({ data, setData, onExit }) {
   const removeSet = (exId, idx) =>
     setActive((act) => ({ ...act, entries: { ...act.entries, [exId]: (act.entries[exId] || []).filter((_, k) => k !== idx) } }))
   const addSet = (exId) =>
-    setActive((act) => ({ ...act, entries: { ...act.entries, [exId]: [...(act.entries[exId] || []), ...newSets(1, false)] } }))
+    setActive((act) => ({ ...act, entries: { ...act.entries, [exId]: [...(act.entries[exId] || []), ...newSets(exId, 1, false, (act.entries[exId] || []).length)] } }))
   const pickEx = (ex) => {
     const p = picker
     setPicker(null)
@@ -932,10 +932,10 @@ function Session({ data, setData, onExit }) {
         const old = its.find((i) => i.id === p.itemId)
         if (!old) return act
         delete entries[old.ex]
-        entries[ex.id] = newSets(old.sets, old.drop)
+        entries[ex.id] = newSets(ex.id, old.sets, old.drop)
         return { ...act, items: its.map((i) => (i.id === p.itemId ? { ...i, ex: ex.id } : i)), entries }
       }
-      entries[ex.id] = newSets(3, false)
+      entries[ex.id] = newSets(ex.id, 3, false)
       return { ...act, items: [...its, { id: uid(), ex: ex.id, sets: 3, reps: '10', drop: false }], entries }
     })
   }
@@ -1075,11 +1075,14 @@ function Session({ data, setData, onExit }) {
     const entries = {}
     for (const [k, sets] of Object.entries(a.entries)) {
       const uni = uniOf(items.find((i) => i.ex === k) || { ex: k })
+      // el peso precargado de la última vez no cuenta solo: hace falta hacer la serie (reps o marcarla)
+      const own = (x) => !!x.w && x.w !== x.pw
       const kept = sets
-        .filter((s) => s.done || setFilled(s) || s.r2 || s.drops.some((x) => x.w || x.r))
+        .filter((s) => s.done || own(s) || setFilled({ ...s, w: '' }) || s.r2 || s.drops.some((x) => own(x) || x.r))
         .map((s) => {
           const extra = Object.fromEntries(['s', 'm', 'km', 'min'].filter((k) => s[k]).map((k) => [k, s[k]]))
-          const base = { w: s.w || '', r: s.r || '', ...extra, drops: s.drops.filter((x) => x.w || x.r) }
+          const drops = s.drops.filter((x) => own(x) || x.r).map((x) => ({ w: x.w || '', r: x.r || '' }))
+          const base = { w: s.w || '', r: s.r || '', ...extra, drops }
           if (!uni || !(s.r || s.r2)) return base
           // unilateral: cuenta el lado más flojo para progresar; se guardan los dos
           const l = num(s.r), rr = num(s.r2)

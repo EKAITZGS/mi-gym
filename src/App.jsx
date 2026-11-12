@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useStore, todayStr } from './store'
+import { useStore, todayStr, prefillSets } from './store'
 import { setCustomExercises } from './data/exercises'
 import Home from './Home'
 import Workout, { editGuard } from './Workout'
@@ -108,12 +108,8 @@ export default function App() {
     if (!data.active || data.active.dayId !== dayId) {
       const entries = {}
       for (const it of day.items) {
-        entries[it.ex] = Array.from({ length: it.sets }, () => ({
-          w: '',
-          r: '',
-          done: false,
-          drops: it.drop ? [{ w: '', r: '' }] : [],
-        }))
+        // el peso de la última vez ya puesto; las reps de hoy empiezan vacías
+        entries[it.ex] = prefillSets(data.sessions, it.ex, it.sets, it.drop)
       }
       setData((d) => ({
         ...d,

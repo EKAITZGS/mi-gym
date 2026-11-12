@@ -133,6 +133,24 @@ export function lastSets(sessions, exId) {
   return null
 }
 
+// series nuevas con el PESO de la última vez ya puesto (las reps empiezan vacías, nunca se copian).
+// `pw` recuerda el peso precargado: si no se hacen reps ni se marca, la serie no se guarda.
+export function prefillSets(sessions, exId, n, drop, from = 0) {
+  const last = lastSets(sessions, exId)?.sets || []
+  return Array.from({ length: n }, (_, k) => {
+    const b = last[from + k] || last[last.length - 1] || {}
+    const w = b.w || ''
+    const dw = b.drops?.[0]?.w || ''
+    return {
+      w,
+      r: '',
+      done: false,
+      ...(w ? { pw: w } : {}),
+      drops: drop ? [{ w: dw, r: '', ...(dw ? { pw: dw } : {}) }] : [],
+    }
+  })
+}
+
 export const num = (v) => {
   const n = parseFloat(String(v ?? '').replace(',', '.'))
   return Number.isFinite(n) ? n : 0
