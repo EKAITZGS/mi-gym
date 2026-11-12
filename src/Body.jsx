@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Modal, LineChart } from './ui'
+import { Modal, TrendChart } from './ui'
 import Icon from './icons'
 import { todayStr, uid, num, fmtKg, addDays, fmtDate } from './store'
 import { savePhoto, loadPhoto, deletePhoto, compressImage } from './photos'
@@ -222,55 +222,26 @@ function PhotosModal({ data, setData, onClose }) {
   )
 }
 
-// Cintura y peso (tendencia) en una sola gráfica: se dibuja el cambio desde el inicio, así no se ven pesos sueltos
-function BodyChart({ waist, weight }) {
-  const W = 340
-  const H = 170
-  const L = 34
-  const R = 12
-  const T = 12
-  const B = 24
-  const a = waist.map((p) => ({ date: p.date, d: Math.round((p.cm - waist[0].cm) * 10) / 10 }))
-  const b = weight.map((p) => ({ date: p.date, d: Math.round((p.v - weight[0].v) * 10) / 10 }))
-  const dates = [...a, ...b].map((p) => p.date).sort()
-  const t0 = Date.parse(dates[0])
-  const span = Math.max(1, Date.parse(dates[dates.length - 1]) - t0)
-  const vs = [...a, ...b].map((p) => p.d)
-  let min = Math.min(0, ...vs)
-  let max = Math.max(0, ...vs)
-  if (min === max) {
-    min -= 1
-    max += 1
+// lectura rápida de cintura + peso de las últimas 4 semanas (solo pistas, sin pesos sueltos)
+function bodyRead(waist, wt) {
+  if (waist.length < 2 || wt.length < 2) return null
+  const win = (list, key) => {
+    const end = list[list.length - 1]
+    const from = list.filter((p) => p.date >= addDays(end.date, -28))
+    const a = from.length >= 2 ? from[0] : list[list.length - 2]
+    return { d: end[key] - a[key], days: (Date.parse(end.date) - Date.parse(a.date)) / 864e5 }
   }
-  const pad = (max - min) * 0.15
-  min -= pad
-  max += pad
-  const x = (s) => L + ((Date.parse(s) - t0) / span) * (W - L - R)
-  const y = (v) => T + (H - T - B) * (1 - (v - min) / (max - min))
-  const path = (s) => s.map((p, i) => `${i ? 'L' : 'M'}${x(p.date).toFixed(1)},${y(p.d).toFixed(1)}`).join(' ')
-  const ticks = [min, (min + max) / 2, max]
-  return (
-    <div className="chart-wrap">
-      <div className="chart-head" style={{ flexWrap: 'wrap', gap: 12 }}>
-        <span className="small" style={{ color: 'var(--accent)' }}>● Cintura (cm)</span>
-        <span className="small" style={{ color: 'var(--blue)' }}>● Peso, tendencia (kg)</span>
-        <span className="muted small">cambio desde el inicio</span>
-      </div>
-      <svg viewBox={`0 0 ${W} ${H}`} className="chart" role="img" aria-label="Cambio de cintura y de peso">
-        {ticks.map((v, k) => (
-          <text key={k} x={L - 6} y={y(v) + 3} textAnchor="end" className="ct">
-            {(Math.round(v * 10) / 10).toString().replace('.', ',')}
-          </text>
-        ))}
-        <line x1={L} x2={W - R} y1={y(0)} y2={y(0)} stroke="var(--line)" strokeDasharray="4 4" />
-        <path d={path(a)} fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
-        <path d={path(b)} fill="none" stroke="var(--blue)" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
-        <text x={L} y={H - 6} className="ct">{fmtD(dates[0])}</text>
-        <text x={W - R} y={H - 6} textAnchor="end" className="ct">{fmtD(dates[dates.length - 1])}</text>
-      </svg>
-    </div>
-  )
+  const w = win(waist, 'cm')
+  const k = win(wt, 'v')
+  if (Math.min(w.days, k.days) < 14) return 'Con 2–3 semanas de medidas te diré si estás perdiendo grasa, ganando músculo o las dos cosas.'
+  if (w.d <= -0.5 && k.d <= -0.3) return 'Bajan la cintura y el peso: estás perdiendo grasa. Sigue así.'
+  if (w.d <= -0.5) return 'La cintura baja y el peso se mantiene o sube: pierdes grasa y ganas músculo a la vez.'
+  if (w.d >= 0.5 && k.d >= 0.3) return 'Suben la cintura y el peso: probablemente te sobran calorías. Revisa la dieta.'
+  if (k.d <= -0.3) return 'Bajas de peso pero la cintura no se mueve: llega a la proteína para no perder músculo.'
+  return 'Cintura y peso estables este último mes.'
 }
+
+const sign = (d) => (d > 0 ? '+' : d < 0 ? '−' : '±')
 
 export default function BodyCard({ data, setData }) {
   const [modal, setModal] = useState(null)
@@ -281,63 +252,78 @@ export default function BodyCard({ data, setData }) {
   const diff = last && first && last.date !== first.date ? Math.round((last.cm - first.cm) * 10) / 10 : null
   const dueW = daysSince(last?.date) >= 7
   const dueP = daysSince(photos[photos.length - 1]?.date) >= 28
-  const recent = waist.filter((w) => w.date >= addDays(todayStr(), -120))
   const weights = data.body?.weight || []
   const wt = trend(weights)
   const wLast = wt[wt.length - 1]
   const wDiff = wt.length >= 2 ? Math.round((wLast.v - wt[0].v) * 10) / 10 : null
   const dueK = weights.length > 0 && daysSince(weights[weights.length - 1].date) >= 7
-  const wRecent = wt.filter((w) => w.date >= addDays(todayStr(), -120))
-  const both = recent.length >= 2 && wRecent.length >= 2
+  const [metric, setMetric] = useState(null)
+  const m = metric || (waist.length < 2 && wt.length >= 2 ? 'weight' : 'waist')
+  const read = bodyRead(waist, wt)
+  const tile = (key, label, color, val, unit, d, since) => (
+    <button className={'body-tile' + (m === key ? ' on' : '')} style={{ '--c': color }} onClick={() => setMetric(key)}>
+      <div className="bt-l">
+        <i /> {label}
+      </div>
+      <div className="bt-v">
+        {val != null ? fmtKg(val) : '—'} <span>{unit}</span>
+      </div>
+      <div className={'bt-d ' + (d == null ? 'flat' : d < 0 ? 'up' : d > 0 ? 'down' : 'flat')}>
+        {d == null ? (
+          val != null ? 'Primera medida' : 'Sin medidas'
+        ) : (
+          <>
+            <b>
+              {sign(d)}
+              {fmtKg(Math.abs(d))} {unit}
+            </b>{' '}
+            <span>desde {fmtD(since)}</span>
+          </>
+        )}
+      </div>
+    </button>
+  )
   return (
     <div className="card body-card">
       <div className="sec-head nm">
         <b>Tu cuerpo</b>
         <span className="muted small">cintura y tendencia</span>
       </div>
-      <div className="body-row">
-        <div className="grow">
-          {last ? (
-            <>
-              <div className="body-num">
-                {fmtKg(last.cm)} <span>cm de cintura</span>
-              </div>
-              {diff != null && (
-                <div className={'delta ' + (diff <= 0 ? 'up' : 'down')}>
-                  {diff > 0 ? '+' : ''}
-                  {fmtKg(diff)} cm desde el {fmtD(first.date)}
-                </div>
-              )}
-            </>
-          ) : (
-            <p className="muted small" style={{ margin: 0 }}>
-              Mide tu cintura una vez por semana: si baja, estás perdiendo grasa aunque la báscula no se mueva.
-            </p>
-          )}
-        </div>
-      </div>
-      {!both && recent.length >= 2 && <LineChart points={recent.map((w) => ({ label: w.date, v: w.cm }))} unit="cm" />}
-      {wLast && (
-        <div className="body-row">
-          <div className="grow">
-            <div className="body-num">
-              {fmtKg(wLast.v)} <span>kg de media (tendencia)</span>
-            </div>
-            {wDiff != null && (
-              <div className={'delta ' + (wDiff <= 0 ? 'up' : 'down')}>
-                {wDiff > 0 ? '+' : ''}
-                {fmtKg(wDiff)} kg desde el {fmtD(wt[0].date)}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-      {!both && wRecent.length >= 2 && <LineChart points={wRecent.map((w) => ({ label: w.date, v: w.v }))} unit="kg" />}
-      {both && <BodyChart waist={recent} weight={wRecent} />}
-      {!both && (
-        <p className="muted small" style={{ margin: '0 0 10px' }}>
-          La gráfica aparece cuando tengas al menos 2 medidas de cintura y 2 de peso (una por semana).
+      {!last && !wLast ? (
+        <p className="muted small" style={{ margin: '4px 0 10px' }}>
+          Mide tu cintura una vez por semana: si baja, estás perdiendo grasa aunque la báscula no se mueva.
         </p>
+      ) : (
+        <>
+          <div className="body-tiles">
+            {tile('waist', 'Cintura', 'var(--accent)', last?.cm, 'cm', diff, first?.date)}
+            {tile('weight', 'Peso (media)', 'var(--blue)', wLast?.v, 'kg', wDiff, wt[0]?.date)}
+          </div>
+          {m === 'waist' ? (
+            <TrendChart
+              key="waist"
+              points={waist.map((w) => ({ label: w.date, v: w.cm }))}
+              unit="cm"
+              color="var(--accent)"
+              good="down"
+              empty="Mide la cintura otra semana y aquí verás cómo baja."
+            />
+          ) : (
+            <TrendChart
+              key="weight"
+              points={wt.map((w) => ({ label: w.date, v: w.v }))}
+              unit="kg"
+              color="var(--blue)"
+              good="down"
+              empty="Pésate otra semana y aquí verás la tendencia."
+            />
+          )}
+          {read && (
+            <div className="body-read">
+              <Icon name="trend" size={16} /> <span>{read}</span>
+            </div>
+          )}
+        </>
       )}
       <div className="btns">
         <button className={'btn' + (dueW ? ' primary' : '')} onClick={() => setModal('waist')}>
