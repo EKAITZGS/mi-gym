@@ -373,7 +373,46 @@ const q = async (fn) => {
   if (error) throw new Error(/coach_links|relation|does not exist/i.test(error.message) ? 'Falta activar lo de entrenadores en Supabase (02-entrenadores.sql).' : es(error))
   return data
 }
-export const listTrainers = () => q((c) => c.from('profiles').select('id, name').eq('role', 'trainer').order('name'))
+export async function listTrainers() {
+  try {
+    return await q((c) => c.from('profiles').select('id, name, bio').eq('role', 'trainer').order('name'))
+  } catch {
+    // sin la columna bio (falta 03-perfil.sql)
+    return q((c) => c.from('profiles').select('id, name').eq('role', 'trainer').order('name'))
+  }
+}
+
+// Perfil: nombre, tipo de cuenta (usuario / entrenador) y "sobre mí" del entrenador
+export async function getMyProfile() {
+  const uid = uidNow()
+  try {
+    return await q((c) => c.from('profiles').select('name, role, bio').eq('id', uid).maybeSingle())
+  } catch {
+    return q((c) => c.from('profiles').select('name, role').eq('id', uid).maybeSingle())
+  }
+}
+export async function updateProfile({ name, role, bio }) {
+  const uid = uidNow()
+  const row = { name: name.trim().slice(0, 40), role: role === 'trainer' ? 'trainer' : 'user' }
+  const c = await sb()
+  let { error } = await c.from('profiles').update({ ...row, bio: (bio || '').trim().slice(0, 240) || null }).eq('id', uid)
+  let noBio = false
+  if (error && /bio/i.test(error.message)) {
+    noBio = true
+    ;({ error } = await c.from('profiles').update(row).eq('id', uid))
+  }
+  if (error) throw new Error(es(error))
+  // si deja de ser entrenador, sus alumnos dejan de estar con él
+  if (row.role === 'user') await c.from('coach_links').delete().eq('trainer_id', uid)
+  await c.auth.updateUser({ data: { name: row.name, role: row.role } }).catch(() => {})
+  patchMeta({ name: row.name, role: row.role })
+  return { noBio }
+}
+export async function countStudents() {
+  const uid = uidNow()
+  const rows = await q((c) => c.from('coach_links').select('id').eq('trainer_id', uid))
+  return rows.length
+}
 export const myLinks = () => q((c) => c.from('coach_links').select('id, user_id, trainer_id, status, created_at, updated_at').order('created_at', { ascending: false }))
 export async function requestTrainer(trainerId) {
   const uid = uidNow()

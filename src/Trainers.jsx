@@ -67,6 +67,7 @@ export function MyTrainer({ uid }) {
               <div className="muted small">
                 {l?.status === 'accepted' ? 'Tu entrenador' : l?.status === 'pending' ? 'Solicitud enviada, esperando respuesta' : l?.status === 'rejected' ? 'No aceptó tu solicitud' : 'Entrenador'}
               </div>
+              {t.bio && <div className="small tr-bio">{t.bio}</div>}
             </div>
             {l?.status === 'accepted' ? (
               <button className="btn sm-btn" disabled={busy === t.id} onClick={() => confirm(`¿Dejar de entrenar con ${t.name}? Dejará de ver tus entrenos.`) && act(t.id, () => removeLink(l.id))}>

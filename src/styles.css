@@ -1929,3 +1929,4 @@ body.modal-open .savebar { display: none; }
 .more-opts summary::after { content: '›'; font-size: 22px; color: var(--muted); transform: rotate(90deg); transition: transform 0.2s; }
 .more-opts[open] summary::after { transform: rotate(-90deg); }
 .more-opts .mo-h { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin: 18px 0 4px; }
+.trainers .tr-bio { color: var(--text2); margin-top: 3px; line-height: 1.35; }

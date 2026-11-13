@@ -1,6 +1,6 @@
 // Cuenta (Supabase): entrar, crear cuenta, recuperar contraseña y estado de la copia en la nube
-import { useState } from 'react'
-import { cloudReady, cloudMeta, signIn, signUp, signOut, resetPassword, updatePassword, connect, resolve, summary, sb } from './cloud'
+import { useEffect, useState } from 'react'
+import { cloudReady, cloudMeta, signIn, signUp, signOut, resetPassword, updatePassword, connect, resolve, summary, sb, getMyProfile, updateProfile, countStudents } from './cloud'
 import { Modal } from './ui'
 import Icon from './icons'
 
@@ -26,6 +26,7 @@ export default function AccountCard({ data, setData, cloud }) {
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState(null) // { t: 'green' | 'yellow', x }
   const [conflict, setConflict] = useState(null)
+  const [profile, setProfile] = useState(false)
   if (!cloudReady()) return null
   const m = cloud.meta
   const set = (k, v) => setF((s) => ({ ...s, [k]: v }))
@@ -150,6 +151,12 @@ export default function AccountCard({ data, setData, cloud }) {
           ))}
         {cloud.error && !msg && <div className="advice sm yellow">{cloud.error}</div>}
         {note}
+        {!m.pending && (
+          <button className="btn full" style={{ marginTop: 10 }} onClick={() => setProfile(true)}>
+            <Icon name="edit" size={15} /> Editar perfil
+          </button>
+        )}
+        {profile && <ProfileModal email={m.email} onClose={() => setProfile(false)} />}
         {!m.pending && (
           <div className="btns">
             <button className="btn" disabled={busy || cloud.busy} onClick={() => cloud.download()}>
@@ -282,6 +289,122 @@ export function NewPassword({ onDone }) {
       <button className="btn primary full" style={{ marginTop: 12 }} disabled={busy || p.length < 6 || msg?.t === 'green'} onClick={save}>
         Guardar
       </button>
+      {msg && <div className={'advice sm ' + msg.t}>{msg.x}</div>}
+    </Modal>
+  )
+}
+
+// Perfil: nombre, tipo de cuenta (te puedes hacer entrenador o dejar de serlo), "sobre mí" y contraseña
+function ProfileModal({ email, onClose }) {
+  const [f, setF] = useState(null)
+  const [orig, setOrig] = useState(null)
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState(null)
+  const [pass, setPass] = useState('')
+  useEffect(() => {
+    getMyProfile()
+      .then((p) => {
+        const v = { name: p?.name || '', role: p?.role || 'user', bio: p?.bio || '' }
+        setF(v)
+        setOrig(v)
+      })
+      .catch((e) => setMsg({ t: 'yellow', x: e.message }))
+  }, [])
+  const set = (k, v) => setF((s) => ({ ...s, [k]: v }))
+  const save = async () => {
+    if (!f.name.trim()) return setMsg({ t: 'yellow', x: 'Pon un nombre.' })
+    setBusy(true)
+    setMsg(null)
+    try {
+      if (orig.role === 'trainer' && f.role === 'user') {
+        const n = await countStudents().catch(() => 0)
+        if (n && !confirm(`Si dejas de ser entrenador, tus ${n} alumno${n === 1 ? '' : 's'} y solicitudes se quitan. ¿Seguro?`)) {
+          setBusy(false)
+          return
+        }
+      }
+      const r = await updateProfile(f)
+      setOrig(f)
+      setMsg({ t: 'green', x: r.noBio && f.bio ? 'Guardado (falta activar "Sobre ti" en Supabase con 03-perfil.sql).' : 'Perfil guardado.' })
+    } catch (e) {
+      setMsg({ t: 'yellow', x: e.message })
+    }
+    setBusy(false)
+  }
+  const savePass = async () => {
+    setBusy(true)
+    setMsg(null)
+    try {
+      await updatePassword(pass)
+      setPass('')
+      setMsg({ t: 'green', x: 'Contraseña cambiada.' })
+    } catch (e) {
+      setMsg({ t: 'yellow', x: e.message })
+    }
+    setBusy(false)
+  }
+  return (
+    <Modal title="Tu perfil" onClose={onClose}>
+      {!f ? (
+        <p className="muted small">{msg ? '' : 'Cargando…'}</p>
+      ) : (
+        <>
+          <label className="lbl" style={{ marginTop: 0 }}>
+            Nombre
+          </label>
+          <input className="inp" autoComplete="name" value={f.name} onChange={(e) => set('name', e.target.value.slice(0, 40))} />
+          <p className="muted small" style={{ margin: '4px 0 0' }}>Es el que ven tu entrenador o tus alumnos.</p>
+
+          <label className="lbl">Tipo de cuenta</label>
+          <div className="seg">
+            <button className={f.role === 'user' ? 'on' : ''} onClick={() => set('role', 'user')}>
+              Usuario
+            </button>
+            <button className={f.role === 'trainer' ? 'on' : ''} onClick={() => set('role', 'trainer')}>
+              Entrenador
+            </button>
+          </div>
+          <p className="muted small" style={{ margin: '6px 0 0' }}>
+            {f.role === 'trainer'
+              ? 'Sales en la lista de entrenadores y puedes aceptar alumnos. Puedes volver a ser usuario cuando quieras.'
+              : 'Si te haces entrenador, los usuarios podrán pedirte que les entrenes.'}
+          </p>
+
+          {f.role === 'trainer' && (
+            <>
+              <label className="lbl">Sobre ti</label>
+              <textarea
+                className="inp"
+                rows={3}
+                placeholder="Ej.: Entrenador de fuerza. Ayudo a ganar músculo y perder grasa."
+                value={f.bio}
+                onChange={(e) => set('bio', e.target.value.slice(0, 240))}
+              />
+              <p className="muted small" style={{ margin: '4px 0 0' }}>Lo ven los usuarios en la lista de entrenadores.</p>
+            </>
+          )}
+
+          <button
+            className="btn primary full"
+            style={{ marginTop: 14 }}
+            disabled={busy || (orig && f.name === orig.name && f.role === orig.role && f.bio === orig.bio)}
+            onClick={save}
+          >
+            {busy ? 'Guardando…' : 'Guardar'}
+          </button>
+
+          <label className="lbl">Email</label>
+          <div className="inp" style={{ opacity: 0.7 }}>
+            {email}
+          </div>
+
+          <label className="lbl">Cambiar contraseña</label>
+          <input className="inp" type="password" autoComplete="new-password" placeholder="Nueva (6 caracteres o más)" value={pass} onChange={(e) => setPass(e.target.value)} />
+          <button className="btn full" style={{ marginTop: 8 }} disabled={busy || pass.length < 6} onClick={savePass}>
+            Cambiar contraseña
+          </button>
+        </>
+      )}
       {msg && <div className={'advice sm ' + msg.t}>{msg.x}</div>}
     </Modal>
   )
