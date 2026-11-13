@@ -1115,6 +1115,13 @@ function Session({ data, setData, onExit }) {
     const min = mins > 0 && mins <= 240 ? mins : 0
     const vol = Math.round(Object.values(entries).reduce((t, ss) => t + setsVol(ss), 0))
     const nSets = Object.values(entries).reduce((t, ss) => t + ss.length, 0)
+    // sin ninguna serie no se guarda un entreno vacío (contaría como día entrenado)
+    if (!nSets) {
+      if (!confirm('No has apuntado ninguna serie, así que no se guarda nada. ¿Cerrar el entreno?')) return
+      setData((d) => ({ ...d, active: null }))
+      onExit()
+      return
+    }
     setData((d) => ({
       ...d,
       active: null,

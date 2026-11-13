@@ -259,8 +259,8 @@ export default function DayPlanModal({ data, setData, onClose }) {
         {aim === 'gain' && ' Superávit pequeño para ganar músculo con poca grasa.'}
         <div className="muted" style={{ marginTop: 6 }}>
           {e.cal.ok
-            ? `Calibrado con tu peso: lo que marca el reloj ${e.cal.factor < 1 ? `se ha bajado un ${Math.round((1 - e.cal.factor) * 100)} %` : e.cal.factor > 1 ? `se ha subido un ${Math.round((e.cal.factor - 1) * 100)} %` : 'cuadra con tu peso'}.`
-            : `El reloj suele pasarse con las calorías: en 3–4 semanas se calibrará con tu peso (${e.cal.why}).`}
+            ? `Calibrado con tu peso: de la actividad que marca el reloj cuento el ${Math.round(e.cal.act * 100)} %.`
+            : `El reloj se pasa con las calorías de actividad: cuento el ${Math.round(e.cal.act * 100)} % hasta calibrarlo con tu peso en 3–4 semanas (${e.cal.why}).`}
         </div>
       </div>
       <AutoGoal data={data} setData={setData} />
