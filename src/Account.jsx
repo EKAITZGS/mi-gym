@@ -22,7 +22,7 @@ const RESULT = {
 
 export default function AccountCard({ data, setData, cloud }) {
   const [mode, setMode] = useState('in') // in | up | forgot
-  const [f, setF] = useState({ name: '', email: '', pass: '' })
+  const [f, setF] = useState({ name: '', email: '', pass: '', role: 'user' })
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState(null) // { t: 'green' | 'yellow', x }
   const [conflict, setConflict] = useState(null)
@@ -43,14 +43,15 @@ export default function AccountCard({ data, setData, cloud }) {
   const afterLogin = async (user) => {
     const r = await connect(user, data, setData)
     if (r.action === 'conflict') setConflict(r.cloud)
-    else setMsg({ t: 'green', x: RESULT[r.action] })
+    else if (r.action !== 'ask') setMsg({ t: 'green', x: RESULT[r.action] })
     setF((s) => ({ ...s, pass: '' }))
   }
   const doIn = () => run(async () => afterLogin(await signIn(f.email, f.pass)))
   const doUp = () =>
     run(async () => {
       if (f.pass.length < 6) throw new Error('La contraseña necesita al menos 6 caracteres.')
-      const { user, session } = await signUp(f.email, f.pass, f.name)
+      if (!f.name.trim()) throw new Error('Pon tu nombre (es el que verán tu entrenador o tus alumnos).')
+      const { user, session } = await signUp(f.email, f.pass, f.name, f.role)
       if (session) return afterLogin(user)
       setMode('in')
       setMsg({ t: 'green', x: `Te he mandado un email a ${f.email.trim()}. Ábrelo, pulsa el enlace para confirmar y vuelve aquí a entrar.` })
@@ -75,7 +76,7 @@ export default function AccountCard({ data, setData, cloud }) {
     run(async () => {
       await resolve(choice, conflict, data, setData)
       setConflict(null)
-      setMsg({ t: 'green', x: choice === 'cloud' ? RESULT.downloaded : RESULT.uploaded })
+      setMsg({ t: 'green', x: choice === 'cloud' ? RESULT.downloaded : choice === 'fresh' ? 'Cuenta lista, empiezas de cero. Lo que había en el móvil queda guardado aparte.' : RESULT.uploaded })
     })
   const out = () => {
     if (!confirm('¿Cerrar sesión? Para volver a usar la app tendrás que entrar otra vez. Tus datos quedan guardados en tu cuenta.')) return
@@ -98,7 +99,11 @@ export default function AccountCard({ data, setData, cloud }) {
             <Icon name="check" size={20} />
           </span>
           <div className="grow">
-            <div className="li-t">{m.email}</div>
+            <div className="li-t">{m.name || m.email}</div>
+            <div className="muted small">
+              {m.name ? `${m.email} · ` : ''}
+              {m.role === 'trainer' ? 'Cuenta de entrenador' : 'Cuenta de usuario'}
+            </div>
             <div className="muted small">
               {m.pending
                 ? 'Falta elegir qué datos usar'
@@ -110,7 +115,21 @@ export default function AccountCard({ data, setData, cloud }) {
             </div>
           </div>
         </div>
+        {m.pending && m.ask && (
+          <div className="acc-conflict">
+            <p className="small">
+              En este móvil hay datos guardados ({summary(data)}). ¿Son tuyos y quieres pasarlos a tu cuenta?
+            </p>
+            <button className="btn primary full" disabled={busy} onClick={() => choose('local')}>
+              Sí, son míos: pasarlos a mi cuenta
+            </button>
+            <button className="btn full" disabled={busy} onClick={() => choose('fresh')}>
+              No, empezar de cero
+            </button>
+          </div>
+        )}
         {m.pending &&
+          !m.ask &&
           (conflict ? (
             <div className="acc-conflict">
               <p className="small">
@@ -165,6 +184,20 @@ export default function AccountCard({ data, setData, cloud }) {
       {mode === 'forgot' && <p className="small" style={{ marginTop: 0 }}>Escribe tu email y te mando un enlace para poner otra contraseña.</p>}
       {mode === 'up' && (
         <>
+          <label className="lbl">Tipo de cuenta</label>
+          <div className="seg">
+            <button className={f.role === 'user' ? 'on' : ''} onClick={() => set('role', 'user')}>
+              Usuario
+            </button>
+            <button className={f.role === 'trainer' ? 'on' : ''} onClick={() => set('role', 'trainer')}>
+              Entrenador
+            </button>
+          </div>
+          <p className="muted small" style={{ margin: '6px 0 0' }}>
+            {f.role === 'trainer'
+              ? 'Apareces en la lista de entrenadores: los usuarios te piden entrenar y, si aceptas, ves sus entrenos y su progreso. También puedes usar la app para ti.'
+              : 'Usas la app para entrenar y comer, y si quieres puedes pedir a un entrenador que te lleve.'}
+          </p>
           <label className="lbl">Nombre</label>
           <input className="inp" autoComplete="name" value={f.name} onChange={(e) => set('name', e.target.value.slice(0, 40))} />
         </>

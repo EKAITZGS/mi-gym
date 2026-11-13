@@ -6,6 +6,7 @@ import { PlanMaker } from './Workout'
 import Icon from './icons'
 import PushCard from './PushCard'
 import AccountCard from './Account'
+import { MyTrainer, Students } from './Trainers'
 import { cloudReady } from './cloud'
 import { getPolar, connectPolar, syncPolar, disconnectPolar } from './polar'
 import { Modal } from './ui'
@@ -181,6 +182,19 @@ export default function Settings({ data, setData, cloud }) {
         <>
           <h4>Tu cuenta</h4>
           <AccountCard data={data} setData={setData} cloud={cloud} />
+          {cloud?.meta?.uid && !cloud.meta.pending && (
+            cloud.meta.role === 'trainer' ? (
+              <>
+                <h4>Tus alumnos</h4>
+                <Students uid={cloud.meta.uid} />
+              </>
+            ) : (
+              <>
+                <h4>Entrenador</h4>
+                <MyTrainer uid={cloud.meta.uid} />
+              </>
+            )
+          )}
         </>
       )}
 

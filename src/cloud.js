@@ -58,9 +58,13 @@ const es = (e) => {
 }
 const appUrl = () => location.origin + location.pathname
 
-export async function signUp(email, password, name) {
+export async function signUp(email, password, name, role = 'user') {
   const c = await sb()
-  const { data, error } = await c.auth.signUp({ email: email.trim(), password, options: { data: { name: name.trim() }, emailRedirectTo: appUrl() } })
+  const { data, error } = await c.auth.signUp({
+    email: email.trim(),
+    password,
+    options: { data: { name: name.trim(), role: role === 'trainer' ? 'trainer' : 'user' }, emailRedirectTo: appUrl() },
+  })
   if (error) throw new Error(es(error))
   // Supabase no da error si el email ya existe y está confirmado: devuelve un usuario sin identidades
   if (data.user && !data.user.identities?.length) throw new Error(es('already registered'))
@@ -117,6 +121,8 @@ async function push(uid, data) {
   return updated_at
 }
 
+// cuenta nueva: todo vacío (sin el plan de ejemplo); la bienvenida le ayuda a crear el suyo
+export const CLEAN = { ...DEFAULT, plan: [] }
 const hasData = (d) => !!(d?.sessions?.length || Object.keys(d?.food || {}).length || d?.body?.waist?.length || d?.body?.weight?.length)
 const pl = (n, one, many) => `${n} ${n === 1 ? one : many}`
 export const summary = (d) =>
@@ -133,42 +139,55 @@ const keepLocal = () => {
 // Al entrar en la cuenta: decide qué hacer con lo del móvil y lo de la nube, sin perder nada.
 // → { action: 'uploaded' | 'downloaded' | 'same' | 'conflict', cloud? }
 const LAST = 'migym.lastUid'
+
+// nombre y rol (usuario / entrenador) de la cuenta
+export async function fetchProfile(uid) {
+  const c = await sb()
+  const { data } = await c.from('profiles').select('name, role').eq('id', uid).maybeSingle()
+  return data || null
+}
+
+async function startClean(uid, base, setData) {
+  setData({ ...CLEAN })
+  const at = await push(uid, { ...CLEAN })
+  setMeta({ ...base, synced: at })
+}
+
+// Al entrar en la cuenta: decide qué hacer con lo del móvil y lo de la nube, sin perder nada.
+// → { action: 'uploaded' | 'downloaded' | 'same' | 'fresh' | 'ask' | 'conflict', cloud? }
 export async function connect(user, local, setData) {
-  const row = await pull(user.id)
-  const base = { uid: user.id, email: user.email, dirty: false }
+  const [row, profile] = await Promise.all([pull(user.id), fetchProfile(user.id).catch(() => null)])
+  const base = { uid: user.id, email: user.email, dirty: false, name: profile?.name || '', role: profile?.role || user.user_metadata?.role || 'user' }
   let last = null
   try {
     last = localStorage.getItem(LAST)
     localStorage.setItem(LAST, user.id)
   } catch {}
-  // lo que hay en el móvil es de otra cuenta: no se mezcla ni se sube (se guarda aparte)
-  if (last && last !== user.id && hasData(local)) {
-    keepLocal()
-    if (!row) {
-      setData({ ...DEFAULT })
-      const at = await push(user.id, { ...DEFAULT })
-      setMeta({ ...base, synced: at })
+  const other = last && last !== user.id
+  if (!row) {
+    if (!hasData(local)) {
+      await startClean(user.id, base, setData)
       return { action: 'fresh' }
     }
+    if (other) {
+      // lo del móvil es de otra cuenta: se guarda aparte y esta empieza limpia
+      keepLocal()
+      await startClean(user.id, base, setData)
+      return { action: 'fresh' }
+    }
+    // hay datos en el móvil y la cuenta está vacía: ¿son suyos? Lo decide el usuario
+    setMeta({ ...base, synced: null, pending: true, ask: true })
+    return { action: 'ask' }
+  }
+  if (other && hasData(local)) keepLocal()
+  if (other || !hasData(local)) {
     setMeta({ ...base, synced: row.updated_at })
     setData({ ...DEFAULT, ...row.data })
     return { action: 'downloaded' }
-  }
-  if (!row) {
-    // primera vez: se sube lo que tienes en el móvil
-    const at = await push(user.id, local)
-    setMeta({ ...base, synced: at })
-    return { action: 'uploaded' }
   }
   if (same(row.data, local)) {
     setMeta({ ...base, synced: row.updated_at })
     return { action: 'same' }
-  }
-  if (!hasData(local)) {
-    keepLocal()
-    setMeta({ ...base, synced: row.updated_at })
-    setData({ ...DEFAULT, ...row.data })
-    return { action: 'downloaded' }
   }
   // hay datos en los dos sitios y son distintos: elige el usuario
   setMeta({ ...base, synced: null, pending: true })
@@ -179,13 +198,20 @@ export async function connect(user, local, setData) {
 export async function resolve(choice, cloud, local, setData) {
   const m = cloudMeta()
   if (!m) return
+  if (choice === 'fresh') {
+    keepLocal()
+    setData({ ...CLEAN })
+    const at = await push(m.uid, { ...CLEAN })
+    setMeta({ ...m, pending: false, ask: false, dirty: false, synced: at })
+    return
+  }
   if (choice === 'cloud') {
     keepLocal()
     setMeta({ ...m, pending: false, dirty: false, synced: cloud.updated_at })
     setData({ ...DEFAULT, ...cloud.data })
   } else {
     const at = await push(m.uid, local)
-    setMeta({ ...m, pending: false, dirty: false, synced: at })
+    setMeta({ ...m, pending: false, ask: false, dirty: false, synced: at })
   }
 }
 
@@ -244,6 +270,9 @@ export function useCloudSync(data, setData) {
     if (!m?.uid || m.pending) return
     try {
       if (await expired()) return
+      fetchProfile(m.uid)
+        .then((p) => p && (p.role !== m.role || p.name !== m.name) && patchMeta({ role: p.role, name: p.name }))
+        .catch(() => {})
       const row = await pull(m.uid)
       if (!row) return upload()
       if (m.synced && row.updated_at <= m.synced) return m.dirty ? upload() : null
@@ -305,3 +334,24 @@ export function useCloudSync(data, setData) {
   const doneRecovery = () => setState((s) => ({ ...s, recovery: false }))
   return { ...state, upload, download, doneRecovery }
 }
+
+// ---- Entrenadores y alumnos (tabla coach_links, ver supabase/02-entrenadores.sql) ----
+const uidNow = () => cloudMeta()?.uid
+const q = async (fn) => {
+  const c = await sb()
+  const { data, error } = await fn(c)
+  if (error) throw new Error(/coach_links|relation|does not exist/i.test(error.message) ? 'Falta activar lo de entrenadores en Supabase (02-entrenadores.sql).' : es(error))
+  return data
+}
+export const listTrainers = () => q((c) => c.from('profiles').select('id, name').eq('role', 'trainer').order('name'))
+export const myLinks = () => q((c) => c.from('coach_links').select('id, user_id, trainer_id, status, created_at, updated_at').order('created_at', { ascending: false }))
+export async function requestTrainer(trainerId) {
+  const uid = uidNow()
+  // si te rechazó antes, se borra la solicitud vieja para poder pedir otra vez
+  await q((c) => c.from('coach_links').delete().eq('user_id', uid).eq('trainer_id', trainerId).eq('status', 'rejected'))
+  return q((c) => c.from('coach_links').insert({ user_id: uid, trainer_id: trainerId }))
+}
+export const removeLink = (id) => q((c) => c.from('coach_links').delete().eq('id', id))
+export const answerLink = (id, ok) => q((c) => c.from('coach_links').update({ status: ok ? 'accepted' : 'rejected', updated_at: new Date().toISOString() }).eq('id', id))
+export const profilesOf = (ids) => (ids.length ? q((c) => c.from('profiles').select('id, name').in('id', ids)) : Promise.resolve([]))
+export const studentData = (uid) => q((c) => c.from('user_data').select('data, updated_at').eq('user_id', uid).maybeSingle())

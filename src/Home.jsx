@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { dayTotals, fmtDate, todayStr } from './store'
+import { dayTotals, fmtDate, todayStr, DEFAULT } from './store'
 import { EX_BY_ID } from './data/exercises'
 import { Ring, Thumb } from './ui'
 import Icon from './icons'
@@ -61,12 +61,12 @@ export default function Home({ data, setData, onStart, go }) {
           <ol className="small welcome-steps">
             <li>Tus objetivos de calorías y proteína.</li>
             <li>Tu plan de entreno (automático o eligiéndolo tú).</li>
-            <li>¡A entrenar! Tus datos se guardan solo en este móvil.</li>
+            <li>¡A entrenar! Todo se guarda en tu cuenta.</li>
           </ol>
           <button className="btn primary full" onClick={() => setWelcome('goals')}>
             <Icon name="play" size={14} fill="currentColor" stroke={0} /> Empezar
           </button>
-          <button className="link small" style={{ paddingLeft: 0 }} onClick={() => setData((d) => ({ ...d, setupDone: true }))}>
+          <button className="link small" style={{ paddingLeft: 0 }} onClick={() => setData((d) => ({ ...d, setupDone: true, plan: d.plan.length ? d.plan : DEFAULT.plan }))}>
             Usar el plan de ejemplo
           </button>
         </div>

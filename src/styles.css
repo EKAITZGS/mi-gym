@@ -1913,3 +1913,11 @@ body.modal-open .savebar { display: none; }
 .gate-logo { width: 76px; height: 76px; border-radius: 20px; display: block; margin: 8px auto 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45); }
 .gate-t { text-align: center; font-family: var(--font-head); font-size: 34px; font-weight: 800; letter-spacing: -0.03em; margin: 0; }
 .gate-s { text-align: center; margin: 4px 0 18px; }
+
+/* Entrenadores y alumnos */
+.trainers .tr-row { gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); }
+.trainers .tr-row:first-of-type { border-top: 0; }
+.trainers .tr-av { width: 38px; height: 38px; border-radius: 50%; background: color-mix(in srgb, var(--accent) 18%, var(--card2)); color: var(--accent); display: grid; place-items: center; font-weight: 800; flex-shrink: 0; }
+.trainers .tr-h { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin: 10px 0 2px; }
+.trainers .tr-h:first-child { margin-top: 0; }
+.trainers .sm-btn { min-height: 36px; padding: 6px 12px; font-size: 13px; flex-shrink: 0; }
