@@ -29,6 +29,11 @@ drop policy if exists "datos propios" on public.user_data;
 create policy "datos propios" on public.user_data
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
+-- Permisos de la API para usuarios con sesión (por si el proyecto no expone las tablas nuevas solo).
+-- Aun así, las reglas de arriba hacen que cada uno solo toque lo suyo.
+grant select, insert, update on public.profiles to authenticated;
+grant select, insert, update, delete on public.user_data to authenticated;
+
 -- Al registrarse se crea su perfil con el nombre que puso.
 create or replace function public.handle_new_user()
 returns trigger
