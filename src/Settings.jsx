@@ -7,7 +7,7 @@ import Icon from './icons'
 import PushCard from './PushCard'
 import AccountCard from './Account'
 import { MyTrainer, Students } from './Trainers'
-import { cloudReady } from './cloud'
+import { cloudReady, CLEAN } from './cloud'
 import { getPolar, connectPolar, syncPolar, disconnectPolar } from './polar'
 import { Modal } from './ui'
 import { calcGoals, ACTIVITY } from './stats'
@@ -170,7 +170,7 @@ export default function Settings({ data, setData, cloud }) {
     try {
       localStorage.setItem('migym.v1.borrado', localStorage.getItem('migym.v1') || '')
     } catch {}
-    setData(DEFAULT)
+    setData({ ...CLEAN })
     flash('Datos borrados')
   }
 
@@ -198,40 +198,9 @@ export default function Settings({ data, setData, cloud }) {
         </>
       )}
 
-      <h4>Entrenamiento</h4>
+      <h4>Entreno</h4>
       <div className="card">
-        <button className="row nob li" onClick={() => setMaker(true)}>
-          <span className="rest-ic"><Icon name="calendar" size={20} /></span>
-          <div className="grow">
-            <div className="li-t">Crear o cambiar mi plan</div>
-            <div className="muted small">Automático según tu nivel, o eligiendo tú días y ejercicios</div>
-          </div>
-          <Icon name="right" size={18} />
-        </button>
-        <button className="row nob li" onClick={() => setCoach(true)}>
-          <span className="rest-ic"><Icon name="trend" size={20} /></span>
-          <div className="grow">
-            <div className="li-t">Mejorar mi rutina con IA</div>
-            <div className="muted small">Propone cambios o más días según tus entrenos y molestias</div>
-          </div>
-          <Icon name="right" size={18} />
-        </button>
-      </div>
-      {coach && <Coach data={data} setData={setData} onClose={() => setCoach(false)} />}
-      {maker && (
-        <PlanMaker
-          data={data}
-          setData={setData}
-          onClose={(ok) => {
-            setMaker(false)
-            ok && flash('Plan guardado. Míralo en Entreno.')
-          }}
-        />
-      )}
-
-      <h4>Descanso entre series</h4>
-      <div className="card">
-        <label className="lbl">Cuenta atrás al marcar una serie</label>
+        <label className="lbl" style={{ marginTop: 0 }}>Cuenta atrás de descanso al marcar una serie</label>
         <div className="seg">
           <button className={restPref.on ? 'on' : ''} onClick={() => saveRest({ on: true })}>
             Sí
@@ -345,8 +314,10 @@ export default function Settings({ data, setData, cloud }) {
         {ps.msg && <div className="advice green sm">{ps.msg}</div>}
       </div>
 
-      <h4>IA (Groq): fotos y entrenador</h4>
-      <div className="card">
+      <details className="card more-opts">
+        <summary>Más opciones</summary>
+
+        <div className="mo-h">IA con tu propia clave (opcional)</div>
         <p className="muted small">
           {serverAi()
             ? 'La IA ya funciona sin hacer nada, con un límite de usos al día. Si quieres usarla sin límite, crea una clave gratis en console.groq.com (API Keys) y pégala aquí.'
@@ -407,36 +378,25 @@ export default function Settings({ data, setData, cloud }) {
             ))}
           </div>
         )}
-      </div>
-
-      <h4>Copia de seguridad</h4>
-      <div className="card">
-        <p className="muted small">
-          {cloud?.meta?.uid
-            ? 'Tus datos ya se guardan en tu cuenta. Aun así, puedes guardar una copia en un archivo.'
-            : 'Tus datos se guardan solo en este dispositivo. Haz una copia de vez en cuando por si borras los datos del navegador o cambias de móvil.'}
-        </p>
-        <button className="btn full" onClick={exportFile}>
-          Exportar copia (archivo)
-        </button>
-        <button className="btn full" onClick={copyText}>
-          Copiar copia al portapapeles
-        </button>
-        <label className="btn full filebtn">
-          Importar copia (archivo)
-          <input type="file" accept="application/json,.json" onChange={importFile} hidden />
-        </label>
-        <textarea className="inp" rows={3} placeholder="…o pega aquí una copia" value={paste} onChange={(e) => setPaste(e.target.value)} />
-        <button className="btn full" disabled={!paste.trim()} onClick={() => load(paste)}>
-          Restaurar desde lo pegado
-        </button>
+      
+        <div className="mo-h">Copia en archivo</div>
+        <p className="muted small">Tus datos ya se guardan en tu cuenta. Si quieres, guarda también una copia en un archivo.</p>
+        <div className="btns">
+          <button className="btn" onClick={exportFile}>
+            Exportar
+          </button>
+          <label className="btn filebtn">
+            Importar
+            <input type="file" accept="application/json,.json" onChange={importFile} hidden />
+          </label>
+        </div>
         {msg && <p className="toast">{msg}</p>}
-      </div>
 
-      <h4>Zona peligrosa</h4>
-      <button className="btn danger full" onClick={reset}>
-        Borrar todos los datos
-      </button>
+        <div className="mo-h">Borrar</div>
+        <button className="btn danger full" onClick={reset}>
+          Borrar todos mis datos
+        </button>
+      </details>
 
       <div className="brand">
         <img src="./logo.svg" alt="" width="56" height="56" />

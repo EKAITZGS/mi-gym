@@ -1921,3 +1921,11 @@ body.modal-open .savebar { display: none; }
 .trainers .tr-h { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin: 10px 0 2px; }
 .trainers .tr-h:first-child { margin-top: 0; }
 .trainers .sm-btn { min-height: 36px; padding: 6px 12px; font-size: 13px; flex-shrink: 0; }
+
+/* Ajustes: más opciones plegadas */
+.more-opts { margin-top: 18px; }
+.more-opts summary { font-weight: 700; cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; }
+.more-opts summary::-webkit-details-marker { display: none; }
+.more-opts summary::after { content: '›'; font-size: 22px; color: var(--muted); transform: rotate(90deg); transition: transform 0.2s; }
+.more-opts[open] summary::after { transform: rotate(-90deg); }
+.more-opts .mo-h { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin: 18px 0 4px; }
