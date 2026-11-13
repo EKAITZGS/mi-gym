@@ -253,8 +253,10 @@ export default function BodyCard({ data, setData }) {
   const dueW = daysSince(last?.date) >= 7
   const dueP = daysSince(photos[photos.length - 1]?.date) >= 28
   const weights = data.body?.weight || []
-  const wt = trend(weights)
-  const wLast = wt[wt.length - 1]
+  const wtAll = trend(weights)
+  const wLast = wtAll[wtAll.length - 1]
+  // solo medias completas (3 pesajes): comparar un pesaje suelto con una media daba cambios falsos
+  const wt = wtAll.slice(2)
   const wDiff = wt.length >= 2 ? Math.round((wLast.v - wt[0].v) * 10) / 10 : null
   const dueK = weights.length > 0 && daysSince(weights[weights.length - 1].date) >= 7
   const [metric, setMetric] = useState(null)
@@ -270,7 +272,7 @@ export default function BodyCard({ data, setData }) {
       </div>
       <div className={'bt-d ' + (d == null ? 'flat' : d < 0 ? 'up' : d > 0 ? 'down' : 'flat')}>
         {d == null ? (
-          val != null ? 'Primera medida' : 'Sin medidas'
+          val == null ? 'Sin medidas' : key !== 'weight' ? 'Primera medida' : weights.length < 3 ? `Pesajes: ${weights.length} de 3` : 'Primera media'
         ) : (
           <>
             <b>
@@ -315,7 +317,11 @@ export default function BodyCard({ data, setData }) {
               unit="kg"
               color="var(--blue)"
               good="down"
-              empty="Pésate otra semana y aquí verás la tendencia."
+              empty={
+                weights.length < 3
+                  ? `La tendencia sale con 3 pesajes (llevas ${weights.length}). Uno por semana basta.`
+                  : 'Con el próximo pesaje verás cómo va la tendencia.'
+              }
             />
           )}
           {read && (
