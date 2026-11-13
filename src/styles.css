@@ -1991,3 +1991,17 @@ body.modal-open .savebar { display: none; }
 .sv-row { display: flex; justify-content: space-between; gap: 10px; padding: 9px 0; border-top: 1px solid var(--line); font-size: 15px; }
 .sv-row:first-of-type { border-top: 0; }
 .sv-row b { white-space: nowrap; font-variant-numeric: tabular-nums; }
+/* propuestas de cambios del entrenador */
+.dl { display: flex; flex-direction: column; gap: 6px; margin: 8px 0 4px; }
+.dl-row { display: flex; gap: 8px; align-items: baseline; font-size: 14px; line-height: 1.35; }
+.dl-tag { flex: none; min-width: 62px; text-align: center; font-size: 11px; font-weight: 700; padding: 3px 6px; border-radius: 8px; background: var(--card2); color: var(--text2); }
+.dl-row.swap .dl-tag { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); }
+.dl-row.add .dl-tag { background: color-mix(in srgb, #22c55e 18%, transparent); color: #16a34a; }
+.dl-row.del .dl-tag { background: color-mix(in srgb, #ef4444 16%, transparent); color: #dc2626; }
+.wb-new { margin-left: 6px; font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 6px; background: color-mix(in srgb, #22c55e 18%, transparent); color: #16a34a; vertical-align: middle; }
+.wb-was { color: var(--accent); margin-top: 2px; }
+.wb-del .li-t { text-decoration: line-through; color: var(--muted); }
+.tw-after { margin-top: 8px; font-size: 13px; }
+.tw-after summary { color: var(--accent); font-weight: 600; cursor: pointer; padding: 4px 0; }
+.sv-edit { margin-top: 10px; min-height: 40px; font-size: 14px; }
+.dl .nw { white-space: nowrap; }

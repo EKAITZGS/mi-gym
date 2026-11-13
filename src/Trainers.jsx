@@ -242,12 +242,13 @@ function StudentView({ student, me, data, setData, unread, onInbox, onClose, onR
           linkId={student.id}
           studentName={student.name}
           studentPlan={d?.plan || []}
+          startDay={build === true ? null : build}
           nameOf={nameOf}
           onClose={() => setBuild(false)}
           onSent={() => setSent((n) => n + 1)}
         />
       )}
-      <SentWorkouts linkId={student.id} refresh={sent} />
+      <SentWorkouts linkId={student.id} refresh={sent} nameOf={nameOf} />
 
       {st.loading && <p className="muted small">Cargando…</p>}
       {st.error && <div className="advice sm yellow">{st.error}</div>}
@@ -340,6 +341,9 @@ function StudentView({ student, me, data, setData, unread, onInbox, onClose, onR
                       </b>
                     </div>
                   ))}
+                  <button className="btn full sv-edit" onClick={() => setBuild(day)}>
+                    <Icon name="edit" size={15} /> Proponer cambios
+                  </button>
                 </div>
               ))}
             </>

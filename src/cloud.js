@@ -450,7 +450,7 @@ export async function inbox() {
   const c = await sb()
   const [msgs, wks, links] = await Promise.all([
     c.from('coach_messages').select('id, link_id').neq('sender_id', uid).is('read_at', null),
-    c.from('coach_workouts').select('id, link_id').eq('status', 'pending'),
+    c.from('coach_workouts').select('id, link_id, day').eq('status', 'pending'),
     c.from('coach_links').select('id, user_id, trainer_id, status'),
   ])
   const L = links.data || []
@@ -459,6 +459,8 @@ export async function inbox() {
     messages: (msgs.data || []).length,
     msgByLink: (msgs.data || []).reduce((a, m) => ((a[m.link_id] = (a[m.link_id] || 0) + 1), a), {}),
     workouts: (wks.data || []).filter((w) => mineAsUser.has(w.link_id)).length,
+    // nombres de los días de los que el entrenador propone cambios
+    changes: (wks.data || []).filter((w) => mineAsUser.has(w.link_id) && w.day?.baseId).map((w) => w.day.baseName || 'tu día'),
     requests: L.filter((l) => l.trainer_id === uid && l.status === 'pending').length,
   }
 }

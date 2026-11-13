@@ -35,7 +35,7 @@ export default function App() {
         if (!r) return
         setBox((prev) => {
           const was = prev || { messages: 0, workouts: 0, requests: 0 }
-          if (r.workouts > was.workouts) setNotice(r.workouts === 1 ? 'Tu entrenador te ha mandado un entreno. Míralo en tu menú → Entrenador.' : `Tienes ${r.workouts} entrenos de tu entrenador por revisar (tu menú → Entrenador).`)
+          if (r.workouts > was.workouts) setNotice(r.workouts === 1 ? (r.changes?.length ? `Tu entrenador te propone cambios en tu día ${r.changes[0]}. Míralo en tu menú → Entrenador.` : 'Tu entrenador te ha mandado un entreno. Míralo en tu menú → Entrenador.') : `Tienes ${r.workouts} entrenos de tu entrenador por revisar (tu menú → Entrenador).`)
           else if (r.requests > was.requests) setNotice('Tienes una solicitud de alumno nueva (tu menú → Tus alumnos).')
           else if (r.messages > was.messages) setNotice(r.messages === 1 ? 'Tienes un mensaje nuevo (tu menú).' : `Tienes ${r.messages} mensajes nuevos (tu menú).`)
           return r
