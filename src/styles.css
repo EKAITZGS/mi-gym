@@ -1897,3 +1897,6 @@ body.modal-open .savebar { display: none; }
 .energy .en-tip { align-items: center; }
 .energy .en-use { min-height: 34px; padding: 6px 12px; font-size: 13px; flex-shrink: 0; }
 .energy .en-week .link { display: inline; padding: 0; font-size: 13px; }
+.dp-macros { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 8px 0; }
+.dp-macros span { background: var(--card); border-radius: 10px; padding: 7px 6px; text-align: center; font-size: 12px; color: var(--muted); }
+.dp-macros b { display: block; font-size: 15px; color: var(--text); }

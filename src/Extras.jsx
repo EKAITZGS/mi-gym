@@ -1,5 +1,5 @@
 import { FOODS } from './data/foods'
-import { kcalGoal } from './energy'
+import { kcalGoal, proteinGoal } from './energy'
 import { RANK_GROUPS, groupsOf } from './ranks'
 import { dayTotals, todayStr, uid, fmtDate } from './store'
 
@@ -26,7 +26,7 @@ export const mealNow = () => {
 
 export function proteinPlan(data) {
   const t = dayTotals(data.food[todayStr()] || [])
-  const left = Math.round(data.goals.protein - t.p)
+  const left = Math.round(proteinGoal(data) - t.p)
   const kcalLeft = kcalGoal(data) - t.kcal
   if (left < 15) return null
   const opts = OPTIONS.map((o) => {

@@ -134,4 +134,25 @@ export function kcalGoal(data, date = todayStr()) {
   return targetFor(data, aimOf(data), isTrainDay(data, date)).kcal
 }
 
+// Macros según tu peso (media de los 3 últimos pesajes) y objetivo.
+// Proteína: 2 g/kg bajando grasa (protege el músculo), 1,8 g/kg manteniendo o ganando. Grasa: mín. 0,8 g/kg o 25 % de las kcal.
+const PROT = { lose: 2, keep: 1.8, gain: 1.8 }
+export function bodyKg(data) {
+  const w = (data.body?.weight || []).slice(-3)
+  return w.length ? w.reduce((a, x) => a + x.kg, 0) / w.length : null
+}
+export function macroPlan(data, aim, kcal) {
+  const kg = bodyKg(data)
+  const r5 = (n) => Math.round(n / 5) * 5
+  const protein = kg ? Math.min(230, r5(kg * (PROT[aim] || 2))) : data.goals.protein
+  const fat = r5(Math.max(kg ? kg * 0.8 : 0, (kcal * 0.25) / 9))
+  const carbs = Math.max(0, r5((kcal - protein * 4 - fat * 9) / 4))
+  return { protein, fat, carbs, kg: kg ? Math.round(kg * 10) / 10 : null, perKg: PROT[aim] || 2 }
+}
+// proteína del día: la fija o, con el objetivo automático, la que sale de tu peso
+export function proteinGoal(data, date = todayStr()) {
+  if (!data.goals?.auto) return data.goals.protein
+  return macroPlan(data, aimOf(data), kcalGoal(data, date)).protein
+}
+
 export const kgWeek = (bal) => Math.round(((bal * 7) / 7700) * 10) / 10

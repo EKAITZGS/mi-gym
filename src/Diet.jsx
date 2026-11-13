@@ -8,7 +8,7 @@ import Icon from './icons'
 import { analyzeFood, analyzeLabel } from './ai'
 import { polarExercisesOn } from './polar'
 import { rateFood } from './rating'
-import { energy, targetFor, aimOf, aimLabel, kcalGoal, kgWeek } from './energy'
+import { energy, targetFor, aimOf, aimLabel, kcalGoal, proteinGoal, kgWeek } from './energy'
 
 const r0 = (n) => Math.round(n)
 const r1 = (n) => Math.round(n * 10) / 10
@@ -908,7 +908,7 @@ export default function Diet({ data, setData }) {
   const [adding, setAdding] = useState(null)
   const entries = data.food[date] || []
   const t = dayTotals(entries)
-  const g = { ...data.goals, kcal: kcalGoal(data, date) }
+  const g = { ...data.goals, kcal: kcalGoal(data, date), protein: proteinGoal(data, date) }
   const left = g.kcal - t.kcal
 
   const remove = (id) =>

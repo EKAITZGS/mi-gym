@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react'
 import { groqChat, hasAi } from './ai'
-import { AIMS, aimOf, aimLabel, targetFor, energy } from './energy'
+import { AIMS, aimOf, aimLabel, targetFor, energy, macroPlan, isTrainDay } from './energy'
 import { Modal } from './ui'
 import Icon from './icons'
 import { FOODS } from './data/foods'
-import { macros, todayStr, addDays, uid } from './store'
+import { macros, todayStr, addDays, uid, parseDate, WEEKDAYS } from './store'
 import { rateFood } from './rating'
 
 const F = Object.fromEntries(FOODS.map((f) => [f.id, f]))
@@ -103,11 +103,11 @@ function usualFoods(data) {
 }
 
 // Dieta de un día hecha por la IA, con las kcal que salen de lo que gastas
-async function aiDay(data, { kcal, protein, aim, train, note }) {
+async function aiDay(data, { kcal, protein, fat, carbs, kg, aim, train, weekday, note }) {
   const usual = usualFoods(data)
-  const prompt = `Eres un nutricionista deportivo. Diseña la dieta de UN día para un chico de ${(data.body?.weight || []).slice(-1)[0]?.kg || 80} kg que entrena fuerza.
-Objetivo: ${aimLabel(aim).toLowerCase()}. Es un día de ${train ? 'entreno (gimnasio)' : 'descanso'}.
-Calorías del día: ${kcal} kcal (máximo ±5 %). Proteína: al menos ${protein} g.
+  const prompt = `Eres un nutricionista deportivo. Diseña la dieta de UN día (${weekday}) para un chico de ${kg || 80} kg que entrena fuerza.
+Objetivo: ${aimLabel(aim).toLowerCase()}. Es un día de ${train ? 'entreno (gimnasio): pon más hidratos en las comidas de antes y después de entrenar' : 'descanso: algo menos de hidratos que un día de entreno'}.
+Calorías del día: ${kcal} kcal (máximo ±5 %). Proteína: ${protein} g (mínimo). Grasa: unos ${fat} g. Hidratos: unos ${carbs} g.
 Comidas: Desayuno, Comida, Merienda y Cena.
 ${usual.length ? `Usa sobre todo alimentos que ya suele comer: ${usual.join(', ')}.` : ''}
 ${note ? `Petición del usuario: ${note}` : ''}
@@ -167,9 +167,16 @@ export function AutoGoal({ data, setData }) {
 export default function DayPlanModal({ data, setData, onClose }) {
   const aim = aimOf(data)
   const e = useMemo(() => energy(data), [data])
-  const [train, setTrain] = useState(e.train)
+  // para qué día: hoy o mañana; si entrenas lo dice tu plan (días de la semana del Entreno)
+  const [when, setWhen] = useState(0)
+  const [force, setForce] = useState(null)
+  const date = addDays(todayStr(), when)
+  const planned = isTrainDay(data, date)
+  const train = force ?? planned
+  const wd = WEEKDAYS[parseDate(date).getDay()].toLowerCase()
   const tg = targetFor(data, aim, train)
-  const protein = data.goals.protein
+  const mp = macroPlan(data, aim, tg.kcal)
+  const protein = mp.protein
   const usual = useMemo(() => buildDay(data, tg.kcal, protein), [data, tg.kcal, protein])
   const [ai, setAi] = useState(null)
   const [busy, setBusy] = useState(false)
@@ -185,7 +192,7 @@ export default function DayPlanModal({ data, setData, onClose }) {
     setBusy(true)
     setErr('')
     try {
-      setAi(await aiDay(data, { kcal: tg.kcal, protein, aim, train, note: note.trim().slice(0, 160) }))
+      setAi(await aiDay(data, { kcal: tg.kcal, protein, fat: mp.fat, carbs: mp.carbs, kg: mp.kg, aim, train, weekday: wd, note: note.trim().slice(0, 160) }))
     } catch (x) {
       setErr(x.message === 'NO_KEY' ? 'La IA no está activada: ponla en Ajustes.' : x.message)
     }
@@ -195,6 +202,11 @@ export default function DayPlanModal({ data, setData, onClose }) {
     const add = MEALS.flatMap((m) => day.plan[m].map((x) => ({ ...x, id: uid(), meal: m })))
     setData((d) => ({ ...d, food: { ...d.food, [date]: [...(d.food[date] || []), ...add] } }))
     setDone(date === todayStr() ? 'Añadido a hoy.' : 'Añadido a mañana.')
+  }
+  const pickDay = (n) => {
+    setWhen(n)
+    setForce(null)
+    setAi(null)
   }
   const delta = tg.kcal - tg.base
   return (
@@ -207,19 +219,42 @@ export default function DayPlanModal({ data, setData, onClose }) {
           </button>
         ))}
       </div>
-      <div className="seg" style={{ marginTop: 8 }}>
-        <button className={train ? 'on' : ''} onClick={() => (setTrain(true), setAi(null))}>
-          Día de entreno
-        </button>
-        <button className={!train ? 'on' : ''} onClick={() => (setTrain(false), setAi(null))}>
-          Día de descanso
-        </button>
+      <label className="lbl">Para</label>
+      <div className="seg">
+        {[0, 1].map((n) => {
+          const d = addDays(todayStr(), n)
+          return (
+            <button key={n} className={when === n ? 'on' : ''} onClick={() => pickDay(n)}>
+              {n ? 'Mañana' : 'Hoy'} · {isTrainDay(data, d) ? 'entreno' : 'descanso'}
+            </button>
+          )
+        })}
       </div>
+      <p className="muted small" style={{ margin: '6px 0 0' }}>
+        {force == null
+          ? `Según tu plan, el ${wd} ${planned ? 'entrenas' : 'descansas'}.`
+          : `Cambiado a día de ${train ? 'entreno' : 'descanso'}.`}{' '}
+        <button className="link" style={{ padding: 0, minHeight: 0, display: 'inline' }} onClick={() => (setForce(!train), setAi(null))}>
+          {train ? '¿No vas a entrenar?' : '¿Al final entrenas?'}
+        </button>
+      </p>
       <div className="dp-target">
         Un día de {train ? 'entreno' : 'descanso'} gastas <b>~{tg.base} kcal</b>{' '}
         {e.watch ? `(media de tu reloj, ${train ? e.typ.nTrain || e.typ.n : e.typ.nRest || e.typ.n} días)` : '(estimado: conecta el reloj para afinarlo)'}.
         {' '}Para {aimLabel(aim).toLowerCase()}: <b>{tg.kcal} kcal</b>
-        {delta ? ` (${delta > 0 ? '+' : '−'}${Math.abs(delta)})` : ''} y <b>{protein} g de proteína</b>.
+        {delta ? ` (${delta > 0 ? '+' : '−'}${Math.abs(delta)})` : ''}.
+        <div className="dp-macros">
+          <span>
+            <b>{protein} g</b> proteína{mp.kg ? ` (${String(mp.perKg).replace('.', ',')} g/kg)` : ''}
+          </span>
+          <span>
+            <b>{mp.carbs} g</b> hidratos
+          </span>
+          <span>
+            <b>{mp.fat} g</b> grasa
+          </span>
+        </div>
+        {mp.kg ? `Calculado con tu peso medio: ${String(mp.kg).replace('.', ',')} kg.` : 'Pésate para calcular la proteína con tu peso.'}
         {aim === 'lose' && ' Así bajas unos 0,5 kg de grasa por semana sin perder fuerza.'}
         {aim === 'gain' && ' Superávit pequeño para ganar músculo con poca grasa.'}
         <div className="muted" style={{ marginTop: 6 }}>
@@ -283,18 +318,13 @@ export default function DayPlanModal({ data, setData, onClose }) {
           </div>
         )
       })}
-      <div className="btns">
-        <button className="btn primary" onClick={() => copy(addDays(todayStr(), 1))}>
-          <Icon name="calendar" size={15} /> Usar mañana
-        </button>
-        <button className="btn" onClick={() => copy(todayStr())}>
-          Añadir a hoy
-        </button>
-      </div>
+      <button className="btn primary full" onClick={() => copy(date)}>
+        <Icon name="calendar" size={15} /> Añadir a {when ? 'mañana' : 'hoy'}
+      </button>
       {done && <p className="toast small">{done} Puedes cambiar o quitar cosas en Dieta.</p>}
-      {data.goals.kcal !== tg.kcal && !data.goals.auto && (
-        <button className="btn full" onClick={() => setData((d) => ({ ...d, goals: { ...d.goals, kcal: tg.kcal } }))}>
-          Usar {tg.kcal} kcal como mi objetivo fijo
+      {(data.goals.kcal !== tg.kcal || data.goals.protein !== protein) && !data.goals.auto && (
+        <button className="btn full" onClick={() => setData((d) => ({ ...d, goals: { ...d.goals, kcal: tg.kcal, protein } }))}>
+          Usar {tg.kcal} kcal y {protein} g de proteína como objetivo fijo
         </button>
       )}
     </Modal>
