@@ -16,7 +16,7 @@ const ago = (iso) => {
 }
 export const initialOf = (meta) => ((meta?.name || meta?.email || '?').trim()[0] || '?').toUpperCase()
 
-export default function UserMenu({ data, setData, cloud, onClose, goTab }) {
+export default function UserMenu({ data, setData, cloud, inbox, onInbox, onClose, goTab }) {
   const m = cloud.meta || {}
   const [sub, setSub] = useState(null) // 'profile' | 'coach'
   const [sync, setSync] = useState({ busy: false, msg: '' })
@@ -45,14 +45,19 @@ export default function UserMenu({ data, setData, cloud, onClose, goTab }) {
   if (sub === 'coach')
     return (
       <Modal title={trainer ? 'Tus alumnos' : 'Entrenador'} onClose={() => setSub(null)}>
-        {trainer ? <Students uid={m.uid} /> : <MyTrainer uid={m.uid} />}
+        {trainer ? (
+          <Students uid={m.uid} data={data} setData={setData} inbox={inbox} onInbox={onInbox} />
+        ) : (
+          <MyTrainer uid={m.uid} data={data} setData={setData} inbox={inbox} onInbox={onInbox} />
+        )}
       </Modal>
     )
 
-  const Row = ({ icon, title, desc, onClick, busy, danger }) => (
+  const Row = ({ icon, title, desc, onClick, busy, danger, badge }) => (
     <button className={'um-row' + (danger ? ' danger' : '')} onClick={onClick} disabled={busy}>
       <span className="um-ic">
         <Icon name={icon} size={19} />
+        {badge > 0 && <i className="tab-badge">{badge > 9 ? '9+' : badge}</i>}
       </span>
       <span className="grow">
         <span className="um-t">{title}</span>
@@ -83,7 +88,19 @@ export default function UserMenu({ data, setData, cloud, onClose, goTab }) {
           busy={sync.busy}
         />
         <Row icon="user" title="Perfil" desc="Nombre, tipo de cuenta y contraseña" onClick={() => setSub('profile')} />
-        <Row icon="users" title={trainer ? 'Tus alumnos' : 'Entrenador'} desc={trainer ? 'Solicitudes y entrenos de tus alumnos' : 'Pide a un entrenador que te lleve'} onClick={() => setSub('coach')} />
+        <Row
+          icon="users"
+          title={trainer ? 'Tus alumnos' : 'Entrenador'}
+          badge={inbox ? inbox.messages + inbox.workouts + inbox.requests : 0}
+          desc={(() => {
+            const parts = []
+            if (inbox?.requests) parts.push(`${inbox.requests} solicitud${inbox.requests === 1 ? '' : 'es'}`)
+            if (inbox?.workouts) parts.push(`${inbox.workouts} entreno${inbox.workouts === 1 ? '' : 's'} por revisar`)
+            if (inbox?.messages) parts.push(`${inbox.messages} mensaje${inbox.messages === 1 ? '' : 's'} nuevo${inbox.messages === 1 ? '' : 's'}`)
+            return parts.length ? parts.join(' · ') : trainer ? 'Solicitudes, mensajes y entrenos de tus alumnos' : 'Mensajes y entrenos de tu entrenador'
+          })()}
+          onClick={() => setSub('coach')}
+        />
         <Row
           icon="settings"
           title="Ajustes"

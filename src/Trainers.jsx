@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { listTrainers, myLinks, requestTrainer, removeLink, answerLink, profilesOf, studentData } from './cloud'
 import { Modal } from './ui'
+import { Chat, WorkoutBuilder, SentWorkouts, TrainerWorkouts } from './CoachTools'
 import Icon from './icons'
 import { EX_BY_ID } from './data/exercises'
 import { setTxt, WEEKDAYS, fmtKg } from './store'
@@ -22,13 +23,14 @@ function useLoad(fn, deps = []) {
 }
 
 // ---- Usuario: lista de entrenadores y su solicitud ----
-export function MyTrainer({ uid }) {
+export function MyTrainer({ uid, data, setData, inbox, onInbox }) {
   const [st, reload] = useLoad(async () => {
     const [trainers, links] = await Promise.all([listTrainers(), myLinks()])
     return { trainers: trainers.filter((t) => t.id !== uid), links: links.filter((l) => l.user_id === uid) }
   })
   const [busy, setBusy] = useState('')
   const [err, setErr] = useState('')
+  const [chat, setChat] = useState(false)
   const act = async (id, fn) => {
     setBusy(id)
     setErr('')
@@ -48,9 +50,31 @@ export function MyTrainer({ uid }) {
   return (
     <div className="card trainers">
       {mine ? (
-        <p className="small" style={{ marginTop: 0 }}>
-          Tu entrenador es <b>{trainers.find((t) => t.id === mine.trainer_id)?.name || 'tu entrenador'}</b>: ve tus entrenos y tu progreso.
-        </p>
+        <>
+          <p className="small" style={{ marginTop: 0 }}>
+            Tu entrenador es <b>{trainers.find((t) => t.id === mine.trainer_id)?.name || 'tu entrenador'}</b>: ve tus entrenos y tu progreso.
+          </p>
+          <button className="btn full" onClick={() => setChat(true)}>
+            <Icon name="book" size={15} /> Mensajes{inbox?.msgByLink?.[mine.id] ? ` (${inbox.msgByLink[mine.id]} nuevos)` : ''}
+          </button>
+          {data && (
+            <TrainerWorkouts
+              linkId={mine.id}
+              trainerName={trainers.find((t) => t.id === mine.trainer_id)?.name || 'Tu entrenador'}
+              data={data}
+              setData={setData}
+              onChange={onInbox}
+            />
+          )}
+          {chat && (
+            <Chat
+              linkId={mine.id}
+              me={uid}
+              title={trainers.find((t) => t.id === mine.trainer_id)?.name || 'Tu entrenador'}
+              onClose={() => (setChat(false), onInbox?.())}
+            />
+          )}
+        </>
       ) : (
         <p className="muted small" style={{ marginTop: 0 }}>
           Pide a un entrenador que te lleve. Si acepta, podrá ver tus entrenos, tu plan y tu progreso. Puedes dejarlo cuando quieras.
@@ -92,7 +116,7 @@ export function MyTrainer({ uid }) {
 }
 
 // ---- Entrenador: solicitudes y alumnos ----
-export function Students({ uid }) {
+export function Students({ uid, data, setData, inbox, onInbox }) {
   const [st, reload] = useLoad(async () => {
     const links = (await myLinks()).filter((l) => l.trainer_id === uid)
     const people = await profilesOf([...new Set(links.map((l) => l.user_id))])
@@ -146,7 +170,10 @@ export function Students({ uid }) {
           <span className="tr-av">{l.name.slice(0, 1).toUpperCase()}</span>
           <div className="grow">
             <div className="li-t">{l.name}</div>
-            <div className="muted small">Ver entrenos y progreso</div>
+            <div className="muted small">
+              {inbox?.msgByLink?.[l.id] ? <b className="up">{inbox.msgByLink[l.id]} mensaje{inbox.msgByLink[l.id] === 1 ? '' : 's'} nuevo{inbox.msgByLink[l.id] === 1 ? '' : 's'} · </b> : ''}
+              Entrenos, progreso y mensajes
+            </div>
           </div>
           <Icon name="right" size={16} className="muted" />
         </button>
@@ -158,6 +185,11 @@ export function Students({ uid }) {
       {open && (
         <StudentView
           student={open}
+          me={uid}
+          data={data}
+          setData={setData}
+          unread={inbox?.msgByLink?.[open.id] || 0}
+          onInbox={onInbox}
           onClose={() => setOpen(null)}
           onRemove={() => confirm(`¿Dejar de entrenar a ${open.name}?`) && act(open.id, () => removeLink(open.id)).then(() => setOpen(null))}
         />
@@ -167,8 +199,11 @@ export function Students({ uid }) {
 }
 
 // Lo que ve el entrenador de un alumno: plan, últimos entrenos y cuerpo (peso solo como media)
-function StudentView({ student, onClose, onRemove }) {
+function StudentView({ student, me, data, setData, unread, onInbox, onClose, onRemove }) {
   const [st] = useLoad(() => studentData(student.user_id), [student.user_id])
+  const [chat, setChat] = useState(false)
+  const [build, setBuild] = useState(false)
+  const [sent, setSent] = useState(0)
   const d = st.data?.data
   const sessions = (d?.sessions || []).filter((s) => Object.keys(s.entries || {}).length).slice().reverse()
   const week = sessions.filter((s) => (Date.now() - Date.parse(s.date)) / 864e5 < 7).length
@@ -182,6 +217,27 @@ function StudentView({ student, onClose, onRemove }) {
       {st.loading && <p className="muted small">Cargando…</p>}
       {st.error && <div className="advice sm yellow">{st.error}</div>}
       {!st.loading && !d && !st.error && <p className="muted small">Aún no tiene datos en la app.</p>}
+      <div className="btns" style={{ marginTop: 0 }}>
+        <button className="btn" onClick={() => setChat(true)}>
+          <Icon name="book" size={15} /> Mensajes{unread ? ` (${unread})` : ''}
+        </button>
+        <button className="btn primary" onClick={() => setBuild(true)}>
+          <Icon name="dumbbell" size={15} /> Mandar entreno
+        </button>
+      </div>
+      {chat && <Chat linkId={student.id} me={me} title={student.name} onClose={() => (setChat(false), onInbox?.())} />}
+      {build && (
+        <WorkoutBuilder
+          data={data}
+          setData={setData}
+          linkId={student.id}
+          studentName={student.name}
+          studentPlan={st.data?.data?.plan || []}
+          onClose={() => setBuild(false)}
+          onSent={() => setSent((n) => n + 1)}
+        />
+      )}
+      <SentWorkouts linkId={student.id} refresh={sent} />
       {d && (
         <>
           <div className="polar-sum">

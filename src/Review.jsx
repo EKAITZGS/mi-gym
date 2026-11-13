@@ -57,7 +57,9 @@ export function CoachChat({ data, onClose }) {
   const [q, setQ] = useState('')
   const [busy, setBusy] = useState(false)
   const end = useRef(null)
-  useEffect(() => end.current?.scrollIntoView({ block: 'end' }), [msgs, busy])
+  useEffect(() => {
+    end.current?.scrollIntoView({ block: 'end' })
+  }, [msgs, busy])
   const send = async (text) => {
     const t = (text || q).trim().slice(0, 500)
     if (!t || busy) return

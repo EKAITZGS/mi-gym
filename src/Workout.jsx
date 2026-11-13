@@ -132,7 +132,7 @@ function CreateExercise({ onClose, onCreate }) {
   )
 }
 
-function Library({ data, setData, onPick, onClose, inline, title }) {
+export function Library({ data, setData, onPick, onClose, inline, title, noCreate }) {
   const [creating, setCreating] = useState(false)
   const [q, setQ] = useState('')
   const [group, setGroup] = useState('Todos')
@@ -180,9 +180,11 @@ function Library({ data, setData, onPick, onClose, inline, title }) {
           </button>
         )}
       </div>
-      <button className="btn full" onClick={() => setCreating(true)}>
-        + Crear ejercicio propio
-      </button>
+      {!noCreate && (
+        <button className="btn full" onClick={() => setCreating(true)}>
+          + Crear ejercicio propio
+        </button>
+      )}
       {creating && (
         <CreateExercise
           onClose={() => setCreating(false)}

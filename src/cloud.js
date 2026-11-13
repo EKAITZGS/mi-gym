@@ -424,3 +424,41 @@ export const removeLink = (id) => q((c) => c.from('coach_links').delete().eq('id
 export const answerLink = (id, ok) => q((c) => c.from('coach_links').update({ status: ok ? 'accepted' : 'rejected', updated_at: new Date().toISOString() }).eq('id', id))
 export const profilesOf = (ids) => (ids.length ? q((c) => c.from('profiles').select('id, name').in('id', ids)) : Promise.resolve([]))
 export const studentData = (uid) => q((c) => c.from('user_data').select('data, updated_at').eq('user_id', uid).maybeSingle())
+
+// ---- Mensajes y entrenos del entrenador (supabase/04-mensajes.sql) ----
+const need04 = (e) => (/coach_messages|coach_workouts|in_link|does not exist/i.test(e.message) ? new Error('Falta activar mensajes y entrenos en Supabase (04-mensajes.sql).') : e)
+const q4 = async (fn) => {
+  try {
+    return await q(fn)
+  } catch (e) {
+    throw need04(e)
+  }
+}
+export const listMessages = (linkId) => q4((c) => c.from('coach_messages').select('id, sender_id, body, created_at, read_at').eq('link_id', linkId).order('created_at').limit(300))
+export const sendMessage = (linkId, body) => q4((c) => c.from('coach_messages').insert({ link_id: linkId, sender_id: uidNow(), body: body.trim().slice(0, 2000) }))
+export const markRead = (linkId) =>
+  q4((c) => c.from('coach_messages').update({ read_at: new Date().toISOString() }).eq('link_id', linkId).neq('sender_id', uidNow()).is('read_at', null))
+export const listWorkouts = (linkId) => q4((c) => c.from('coach_workouts').select('id, day, note, status, created_at, answered_at').eq('link_id', linkId).order('created_at', { ascending: false }).limit(50))
+export const sendWorkout = (linkId, day, note) => q4((c) => c.from('coach_workouts').insert({ link_id: linkId, day, note: (note || '').trim().slice(0, 500) || null }))
+export const answerWorkout = (id, ok) => q4((c) => c.from('coach_workouts').update({ status: ok ? 'accepted' : 'rejected', answered_at: new Date().toISOString() }).eq('id', id))
+export const deleteWorkout = (id) => q4((c) => c.from('coach_workouts').delete().eq('id', id))
+
+// Lo pendiente para avisar: mensajes sin leer, entrenos por responder (alumno) y solicitudes (entrenador)
+export async function inbox() {
+  const uid = uidNow()
+  if (!uid) return null
+  const c = await sb()
+  const [msgs, wks, links] = await Promise.all([
+    c.from('coach_messages').select('id, link_id').neq('sender_id', uid).is('read_at', null),
+    c.from('coach_workouts').select('id, link_id').eq('status', 'pending'),
+    c.from('coach_links').select('id, user_id, trainer_id, status'),
+  ])
+  const L = links.data || []
+  const mineAsUser = new Set(L.filter((l) => l.user_id === uid).map((l) => l.id))
+  return {
+    messages: (msgs.data || []).length,
+    msgByLink: (msgs.data || []).reduce((a, m) => ((a[m.link_id] = (a[m.link_id] || 0) + 1), a), {}),
+    workouts: (wks.data || []).filter((w) => mineAsUser.has(w.link_id)).length,
+    requests: L.filter((l) => l.trainer_id === uid && l.status === 'pending').length,
+  }
+}

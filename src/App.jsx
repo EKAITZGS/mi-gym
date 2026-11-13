@@ -10,7 +10,7 @@ import Icon from './icons'
 import { readPolarReturn, getPolar, syncPolar } from './polar'
 import { checkServerAi } from './ai'
 import { syncPush } from './push'
-import { useCloudSync, cloudReady } from './cloud'
+import { useCloudSync, cloudReady, inbox } from './cloud'
 import { NewPassword, AuthGate } from './Account'
 import UserMenu, { initialOf } from './UserMenu'
 
@@ -26,6 +26,35 @@ export default function App() {
   // copia en la nube (si hay cuenta): sube los cambios y baja los de otro móvil
   const cloud = useCloudSync(data, setData)
   const [menu, setMenu] = useState(false)
+  // avisos del entrenador / alumnos: mensajes sin leer, entrenos mandados y solicitudes
+  const [box, setBox] = useState(null)
+  const refreshBox = () => {
+    if (!cloud.meta?.uid || cloud.meta.pending) return
+    inbox()
+      .then((r) => {
+        if (!r) return
+        setBox((prev) => {
+          const was = prev || { messages: 0, workouts: 0, requests: 0 }
+          if (r.workouts > was.workouts) setNotice(r.workouts === 1 ? 'Tu entrenador te ha mandado un entreno. Míralo en tu menú → Entrenador.' : `Tienes ${r.workouts} entrenos de tu entrenador por revisar (tu menú → Entrenador).`)
+          else if (r.requests > was.requests) setNotice('Tienes una solicitud de alumno nueva (tu menú → Tus alumnos).')
+          else if (r.messages > was.messages) setNotice(r.messages === 1 ? 'Tienes un mensaje nuevo (tu menú).' : `Tienes ${r.messages} mensajes nuevos (tu menú).`)
+          return r
+        })
+      })
+      .catch(() => {})
+  }
+  useEffect(() => {
+    if (!cloud.meta?.uid) return setBox(null)
+    refreshBox()
+    const onVis = () => document.visibilityState === 'visible' && refreshBox()
+    document.addEventListener('visibilitychange', onVis)
+    const t = setInterval(() => document.visibilityState === 'visible' && refreshBox(), 60000)
+    return () => {
+      document.removeEventListener('visibilitychange', onVis)
+      clearInterval(t)
+    }
+  }, [cloud.meta?.uid, cloud.meta?.pending])
+  const boxN = box ? box.messages + box.workouts + box.requests : 0
   setCustomExercises(data.myExercises || [])
   // Si hay un entreno de hoy a medias (p. ej. la app se recargó por una actualización), vuelve directo a él
   const resume = data.active && data.active.date === todayStr()
@@ -188,7 +217,10 @@ export default function App() {
         ))}
         {cloudReady() ? (
           <button className={tab === 'settings' || menu ? 'on' : ''} onClick={() => setMenu(true)} aria-label="Tu cuenta">
-            <span className="tab-av">{initialOf(cloud.meta)}</span>
+            <span className="tab-av">
+              {initialOf(cloud.meta)}
+              {boxN > 0 && <i className="tab-badge">{boxN > 9 ? '9+' : boxN}</i>}
+            </span>
             <span>{(cloud.meta?.name || 'Tú').split(' ')[0].slice(0, 10)}</span>
           </button>
         ) : (
@@ -198,7 +230,7 @@ export default function App() {
           </button>
         )}
       </nav>
-      {menu && <UserMenu data={data} setData={setData} cloud={cloud} onClose={() => setMenu(false)} goTab={goTab} />}
+      {menu && <UserMenu data={data} setData={setData} cloud={cloud} inbox={box} onInbox={refreshBox} onClose={() => (setMenu(false), refreshBox())} goTab={goTab} />}
     </div>
   )
 }
