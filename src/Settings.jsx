@@ -5,6 +5,8 @@ import Coach from './Coach.jsx'
 import { PlanMaker } from './Workout'
 import Icon from './icons'
 import PushCard from './PushCard'
+import AccountCard from './Account'
+import { cloudReady } from './cloud'
 import { getPolar, connectPolar, syncPolar, disconnectPolar } from './polar'
 import { Modal } from './ui'
 import { calcGoals, ACTIVITY } from './stats'
@@ -60,7 +62,7 @@ export function GoalCalc({ onApply, onClose, skipLabel }) {
   )
 }
 
-export default function Settings({ data, setData }) {
+export default function Settings({ data, setData, cloud }) {
   const [msg, setMsg] = useState('')
   const [calc, setCalc] = useState(false)
   // preferencia de este móvil (no va en la copia de seguridad)
@@ -156,7 +158,17 @@ export default function Settings({ data, setData }) {
   }
 
   const reset = () => {
-    if (!confirm('¿Borrar TODOS los datos de la app (entrenos, comidas, plan)? No se puede deshacer.')) return
+    if (
+      !confirm(
+        cloud?.meta?.uid
+          ? '¿Borrar TODOS los datos (entrenos, comidas, plan)? Como tienes cuenta, también se borran de la nube. No se puede deshacer.'
+          : '¿Borrar TODOS los datos de la app (entrenos, comidas, plan)? No se puede deshacer.'
+      )
+    )
+      return
+    try {
+      localStorage.setItem('migym.v1.borrado', localStorage.getItem('migym.v1') || '')
+    } catch {}
     setData(DEFAULT)
     flash('Datos borrados')
   }
@@ -164,6 +176,13 @@ export default function Settings({ data, setData }) {
   return (
     <div className="page">
       <h1 className="title">Ajustes</h1>
+
+      {cloudReady() && (
+        <>
+          <h4>Tu cuenta</h4>
+          <AccountCard data={data} setData={setData} cloud={cloud} />
+        </>
+      )}
 
       <h4>Entrenamiento</h4>
       <div className="card">
@@ -379,8 +398,9 @@ export default function Settings({ data, setData }) {
       <h4>Copia de seguridad</h4>
       <div className="card">
         <p className="muted small">
-          Tus datos se guardan solo en este dispositivo. Haz una copia de vez en cuando por si borras los datos del
-          navegador o cambias de móvil.
+          {cloud?.meta?.uid
+            ? 'Tus datos ya se guardan en tu cuenta. Aun así, puedes guardar una copia en un archivo.'
+            : 'Tus datos se guardan solo en este dispositivo. Haz una copia de vez en cuando por si borras los datos del navegador o cambias de móvil.'}
         </p>
         <button className="btn full" onClick={exportFile}>
           Exportar copia (archivo)

@@ -10,6 +10,8 @@ import Icon from './icons'
 import { readPolarReturn, getPolar, syncPolar } from './polar'
 import { checkServerAi } from './ai'
 import { syncPush } from './push'
+import { useCloudSync } from './cloud'
+import { NewPassword } from './Account'
 
 const TABS = [
   { id: 'home', label: 'Inicio', icon: 'home' },
@@ -21,6 +23,8 @@ const TABS = [
 
 export default function App() {
   const [data, setData] = useStore()
+  // copia en la nube (si hay cuenta): sube los cambios y baja los de otro móvil
+  const cloud = useCloudSync(data, setData)
   setCustomExercises(data.myExercises || [])
   // Si hay un entreno de hoy a medias (p. ej. la app se recargó por una actualización), vuelve directo a él
   const resume = data.active && data.active.date === todayStr()
@@ -141,8 +145,9 @@ export default function App() {
         {tab === 'train' && <Workout data={data} setData={setData} view={view} setView={setView} onStart={start} onStartFree={startFree} />}
         {tab === 'diet' && <Diet data={data} setData={setData} />}
         {tab === 'progress' && <Progress data={data} setData={setData} />}
-        {tab === 'settings' && <Settings data={data} setData={setData} />}
+        {tab === 'settings' && <Settings data={data} setData={setData} cloud={cloud} />}
       </main>
+      {cloud.recovery && <NewPassword onDone={cloud.doneRecovery} />}
       {saveFail && (
         <div className="notice" style={{ background: 'var(--danger)', color: '#fff', top: 0 }} role="alert">
           No se está guardando: lo de ahora se perderá al cerrar. Haz una copia en Ajustes y libera espacio en el iPhone.

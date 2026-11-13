@@ -1900,3 +1900,9 @@ body.modal-open .savebar { display: none; }
 .dp-macros { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 8px 0; }
 .dp-macros span { background: var(--card); border-radius: 10px; padding: 7px 6px; text-align: center; font-size: 12px; color: var(--muted); }
 .dp-macros b { display: block; font-size: 15px; color: var(--text); }
+
+/* Cuenta */
+.account .seg { margin-bottom: 4px; }
+.account .acc-conflict { margin-top: 10px; }
+.account .acc-conflict .btn { margin-top: 8px; white-space: normal; text-align: left; height: auto; min-height: 48px; padding: 10px 14px; }
+.account > .link { margin-top: 4px; }

@@ -10,6 +10,7 @@
     "test": "esbuild tests/run.mjs --bundle --platform=node --format=esm --log-level=warning --outfile=node_modules/.cache/tests.mjs && node node_modules/.cache/tests.mjs"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.119.0",
     "@zxing/browser": "^0.2.1",
     "@zxing/library": "^0.23.0",
     "react": "^18.3.1",
