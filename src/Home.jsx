@@ -194,7 +194,7 @@ export default function Home({ data, setData, onStart, go }) {
                 <Icon name="right" size={16} className="muted" />
               </button>
             ))}
-            {polarEx && <PolarSession ex={polarEx} onClose={() => setPolarEx(null)} />}
+            {polarEx && <PolarSession ex={polarEx} data={data} onClose={() => setPolarEx(null)} />}
           </div>
         )
       })()}

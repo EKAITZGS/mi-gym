@@ -1,5 +1,6 @@
 import { useId } from 'react'
 import { Modal } from './ui'
+import { groupsOf } from './ranks'
 
 const ZONE_NAMES = ['Muy suave', 'Suave', 'Moderado', 'Intenso', 'Máximo']
 const ZONE_COLORS = ['#7b8494', '#4ea8ff', '#a3ff12', '#ffb547', '#ff5d6c']
@@ -27,8 +28,100 @@ export function hrPeaks(hr) {
   return peaks
 }
 
+// ---- Pulso según lo que entrenaste ----
+// Un día de pierna sube mucho más el pulso que uno de brazo: se compara con lo normal para ese tipo de día
+// y, con 3 o más entrenos parecidos, con tu propia media.
+const SIZE = { Pierna: 'pierna', Espalda: 'torso', Pecho: 'torso', Hombro: 'torso', Core: 'torso', 'Bíceps': 'brazo', 'Tríceps': 'brazo', Antebrazo: 'brazo' }
+const CENTER = { pierna: 0.68, mixto: 0.65, torso: 0.62, brazo: 0.58 } // pulso medio esperado / pulso máximo
+const KIND_TXT = { pierna: 'pierna', brazo: 'brazo', torso: 'torso', mixto: 'cuerpo completo' }
+
+export function sessionKind(session) {
+  const w = {}
+  const mainW = {} // solo el músculo principal de cada ejercicio, para el nombre del día
+  let sets = 0
+  for (const [id, list] of Object.entries(session?.entries || {})) {
+    const n = (list || []).length
+    const gs = groupsOf(id)
+    if (!n || !gs.length) continue
+    sets += n
+    for (const { g, main } of gs) w[g] = (w[g] || 0) + n * (main ? 1 : 0.35)
+    mainW[gs[0].g] = (mainW[gs[0].g] || 0) + n
+  }
+  if (!sets) return null
+  const tot = Object.values(w).reduce((a, b) => a + b, 0)
+  const share = (k) => Object.entries(w).filter(([g]) => SIZE[g] === k).reduce((a, [, v]) => a + v, 0) / tot
+  const kind = share('pierna') >= 0.45 ? 'pierna' : share('brazo') >= 0.5 ? 'brazo' : share('pierna') >= 0.2 ? 'mixto' : 'torso'
+  const top = Object.entries(mainW)
+    .sort((a, b) => b[1] - a[1])
+    .filter(([, v], i) => i === 0 || (i === 1 && v / sets >= 0.25))
+    .map(([g]) => g.toLowerCase())
+  return { kind, sets, label: kind === 'mixto' ? 'cuerpo completo' : top.join(' y ') }
+}
+
+const sessionOn = (data, date) =>
+  (data?.sessions || [])
+    .filter((s) => s.date === date)
+    .map((s) => ({ s, k: sessionKind(s) }))
+    .filter((x) => x.k)
+    .sort((a, b) => b.k.sets - a.k.sets)[0]
+
+function strengthTips(e, data) {
+  const cur = sessionOn(data, e.date)
+  if (!cur || !e.hrAvg) return null
+  const k = cur.k
+  const max = e.zones?.length ? Math.max(...e.zones.map((z) => z.hi || 0)) || 200 : 200
+  const past = Object.values(data.polar?.exercises || {})
+    .filter((x) => x.id !== e.id && x.date < e.date && x.hrAvg)
+    .map((x) => {
+      const o = sessionOn(data, x.date)
+      return o && o.k.kind === k.kind ? { hr: x.hrAvg, sets: o.k.sets, mps: x.min / o.k.sets } : null
+    })
+    .filter(Boolean)
+  const avg = (xs) => xs.reduce((a, b) => a + b, 0) / xs.length
+  const day = `un día de ${k.label}`
+  let level
+  let base = null
+  if (past.length >= 3) {
+    base = Math.round(avg(past.map((p) => p.hr)))
+    const d = (e.hrAvg - base) / base
+    level = d < -0.12 ? 'low' : d > 0.08 ? 'high' : 'ok'
+  } else {
+    const rel = e.hrAvg / max
+    const c = CENTER[k.kind]
+    level = rel < c - 0.1 ? 'low' : rel > c + 0.06 ? 'high' : 'ok'
+  }
+  const vs = base ? ` (tu media en días de ${KIND_TXT[k.kind]}: ${base})` : ''
+  const tips = []
+  if (level === 'high')
+    tips.push({ tone: 'green', text: `Media de ${e.hrAvg} ppm: alta para ${day}${vs}. Has ido a buen ritmo.` })
+  else if (level === 'ok') tips.push({ tone: 'green', text: `Media de ${e.hrAvg} ppm: normal para ${day}${vs}.` })
+  else {
+    // ¿descansaste más o hiciste menos? Se mira con tus entrenos parecidos
+    let why = 'descansos largos o poca intensidad. Acorta los descansos a 60–90 s o lleva la última serie más cerca del fallo.'
+    if (past.length >= 2) {
+      const uSets = avg(past.map((p) => p.sets))
+      const uMps = avg(past.map((p) => p.mps))
+      const mps = e.min / k.sets
+      if (k.sets < uSets * 0.8) why = `hiciste menos series de lo normal (${k.sets} frente a ~${Math.round(uSets)}): día flojo.`
+      else if (mps > uMps * 1.2)
+        why = `hiciste tus series, pero tardaste ${String(Math.round(mps * 10) / 10).replace('.', ',')} min por serie frente a ~${String(Math.round(uMps * 10) / 10).replace('.', ',')}: descansaste más de lo normal.`
+    }
+    tips.push({ tone: 'yellow', text: `Media de ${e.hrAvg} ppm: muy baja para ${day}${vs}. Seguramente ${why}` })
+  }
+  return { tips, k }
+}
+
 // Valoración del esfuerzo con el pulso (orientativa: en pesas manda más el RIR)
-export function polarVerdict(e) {
+export function polarVerdict(e, data) {
+  const st = data && strengthTips(e, data)
+  if (st) {
+    const total = (e.zones || []).reduce((a, z) => a + z.s, 0)
+    const hard = total ? (e.zones || []).filter((z) => [4, 5].includes(z.i)).reduce((a, z) => a + z.s, 0) / total : 0
+    const tips = [...st.tips]
+    if (hard > 0.35) tips.push({ tone: 'yellow', text: 'Mucho rato en zonas altas: mañana prioriza dormir y comer bien.' })
+    if (e.min > 100) tips.push({ tone: 'yellow', text: `Has estado ${e.min} min. Con 60–75 min bien aprovechados es suficiente; más tiempo no da más músculo.` })
+    return tips
+  }
   const tips = []
   const total = (e.zones || []).reduce((a, z) => a + z.s, 0)
   const pct = (idx) => (total ? (e.zones || []).filter((z) => idx.includes(z.i)).reduce((a, z) => a + z.s, 0) / total : 0)
@@ -109,11 +202,12 @@ function HrChart({ hr, zones }) {
   )
 }
 
-export default function PolarSession({ ex: raw, onClose }) {
+export default function PolarSession({ ex: raw, data, onClose }) {
   const ex = raw.zones?.length ? { ...raw, zones: [...raw.zones].sort((a, b) => a.lo - b.lo).map((z, k) => ({ ...z, i: k + 1 })) } : raw
   const total = (ex.zones || []).reduce((a, z) => a + z.s, 0)
   const peaks = hrPeaks(ex.hr)
-  const tips = polarVerdict(ex)
+  const tips = polarVerdict(ex, data)
+  const kind = data ? sessionOn(data, ex.date)?.k : null
   return (
     <Modal title={`${ex.sport} · ${ex.min} min`} onClose={onClose}>
       <div className="polar-sum">
@@ -123,6 +217,11 @@ export default function PolarSession({ ex: raw, onClose }) {
         {peaks > 0 && <div><b>{peaks}</b><span>picos</span></div>}
       </div>
 
+      {kind && (
+        <p className="muted small" style={{ margin: '8px 0 0' }}>
+          Día de {kind.label} · {kind.sets} series apuntadas
+        </p>
+      )}
       <h4>Pulso durante el entreno</h4>
       {ex.hr ? (
         <HrChart hr={ex.hr} zones={ex.zones} />
