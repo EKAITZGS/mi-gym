@@ -762,7 +762,7 @@ function AddFood({ data, setData, date, meal, onClose }) {
       </div>
       <input className="inp" placeholder="Buscar alimento…" value={q} onChange={(e) => setQ(e.target.value)} />
       {!q.trim() && (
-        <div className="chips">
+        <div className="chips wrap cat-chips">
           {CATS.map((c) => (
             <button key={c.id} className={'chip' + (cat === c.id ? ' on' : '')} onClick={() => setCat(cat === c.id ? null : c.id)}>
               {c.label}

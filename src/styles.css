@@ -68,6 +68,7 @@ button:active {
 .main {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding-top: env(safe-area-inset-top);
 }
 .page {
@@ -1165,6 +1166,7 @@ textarea.inp {
 }
 .sheet-body {
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 4px 18px 22px;
   -webkit-overflow-scrolling: touch;
 }
@@ -1868,3 +1870,7 @@ body.modal-open .savebar { display: none; }
 
 .sleep-fix { background: var(--card2); border-radius: 12px; padding: 8px 10px; margin-top: 6px; }
 .sleep-fix .btns { flex-wrap: wrap; }
+
+/* Dieta: categorías de alimentos en varias filas (sin scroll lateral) */
+.cat-chips { gap: 6px; padding: 4px 0 6px; }
+.cat-chips .chip { padding: 7px 12px; font-size: 13px; }
