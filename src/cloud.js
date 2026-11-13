@@ -143,6 +143,25 @@ const keepLocal = () => {
 // → { action: 'uploaded' | 'downloaded' | 'same' | 'conflict', cloud? }
 const LAST = 'migym.lastUid'
 
+// Cosas de este móvil que son de la cuenta: reloj Polar, avisos y clave de IA. Si entra otra cuenta se
+// guardan aparte (y se apagan los avisos del anterior) y se recuperan las de la cuenta que entra.
+const DEV_KEYS = ['migym.polar', 'migym.push', 'migym.groqkey', 'migym.groqmodel']
+async function swapDevice(prevUid, uid) {
+  try {
+    const bag = {}
+    for (const k of DEV_KEYS) {
+      const v = localStorage.getItem(k)
+      if (v != null) bag[k] = v
+    }
+    if (bag['migym.push']) await import('./push').then((m) => m.disablePush()).catch(() => {})
+    for (const k of DEV_KEYS) localStorage.removeItem(k)
+    if (prevUid && Object.keys(bag).length) localStorage.setItem('migym.dev.' + prevUid, JSON.stringify(bag))
+    const mine = JSON.parse(localStorage.getItem('migym.dev.' + uid) || '{}')
+    for (const [k, v] of Object.entries(mine)) localStorage.setItem(k, v)
+    localStorage.removeItem('migym.dev.' + uid)
+  } catch {}
+}
+
 // nombre y rol (usuario / entrenador) de la cuenta
 export async function fetchProfile(uid) {
   const c = await sb()
@@ -167,6 +186,7 @@ export async function connect(user, local, setData) {
     localStorage.setItem(LAST, user.id)
   } catch {}
   const other = last && last !== user.id
+  if (other) await swapDevice(last, user.id)
   if (!row) {
     if (!hasData(local)) {
       await startClean(user.id, base, setData)
