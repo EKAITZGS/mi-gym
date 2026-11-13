@@ -198,25 +198,34 @@ export function Students({ uid, data, setData, inbox, onInbox }) {
   )
 }
 
-// Lo que ve el entrenador de un alumno: plan, últimos entrenos y cuerpo (peso solo como media)
+// Lo que ve el entrenador de un alumno: entrenos, plan y progreso (peso solo como media)
+const DOW = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb']
+const MON = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
+const fmtDay = (s) => {
+  const d = new Date(s + 'T12:00:00')
+  return `${DOW[d.getDay()]} ${d.getDate()} ${MON[d.getMonth()]}`
+}
+const hasSet = (x) => !!(x.r || x.s || x.m || x.km || x.min)
+
 function StudentView({ student, me, data, setData, unread, onInbox, onClose, onRemove }) {
   const [st] = useLoad(() => studentData(student.user_id), [student.user_id])
   const [chat, setChat] = useState(false)
   const [build, setBuild] = useState(false)
   const [sent, setSent] = useState(0)
+  const [tab, setTab] = useState('train')
   const d = st.data?.data
-  const sessions = (d?.sessions || []).filter((s) => Object.keys(s.entries || {}).length).slice().reverse()
+  // nombre de cada ejercicio (también los que el alumno creó él)
+  const nameOf = (id) => (EX_BY_ID[id]?.name || (d?.myExercises || []).find((x) => x.id === id)?.name || 'Ejercicio propio').replace(/ \(.*\)/, '')
+  const sessions = (d?.sessions || []).filter((s) => Object.values(s.entries || {}).some((l) => l.some(hasSet))).slice().reverse()
   const week = sessions.filter((s) => (Date.now() - Date.parse(s.date)) / 864e5 < 7).length
   const w = d?.body?.weight || []
   const avg3 = (list) => (list.length ? list.reduce((a, x) => a + x.kg, 0) / list.length : null)
   const wNow = avg3(w.slice(-3))
   const wStart = w.length >= 4 ? avg3(w.slice(0, 3)) : null
   const waist = d?.body?.waist || []
+  const sign = (n) => (n > 0 ? '+' : n < 0 ? '−' : '±')
   return (
     <Modal title={student.name} onClose={onClose}>
-      {st.loading && <p className="muted small">Cargando…</p>}
-      {st.error && <div className="advice sm yellow">{st.error}</div>}
-      {!st.loading && !d && !st.error && <p className="muted small">Aún no tiene datos en la app.</p>}
       <div className="btns" style={{ marginTop: 0 }}>
         <button className="btn" onClick={() => setChat(true)}>
           <Icon name="book" size={15} /> Mensajes{unread ? ` (${unread})` : ''}
@@ -232,83 +241,113 @@ function StudentView({ student, me, data, setData, unread, onInbox, onClose, onR
           setData={setData}
           linkId={student.id}
           studentName={student.name}
-          studentPlan={st.data?.data?.plan || []}
+          studentPlan={d?.plan || []}
+          nameOf={nameOf}
           onClose={() => setBuild(false)}
           onSent={() => setSent((n) => n + 1)}
         />
       )}
       <SentWorkouts linkId={student.id} refresh={sent} />
+
+      {st.loading && <p className="muted small">Cargando…</p>}
+      {st.error && <div className="advice sm yellow">{st.error}</div>}
+      {!st.loading && !d && !st.error && <p className="muted small">Aún no tiene datos en la app.</p>}
       {d && (
         <>
-          <div className="polar-sum">
+          <div className="sv-stats">
             <div>
               <b>{week}</b>
-              <span>entrenos en 7 días</span>
+              <span>entrenos esta semana</span>
             </div>
             <div>
-              <b>{sessions.length}</b>
-              <span>en total</span>
+              <b>{waist.length ? fmtKg(waist[waist.length - 1].cm) : '—'}</b>
+              <span>
+                cm de cintura
+                {waist.length > 1 ? ` (${sign(waist[waist.length - 1].cm - waist[0].cm)}${fmtKg(Math.abs(waist[waist.length - 1].cm - waist[0].cm))})` : ''}
+              </span>
             </div>
-            {waist.length > 0 && (
-              <div>
-                <b>{fmtKg(waist[waist.length - 1].cm)}</b>
-                <span>cm cintura{waist.length > 1 ? ` (${waist[waist.length - 1].cm - waist[0].cm > 0 ? '+' : ''}${fmtKg(waist[waist.length - 1].cm - waist[0].cm)})` : ''}</span>
-              </div>
-            )}
-            {wNow && (
-              <div>
-                <b>{fmtKg(Math.round(wNow * 10) / 10)}</b>
-                <span>
-                  kg (media)
-                  {wStart && Math.round((wNow - wStart) * 10)
-                    ? ` (${wNow - wStart > 0 ? '+' : ''}${fmtKg(Math.round((wNow - wStart) * 10) / 10)})`
-                    : ''}
-                </span>
-              </div>
-            )}
+            <div>
+              <b>{wNow ? fmtKg(Math.round(wNow * 10) / 10) : '—'}</b>
+              <span>
+                kg de media
+                {wStart && Math.round((wNow - wStart) * 10) ? ` (${sign(wNow - wStart)}${fmtKg(Math.abs(Math.round((wNow - wStart) * 10) / 10))})` : ''}
+              </span>
+            </div>
           </div>
 
-          <h4>Su plan</h4>
-          {!(d.plan || []).length && <p className="muted small">No tiene plan.</p>}
-          {(d.plan || []).map((day) => (
-            <div className="dp-meal" key={day.id}>
-              <div className="dp-head">
-                <b>{day.name}</b>
-                <span className="muted small">{day.weekday != null ? WEEKDAYS[day.weekday] : 'Sin día'}</span>
-              </div>
-              {day.items.map((it) => (
-                <div className="small dp-item" key={it.id}>
-                  {exName(it.ex)} <span className="muted">· {it.sets}×{it.reps}</span>
-                </div>
-              ))}
-            </div>
-          ))}
+          <div className="seg sv-tabs">
+            <button className={tab === 'train' ? 'on' : ''} onClick={() => setTab('train')}>
+              Entrenos ({sessions.length})
+            </button>
+            <button className={tab === 'plan' ? 'on' : ''} onClick={() => setTab('plan')}>
+              Su plan
+            </button>
+          </div>
 
-          <h4>Últimos entrenos</h4>
-          {!sessions.length && <p className="muted small">Aún no ha entrenado.</p>}
-          {sessions.slice(0, 15).map((s) => (
-            <div className="dp-meal" key={s.id}>
-              <div className="dp-head">
-                <b>{s.dayName || 'Entreno'}</b>
-                <span className="muted small">
-                  {fmtDate(s.date)}
-                  {s.min ? ` · ${s.min} min` : ''}
-                </span>
-              </div>
-              {Object.entries(s.entries).map(([id, sets]) => (
-                <div className="small dp-item" key={id}>
-                  {exName(id)}
-                  <span className="muted">
-                    {' '}
-                    · {sets.map(setTxt).join(', ')}
-                    {s.checkin?.rir?.[id] != null ? ` · RIR ${s.checkin.rir[id]}` : ''}
-                  </span>
+          {tab === 'train' && (
+            <>
+              {!sessions.length && <p className="muted small">Aún no ha entrenado.</p>}
+              {sessions.slice(0, 20).map((s) => (
+                <div className="sv-card" key={s.id}>
+                  <div className="sv-head">
+                    <b>{s.dayName || 'Entreno'}</b>
+                    <span className="sv-chip">
+                      {fmtDay(s.date)}
+                      {s.min ? ` · ${s.min} min` : ''}
+                    </span>
+                  </div>
+                  {Object.entries(s.entries).map(([id, sets]) => {
+                    const done = sets.filter(hasSet)
+                    if (!done.length) return null
+                    const rir = s.checkin?.rir?.[id]
+                    return (
+                      <div className="sv-ex" key={id}>
+                        <div className="sv-name">
+                          {nameOf(id)}
+                          {rir != null && <span className={'sv-rir' + (rir === 0 ? ' hard' : '')}>RIR {rir}</span>}
+                        </div>
+                        <div className="sv-sets">
+                          {done.map((x, k) => (
+                            <span className="sv-set" key={k}>
+                              {setTxt(x)}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  })}
+                  {s.checkin?.note && <div className="sv-note">“{s.checkin.note}”</div>}
                 </div>
               ))}
-              {s.checkin?.note && <div className="small muted">“{s.checkin.note}”</div>}
-            </div>
-          ))}
-          <p className="muted small">Actualizado {st.data.updated_at ? new Date(st.data.updated_at).toLocaleString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}.</p>
+            </>
+          )}
+
+          {tab === 'plan' && (
+            <>
+              {!(d.plan || []).length && <p className="muted small">No tiene plan.</p>}
+              {(d.plan || []).map((day) => (
+                <div className="sv-card" key={day.id}>
+                  <div className="sv-head">
+                    <b>{day.name}</b>
+                    <span className={'sv-chip' + (day.weekday != null ? ' on' : '')}>{day.weekday != null ? WEEKDAYS[day.weekday] : 'Sin día'}</span>
+                  </div>
+                  {day.items.map((it) => (
+                    <div className="sv-row" key={it.id}>
+                      <span>{nameOf(it.ex)}</span>
+                      <b>
+                        {it.sets} × {it.reps}
+                      </b>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </>
+          )}
+
+          <p className="muted small">
+            Datos actualizados el{' '}
+            {st.data.updated_at ? new Date(st.data.updated_at).toLocaleString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}.
+          </p>
           <button className="btn full" onClick={onRemove}>
             Dejar de entrenarle
           </button>

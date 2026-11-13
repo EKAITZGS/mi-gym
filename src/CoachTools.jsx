@@ -78,7 +78,7 @@ export function Chat({ linkId, me, title, onClose }) {
 }
 
 // ---- Entrenador: preparar y mandar un entreno ----
-export function WorkoutBuilder({ data, setData, linkId, studentName, studentPlan = [], onClose, onSent }) {
+export function WorkoutBuilder({ data, setData, linkId, studentName, studentPlan = [], nameOf = exName, onClose, onSent }) {
   const [name, setName] = useState('')
   const [items, setItems] = useState([])
   const [note, setNote] = useState('')
@@ -142,7 +142,7 @@ export function WorkoutBuilder({ data, setData, linkId, studentName, studentPlan
       {items.map((it, i) => (
         <div className="wb-row" key={i}>
           <div className="grow">
-            <div className="li-t">{exName(it.ex)}</div>
+            <div className="li-t">{nameOf(it.ex)}</div>
             <div className="wb-in">
               <input className="inp" inputMode="numeric" value={it.sets} onChange={(e) => upd(i, { sets: e.target.value.replace(/\D/g, '').slice(0, 2) })} />
               <span className="muted small">series ×</span>
