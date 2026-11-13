@@ -2005,3 +2005,8 @@ body.modal-open .savebar { display: none; }
 .tw-after summary { color: var(--accent); font-weight: 600; cursor: pointer; padding: 4px 0; }
 .sv-edit { margin-top: 10px; min-height: 40px; font-size: 14px; }
 .dl .nw { white-space: nowrap; }
+/* pulso del alumno (vista del entrenador) */
+.seg.three { grid-template-columns: repeat(3, 1fr); }
+.sv-hr { display: flex; align-items: center; gap: 8px; width: 100%; margin-top: 8px; padding: 9px 10px; border-radius: 12px; border: 1px solid var(--line); background: var(--card2); color: inherit; font: inherit; font-size: 14px; text-align: left; }
+.sv-hr > svg:first-child { color: #ff5d6c; flex: none; }
+.hr-spark { flex: none; display: block; }

@@ -65,7 +65,8 @@ const sessionOn = (data, date) =>
     .filter((x) => x.k)
     .sort((a, b) => b.k.sets - a.k.sets)[0]
 
-function strengthTips(e, data) {
+// them = lo ve el entrenador: los textos van en tercera persona
+function strengthTips(e, data, them = false) {
   const cur = sessionOn(data, e.date)
   if (!cur || !e.hrAvg) return null
   const k = cur.k
@@ -90,21 +91,23 @@ function strengthTips(e, data) {
     const c = CENTER[k.kind]
     level = rel < c - 0.1 ? 'low' : rel > c + 0.06 ? 'high' : 'ok'
   }
-  const vs = base ? ` (tu media en días de ${KIND_TXT[k.kind]}: ${base})` : ''
+  const vs = base ? ` (${them ? 'su' : 'tu'} media en días de ${KIND_TXT[k.kind]}: ${base})` : ''
   const tips = []
   if (level === 'high')
-    tips.push({ tone: 'green', text: `Media de ${e.hrAvg} ppm: alta para ${day}${vs}. Has ido a buen ritmo.` })
+    tips.push({ tone: 'green', text: `Media de ${e.hrAvg} ppm: alta para ${day}${vs}. ${them ? 'Ha' : 'Has'} ido a buen ritmo.` })
   else if (level === 'ok') tips.push({ tone: 'green', text: `Media de ${e.hrAvg} ppm: normal para ${day}${vs}.` })
   else {
     // ¿descansaste más o hiciste menos? Se mira con tus entrenos parecidos
-    let why = 'descansos largos o poca intensidad. Acorta los descansos a 60–90 s o lleva la última serie más cerca del fallo.'
+    let why = them
+      ? 'descansos largos o poca intensidad. Que acorte los descansos a 60–90 s o lleve la última serie más cerca del fallo.'
+      : 'descansos largos o poca intensidad. Acorta los descansos a 60–90 s o lleva la última serie más cerca del fallo.'
     if (past.length >= 2) {
       const uSets = avg(past.map((p) => p.sets))
       const uMps = avg(past.map((p) => p.mps))
       const mps = e.min / k.sets
-      if (k.sets < uSets * 0.8) why = `hiciste menos series de lo normal (${k.sets} frente a ~${Math.round(uSets)}): día flojo.`
+      if (k.sets < uSets * 0.8) why = `${them ? 'hizo' : 'hiciste'} menos series de lo normal (${k.sets} frente a ~${Math.round(uSets)}): día flojo.`
       else if (mps > uMps * 1.2)
-        why = `hiciste tus series, pero tardaste ${String(Math.round(mps * 10) / 10).replace('.', ',')} min por serie frente a ~${String(Math.round(uMps * 10) / 10).replace('.', ',')}: descansaste más de lo normal.`
+        why = `${them ? 'hizo sus series, pero tardó' : 'hiciste tus series, pero tardaste'} ${String(Math.round(mps * 10) / 10).replace('.', ',')} min por serie frente a ~${String(Math.round(uMps * 10) / 10).replace('.', ',')}: ${them ? 'descansó' : 'descansaste'} más de lo normal.`
     }
     tips.push({ tone: 'yellow', text: `Media de ${e.hrAvg} ppm: muy baja para ${day}${vs}. Seguramente ${why}` })
   }
@@ -112,14 +115,16 @@ function strengthTips(e, data) {
 }
 
 // Valoración del esfuerzo con el pulso (orientativa: en pesas manda más el RIR)
-export function polarVerdict(e, data) {
-  const st = data && strengthTips(e, data)
+export function polarVerdict(e, data, them = false) {
+  const rest = them ? 'conviene que al día siguiente duerma y coma bien' : 'mañana prioriza dormir y comer bien'
+  const long = (min) => `${them ? 'Ha' : 'Has'} estado ${min} min. Con 60–75 min bien aprovechados es suficiente; más tiempo no da más músculo.`
+  const st = data && strengthTips(e, data, them)
   if (st) {
     const total = (e.zones || []).reduce((a, z) => a + z.s, 0)
     const hard = total ? (e.zones || []).filter((z) => [4, 5].includes(z.i)).reduce((a, z) => a + z.s, 0) / total : 0
     const tips = [...st.tips]
-    if (hard > 0.35) tips.push({ tone: 'yellow', text: 'Mucho rato en zonas altas: mañana prioriza dormir y comer bien.' })
-    if (e.min > 100) tips.push({ tone: 'yellow', text: `Has estado ${e.min} min. Con 60–75 min bien aprovechados es suficiente; más tiempo no da más músculo.` })
+    if (hard > 0.35) tips.push({ tone: 'yellow', text: `Mucho rato en zonas altas: ${rest}.` })
+    if (e.min > 100) tips.push({ tone: 'yellow', text: long(e.min) })
     return tips
   }
   const tips = []
@@ -130,14 +135,28 @@ export function polarVerdict(e, data) {
   const max = e.zones?.length ? e.zones[e.zones.length - 1].hi : 200
   const rel = e.hrAvg ? e.hrAvg / max : null
   if (total && hard > 0.35) {
-    tips.push({ tone: 'yellow', text: 'Sesión muy intensa: mucho rato en zonas altas. Está bien de vez en cuando, pero mañana prioriza dormir y comer bien.' })
+    tips.push({ tone: 'yellow', text: `Sesión muy intensa: mucho rato en zonas altas. Está bien de vez en cuando, pero ${rest}.` })
   } else if ((rel != null && rel < 0.6 && hard < 0.05) || (total && hard + mid < 0.1)) {
-    tips.push({ tone: 'yellow', text: 'Sesión suave: el pulso estuvo bajo casi todo el rato. Si querías apretar, acorta los descansos a 60–90 s o lleva la última serie más cerca del fallo.' })
+    tips.push({ tone: 'yellow', text: them ? 'Sesión suave: el pulso estuvo bajo casi todo el rato. Si quería apretar, que acorte los descansos a 60–90 s o lleve la última serie más cerca del fallo.' : 'Sesión suave: el pulso estuvo bajo casi todo el rato. Si querías apretar, acorta los descansos a 60–90 s o lleva la última serie más cerca del fallo.' })
   } else if (e.hrAvg) {
-    tips.push({ tone: 'green', text: 'Buen esfuerzo: subidas en las series y recuperación entre ellas, justo lo que buscas en pesas.' })
+    tips.push({ tone: 'green', text: 'Buen esfuerzo: subidas en las series y recuperación entre ellas, justo lo que se busca en pesas.' })
   }
-  if (e.min > 100) tips.push({ tone: 'yellow', text: `Has estado ${e.min} min. Con 60–75 min bien aprovechados es suficiente; más tiempo no da más músculo.` })
+  if (e.min > 100) tips.push({ tone: 'yellow', text: long(e.min) })
   return tips
+}
+
+// Curva de pulso en pequeño (listas)
+export function HrSpark({ hr, w = 72, h = 26 }) {
+  const v = (hr?.v || []).filter((n) => n > 0)
+  if (v.length < 3) return null
+  const lo = Math.min(...v)
+  const hi = Math.max(...v)
+  const pts = v.map((n, i) => `${((i * w) / (v.length - 1)).toFixed(1)},${(h - 2 - ((n - lo) / Math.max(1, hi - lo)) * (h - 4)).toFixed(1)}`).join(' ')
+  return (
+    <svg className="hr-spark" width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden="true">
+      <polyline points={pts} fill="none" stroke="#ff5d6c" strokeWidth="1.5" strokeLinejoin="round" />
+    </svg>
+  )
 }
 
 function HrChart({ hr, zones }) {
@@ -202,11 +221,11 @@ function HrChart({ hr, zones }) {
   )
 }
 
-export default function PolarSession({ ex: raw, data, onClose }) {
+export default function PolarSession({ ex: raw, data, onClose, them = false }) {
   const ex = raw.zones?.length ? { ...raw, zones: [...raw.zones].sort((a, b) => a.lo - b.lo).map((z, k) => ({ ...z, i: k + 1 })) } : raw
   const total = (ex.zones || []).reduce((a, z) => a + z.s, 0)
   const peaks = hrPeaks(ex.hr)
-  const tips = polarVerdict(ex, data)
+  const tips = polarVerdict(ex, data, them)
   const kind = data ? sessionOn(data, ex.date)?.k : null
   return (
     <Modal title={`${ex.sport} · ${ex.min} min`} onClose={onClose}>
@@ -261,7 +280,7 @@ export default function PolarSession({ ex: raw, data, onClose }) {
         </>
       )}
       <p className="muted small">
-        En pesas el pulso orienta pero no lo es todo: el esfuerzo real de cada serie lo marcan las repeticiones que te quedaban en reserva.
+        En pesas el pulso orienta pero no lo es todo: el esfuerzo real de cada serie lo marcan las repeticiones que {them ? 'le quedaban en reserva (su RIR)' : 'te quedaban en reserva'}.
       </p>
     </Modal>
   )

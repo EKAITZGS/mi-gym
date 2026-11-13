@@ -30,6 +30,7 @@ const P = {
   edit: 'M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z',
   swap: 'M7 4 3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7',
   calendar: 'M4 5h16v16H4zM4 9h16M8 3v4M16 3v4',
+  heart: 'M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z',
 }
 
 export default function Icon({ name, size = 20, stroke = 2, className = '', fill = 'none' }) {

@@ -4,6 +4,7 @@ import { listTrainers, myLinks, requestTrainer, removeLink, answerLink, profiles
 import { Modal } from './ui'
 import { Chat, WorkoutBuilder, SentWorkouts, TrainerWorkouts } from './CoachTools'
 import Icon from './icons'
+import PolarSession, { HrSpark } from './PolarSession'
 import { EX_BY_ID } from './data/exercises'
 import { setTxt, WEEKDAYS, fmtKg } from './store'
 
@@ -213,7 +214,10 @@ function StudentView({ student, me, data, setData, unread, onInbox, onClose, onR
   const [build, setBuild] = useState(false)
   const [sent, setSent] = useState(0)
   const [tab, setTab] = useState('train')
+  const [px, setPx] = useState(null)
   const d = st.data?.data
+  // entrenos del reloj (los sincroniza el alumno en su móvil y llegan con sus datos)
+  const watch = Object.values(d?.polar?.exercises || {}).sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time))
   // nombre de cada ejercicio (también los que el alumno creó él)
   const nameOf = (id) => (EX_BY_ID[id]?.name || (d?.myExercises || []).find((x) => x.id === id)?.name || 'Ejercicio propio').replace(/ \(.*\)/, '')
   const sessions = (d?.sessions || []).filter((s) => Object.values(s.entries || {}).some((l) => l.some(hasSet))).slice().reverse()
@@ -277,9 +281,12 @@ function StudentView({ student, me, data, setData, unread, onInbox, onClose, onR
             </div>
           </div>
 
-          <div className="seg sv-tabs">
+          <div className="seg sv-tabs three">
             <button className={tab === 'train' ? 'on' : ''} onClick={() => setTab('train')}>
               Entrenos ({sessions.length})
+            </button>
+            <button className={tab === 'hr' ? 'on' : ''} onClick={() => setTab('hr')}>
+              Pulso
             </button>
             <button className={tab === 'plan' ? 'on' : ''} onClick={() => setTab('plan')}>
               Su plan
@@ -318,9 +325,55 @@ function StudentView({ student, me, data, setData, unread, onInbox, onClose, onR
                       </div>
                     )
                   })}
+                  {watch
+                    .filter((e) => e.date === s.date)
+                    .map((e) => (
+                      <button className="sv-hr" key={e.id} onClick={() => setPx(e)}>
+                        <Icon name="heart" size={15} />
+                        <span className="grow">
+                          {e.sport} ·{' '}
+                          {e.hrAvg ? (
+                            <>
+                              <b>{e.hrAvg}</b> ppm{e.hrMax ? ` (máx. ${e.hrMax})` : ''}
+                            </>
+                          ) : (
+                            'sin pulso'
+                          )}{' '}
+                          · {e.min} min
+                        </span>
+                        <HrSpark hr={e.hr} w={56} h={20} />
+                        <Icon name="right" size={14} className="muted" />
+                      </button>
+                    ))}
                   {s.checkin?.note && <div className="sv-note">“{s.checkin.note}”</div>}
                 </div>
               ))}
+            </>
+          )}
+
+          {tab === 'hr' && (
+            <>
+              {!watch.length && <p className="muted small">{d.polar ? 'Aún no hay entrenos del reloj.' : 'No tiene reloj conectado (o aún no lo ha sincronizado).'}</p>}
+              {watch.slice(0, 30).map((e) => (
+                <button className="polar-ex" key={e.id} onClick={() => setPx(e)}>
+                  <div className="grow">
+                    <div className="li-t">
+                      {e.sport} · {e.min} min
+                    </div>
+                    <div className="muted small">
+                      {fmtDay(e.date)} · {e.time}
+                      {(() => {
+                        // nombre del entreno que apuntó ese día (solo en entrenos de fuerza del reloj)
+                        const ss = /fuerza/i.test(e.sport) ? (d.sessions || []).filter((x) => x.date === e.date && x.dayName) : []
+                        return ss.length ? ` · ${[...new Set(ss.map((x) => x.dayName))].join(' + ')}` : ''
+                      })()}
+                    </div>
+                  </div>
+                  <HrSpark hr={e.hr} />
+                  <div className="polar-stats">{e.hrAvg ? <span><b>{e.hrAvg}</b>/{e.hrMax} ppm</span> : <span>sin pulso</span>}</div>
+                </button>
+              ))}
+              {watch.length > 0 && <p className="muted small">Toca un entreno para ver la curva de pulso, las zonas y la valoración según lo que entrenó ese día.</p>}
             </>
           )}
 
@@ -349,6 +402,7 @@ function StudentView({ student, me, data, setData, unread, onInbox, onClose, onR
             </>
           )}
 
+          {px && <PolarSession ex={px} data={d} them onClose={() => setPx(null)} />}
           <p className="muted small">
             Datos actualizados el{' '}
             {st.data.updated_at ? new Date(st.data.updated_at).toLocaleString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}.
