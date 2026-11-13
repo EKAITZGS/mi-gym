@@ -295,7 +295,7 @@ export function NewPassword({ onDone }) {
 }
 
 // Perfil: nombre, tipo de cuenta (te puedes hacer entrenador o dejar de serlo), "sobre mí" y contraseña
-function ProfileModal({ email, onClose }) {
+export function ProfileModal({ email, onClose }) {
   const [f, setF] = useState(null)
   const [orig, setOrig] = useState(null)
   const [busy, setBusy] = useState(false)
@@ -408,4 +408,16 @@ function ProfileModal({ email, onClose }) {
       {msg && <div className={'advice sm ' + msg.t}>{msg.x}</div>}
     </Modal>
   )
+}
+
+// Cerrar sesión (desde Ajustes o el menú): antes sube lo que falte
+export async function logout(cloud) {
+  if (!confirm('¿Cerrar sesión? Para volver a usar la app tendrás que entrar otra vez. Tus datos quedan guardados en tu cuenta.')) return false
+  if (cloud.meta?.dirty) await cloud.upload()
+  if (cloudMeta()?.dirty) {
+    alert('No se han podido subir los últimos cambios (¿sin conexión?). Prueba otra vez con internet.')
+    return false
+  }
+  await signOut()
+  return true
 }

@@ -178,26 +178,6 @@ export default function Settings({ data, setData, cloud }) {
     <div className="page">
       <h1 className="title">Ajustes</h1>
 
-      {cloudReady() && (
-        <>
-          <h4>Tu cuenta</h4>
-          <AccountCard data={data} setData={setData} cloud={cloud} />
-          {cloud?.meta?.uid && !cloud.meta.pending && (
-            cloud.meta.role === 'trainer' ? (
-              <>
-                <h4>Tus alumnos</h4>
-                <Students uid={cloud.meta.uid} />
-              </>
-            ) : (
-              <>
-                <h4>Entrenador</h4>
-                <MyTrainer uid={cloud.meta.uid} />
-              </>
-            )
-          )}
-        </>
-      )}
-
       <h4>Entreno</h4>
       <div className="card">
         <label className="lbl" style={{ marginTop: 0 }}>Cuenta atrás de descanso al marcar una serie</label>

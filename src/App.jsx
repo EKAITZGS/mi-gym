@@ -12,19 +12,20 @@ import { checkServerAi } from './ai'
 import { syncPush } from './push'
 import { useCloudSync, cloudReady } from './cloud'
 import { NewPassword, AuthGate } from './Account'
+import UserMenu, { initialOf } from './UserMenu'
 
 const TABS = [
   { id: 'home', label: 'Inicio', icon: 'home' },
   { id: 'train', label: 'Entreno', icon: 'dumbbell' },
   { id: 'diet', label: 'Dieta', icon: 'food' },
   { id: 'progress', label: 'Progreso', icon: 'trend' },
-  { id: 'settings', label: 'Ajustes', icon: 'settings' },
 ]
 
 export default function App() {
   const [data, setData] = useStore()
   // copia en la nube (si hay cuenta): sube los cambios y baja los de otro móvil
   const cloud = useCloudSync(data, setData)
+  const [menu, setMenu] = useState(false)
   setCustomExercises(data.myExercises || [])
   // Si hay un entreno de hoy a medias (p. ej. la app se recargó por una actualización), vuelve directo a él
   const resume = data.active && data.active.date === todayStr()
@@ -184,7 +185,19 @@ export default function App() {
             <span>{t.label}</span>
           </button>
         ))}
+        {cloudReady() ? (
+          <button className={tab === 'settings' || menu ? 'on' : ''} onClick={() => setMenu(true)} aria-label="Tu cuenta">
+            <span className="tab-av">{initialOf(cloud.meta)}</span>
+            <span>{(cloud.meta?.name || 'Tú').split(' ')[0].slice(0, 10)}</span>
+          </button>
+        ) : (
+          <button className={tab === 'settings' ? 'on' : ''} onClick={() => goTab('settings')}>
+            <Icon name="settings" size={23} stroke={tab === 'settings' ? 2.3 : 1.8} />
+            <span>Ajustes</span>
+          </button>
+        )}
       </nav>
+      {menu && <UserMenu data={data} setData={setData} cloud={cloud} onClose={() => setMenu(false)} goTab={goTab} />}
     </div>
   )
 }

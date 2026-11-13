@@ -11,6 +11,7 @@ Prefiere respuestas cortas, directas y sinceras. Las propuestas del coach nunca 
 - **Nunca** cambiar la forma de los datos sin migrar: el usuario tiene datos reales en el móvil.
 
 ## Ficheros clave
+- Menú de la cuenta: en la barra de abajo la 5.ª pestaña es tu inicial (`src/UserMenu.jsx`): sincronizar reloj, Perfil (`ProfileModal`), Entrenador/Tus alumnos, Ajustes (la pestaña `settings` ya no está en la barra) y Cerrar sesión (`logout` de Account.jsx).
 - `src/App.jsx` pestañas, vuelta automática a entreno en curso, sincronización Polar y de avisos.
 - `src/Workout.jsx` biblioteca, editor de día (borrador + Guardar + confirmación al salir, `editGuard`), sesión (unilateral izq/der, drops), check-in.
 - `src/Home.jsx` Inicio: entreno del día / "Hecho hoy", reloj Polar (pasos + detalle con curva de pulso), proteína que falta, series por músculo, cintura y fotos.
