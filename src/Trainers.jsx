@@ -267,9 +267,10 @@ function StudentView({ student, me, data, setData, unread, onInbox, onClose, onR
               </span>
             </div>
             <div>
-              <b>{wNow ? fmtKg(Math.round(wNow * 10) / 10) : '—'}</b>
+              <b>{w.length ? fmtKg(w[w.length - 1].kg) : '—'}</b>
               <span>
-                kg de media
+                kg {w.length ? `· ${fmtDay(w[w.length - 1].date).slice(4)}` : ''}
+                {wNow && w.length >= 2 ? ` · media ${fmtKg(Math.round(wNow * 10) / 10)}` : ''}
                 {wStart && Math.round((wNow - wStart) * 10) ? ` (${sign(wNow - wStart)}${fmtKg(Math.abs(Math.round((wNow - wStart) * 10) / 10))})` : ''}
               </span>
             </div>
