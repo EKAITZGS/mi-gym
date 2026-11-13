@@ -6,8 +6,8 @@ import { DEFAULT } from './store'
 
 // Proyecto de Supabase. La clave "anon"/"publishable" es pública por diseño: lo que protege los datos son las
 // reglas RLS de supabase/schema.sql (cada usuario solo ve lo suyo).
-export const SB_URL = import.meta.env.VITE_SB_URL || ''
-export const SB_KEY = import.meta.env.VITE_SB_KEY || ''
+export const SB_URL = import.meta.env.VITE_SB_URL || 'https://fsantamxmriodlriantf.supabase.co'
+export const SB_KEY = import.meta.env.VITE_SB_KEY || 'sb_publishable_700NfTmDI4rbA3stzszyJg_ToevFG-m'
 export const cloudReady = () => !!(SB_URL && SB_KEY)
 
 let clientP = null
@@ -188,6 +188,7 @@ export function useCloudSync(data, setData) {
   // enlaces del email (confirmar cuenta / nueva contraseña): supabase-js lee el token de la URL
   useEffect(() => {
     if (!cloudReady()) return
+    if (/type=(signup|email)/.test(location.hash)) setState((s) => ({ ...s, confirmed: true }))
     if (!cloudMeta() && !/access_token|type=recovery|error_description/.test(location.hash)) return
     let sub
     sb().then((c) => {

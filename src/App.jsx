@@ -33,6 +33,11 @@ export default function App() {
   const [notice, setNotice] = useState(null)
   const storedPolarEx = () => { try { return JSON.parse(localStorage.getItem('migym.v1') || '{}').polar?.exercises || {} } catch { return {} } }
 
+  // al abrir el enlace de confirmación del email
+  useEffect(() => {
+    if (cloud.confirmed) setNotice('Email confirmado. Ya puedes entrar con tu cuenta en Ajustes → Tu cuenta.')
+  }, [cloud.confirmed])
+
   // ¿hay IA sin clave en el Worker?
   useEffect(() => {
     checkServerAi()
