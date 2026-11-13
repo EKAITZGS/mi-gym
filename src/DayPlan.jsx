@@ -156,8 +156,8 @@ export function AutoGoal({ data, setData }) {
     <label className="chk-l uni-l">
       <input type="checkbox" checked={!!data.goals.auto} onChange={(e) => setData((d) => ({ ...d, goals: { ...d.goals, auto: e.target.checked } }))} />
       <span>
-        Ajustar mi objetivo de kcal cada día a lo que gasto
-        <span className="muted small"> · día de entreno más, descanso menos</span>
+        Objetivo automático según lo que gasto
+        <span className="muted small"> · más los días de entreno</span>
       </span>
     </label>
   )
@@ -222,6 +222,11 @@ export default function DayPlanModal({ data, setData, onClose }) {
         {delta ? ` (${delta > 0 ? '+' : '−'}${Math.abs(delta)})` : ''} y <b>{protein} g de proteína</b>.
         {aim === 'lose' && ' Así bajas unos 0,5 kg de grasa por semana sin perder fuerza.'}
         {aim === 'gain' && ' Superávit pequeño para ganar músculo con poca grasa.'}
+        <div className="muted" style={{ marginTop: 6 }}>
+          {e.cal.ok
+            ? `Calibrado con tu peso: lo que marca el reloj ${e.cal.factor < 1 ? `se ha bajado un ${Math.round((1 - e.cal.factor) * 100)} %` : e.cal.factor > 1 ? `se ha subido un ${Math.round((e.cal.factor - 1) * 100)} %` : 'cuadra con tu peso'}.`
+            : `El reloj suele pasarse con las calorías: en 3–4 semanas se calibrará con tu peso (${e.cal.why}).`}
+        </div>
       </div>
       <AutoGoal data={data} setData={setData} />
 

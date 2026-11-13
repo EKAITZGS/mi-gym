@@ -820,17 +820,27 @@ function EnergyCard({ data, setData, date }) {
   if (e.spent == null) return null
   const today = date === todayStr()
   const aim = aimOf(data)
-  const bal = e.balance
+  const goal = kcalGoal(data, date)
+  // hoy: el balance que tendrás si comes tu objetivo (o lo comido, si ya te has pasado); otros días: el real
+  const bal = today ? Math.max(e.eaten, goal) - e.spent : e.balance
   const deficit = bal < 0
-  // color: lo que va a favor de tu objetivo en verde
   const good = aim === 'keep' ? Math.abs(bal) < 300 : aim === 'lose' ? deficit : !deficit
   const tg = today ? targetFor(data, aim, e.train).kcal : null
+  const oneDay = data.goals.today?.date === date
   const burned = polarExercisesOn(data, date).reduce((n, x) => n + x.kcal, 0)
+  const setToday = (kcal) =>
+    setData((d) => {
+      const { today: _t, ...rest } = d.goals
+      return { ...d, goals: kcal ? { ...rest, today: { date, kcal } } : rest }
+    })
   return (
     <div className="card energy">
       <div className="sec-head nm">
         <b>{today ? 'Balance de hoy' : 'Balance de ese día'}</b>
-        <span className="muted small">{aimLabel(aim)}</span>
+        <span className="muted small">
+          {aimLabel(aim)}
+          {e.cal.ok ? ' · calibrado' : ''}
+        </span>
       </div>
       <div className="en-grid">
         <div>
@@ -841,8 +851,8 @@ function EnergyCard({ data, setData, date }) {
           </b>
         </div>
         <div>
-          <span>Comido</span>
-          <b>{e.eaten}</b>
+          <span>{today && e.eaten <= goal ? 'Objetivo' : 'Comido'}</span>
+          <b>{today && e.eaten <= goal ? goal : e.eaten}</b>
         </div>
         <div className={good ? 'good' : 'bad'}>
           <span>{bal === 0 ? 'Equilibrio' : deficit ? 'Déficit' : 'Superávit'}</span>
@@ -850,23 +860,36 @@ function EnergyCard({ data, setData, date }) {
         </div>
       </div>
       <p className="muted small en-note">
-        {e.projected
-          ? `Previsto para un día de ${e.train ? 'entreno' : 'descanso'} con lo que sueles gastar${e.sofar ? ` · el reloj ya marca ${e.sofar}` : ''}${burned ? ` · entreno ${burned}` : ''}.`
-          : `Según el reloj${burned ? ` (entreno ${burned} kcal)` : ''}.`}
-        {today && !e.eaten ? ' Aún no has apuntado comida.' : ''}
+        {today
+          ? `${e.eaten > goal ? 'Con lo comido' : 'Si comes tu objetivo'} · día de ${e.train ? 'entreno' : 'descanso'}${e.sofar ? ` · reloj ${e.sofar} por ahora` : ''}`
+          : `Según el reloj${burned ? ` · entreno ${burned}` : ''}`}
       </p>
-      {today && (
+      {today && !data.goals.auto && !oneDay && Math.abs(goal - tg) >= 100 && (
         <div className="en-tip">
           <Icon name="sparkle" size={15} />
-          <span>
-            Para {aimLabel(aim).toLowerCase()} hoy: <b>unas {tg} kcal</b>
-            {data.goals.auto
-              ? ' (tu objetivo ya está ajustado a esto).'
-              : Math.abs(data.goals.kcal - tg) >= 100
-                ? ` · tu objetivo fijo es ${data.goals.kcal}.`
-                : '.'}
+          <span className="grow">
+            {e.cal.ok ? (
+              <>
+                Para {aimLabel(aim).toLowerCase()} hoy te va mejor <b>{tg} kcal</b>.
+              </>
+            ) : (
+              <>
+                Con lo que marca el reloj, hoy <b>{tg} kcal</b> (aún sin calibrar).
+              </>
+            )}
           </span>
+          <button className="btn sm-btn en-use" onClick={() => setToday(tg)}>
+            Usar hoy
+          </button>
         </div>
+      )}
+      {today && oneDay && (
+        <p className="small en-week">
+          Hoy: {goal} kcal (normal {data.goals.kcal}).{' '}
+          <button className="link" onClick={() => setToday(null)}>
+            Deshacer
+          </button>
+        </p>
       )}
       {e.week && (
         <p className="small en-week">

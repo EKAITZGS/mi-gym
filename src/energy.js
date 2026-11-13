@@ -25,14 +25,48 @@ export const isTrainDay = (data, date) =>
   polarExercisesOn(data, date).length > 0 ||
   (date >= todayStr() && (data.plan || []).some((d) => d.weekday === parseDate(date).getDay()))
 
+// Calibración: en 3–4 semanas compara el balance que dicen reloj + comida con lo que de verdad cambia tu peso.
+// Si el peso baja menos de lo que "debería", el reloj se pasa: factor < 1 (y al revés). 7700 kcal ≈ 1 kg.
+export function calibration(data) {
+  const today = todayStr()
+  const from = addDays(today, -28)
+  const days = data.polar?.days || {}
+  const pairs = Object.entries(days)
+    .filter(([d, v]) => d >= from && d < today && v.kcal >= 1200)
+    .map(([d, v]) => [dayTotals(data.food?.[d] || []).kcal, v.kcal])
+    .filter(([e]) => e >= 800)
+  const ws = (data.body?.weight || []).filter((w) => w.date >= from)
+  const span = ws.length ? (Date.parse(ws[ws.length - 1].date) - Date.parse(ws[0].date)) / 864e5 : 0
+  const off = (why) => ({ factor: 1, ok: false, why, n: pairs.length })
+  if (pairs.length < 14) return off(`faltan ${14 - pairs.length} días con la comida apuntada y el reloj`)
+  if (ws.length < 3 || span < 14) return off('faltan pesajes (uno por semana, 3 o más)')
+  // tendencia del peso: recta de regresión (no se fía de un pesaje suelto)
+  const xs = ws.map((w) => (Date.parse(w.date) - Date.parse(ws[0].date)) / 864e5)
+  const mx = xs.reduce((a, b) => a + b, 0) / xs.length
+  const my = ws.reduce((a, w) => a + w.kg, 0) / ws.length
+  const slope = xs.reduce((a, x, i) => a + (x - mx) * (ws[i].kg - my), 0) / xs.reduce((a, x) => a + (x - mx) ** 2, 0) // kg/día
+  // si la cintura baja y el peso no, estás ganando músculo: el peso no sirve para calibrar
+  const wa = (data.body?.waist || []).filter((w) => w.date >= from)
+  if (wa.length >= 2 && wa[wa.length - 1].cm - wa[0].cm <= -1 && slope * 28 > -0.2) return off('la cintura baja aunque el peso no (ganas músculo): no se ajusta')
+  const avgE = pairs.reduce((a, p) => a + p[0], 0) / pairs.length
+  const avgS = pairs.reduce((a, p) => a + p[1], 0) / pairs.length
+  const real = avgE - slope * 7700 // lo que de verdad gastas al día
+  const factor = Math.round(Math.max(0.75, Math.min(1.1, real / avgS)) * 100) / 100
+  return { factor, ok: true, n: pairs.length, real: Math.round(real), watch: Math.round(avgS) }
+}
+
 export function energy(data, date = todayStr()) {
   const today = todayStr()
   const days = data.polar?.days || {}
   // días ya cerrados de las últimas 3 semanas (con el reloj puesto)
-  const done = Object.entries(days).filter(([d, v]) => d < today && d >= addDays(today, -21) && v.kcal >= 1200)
-  const bmrs = done.map(([, v]) => v.kcal - (v.active || 0)).filter((b) => b >= 1100 && b <= 2800)
+  const cal = calibration(data)
+  const F = cal.factor
+  const done = Object.entries(days)
+    .filter(([d, v]) => d < today && d >= addDays(today, -21) && v.kcal >= 1200)
+    .map(([d, v]) => [d, { ...v, kcal: Math.round(v.kcal * F), raw: v.kcal }])
+  const bmrs = done.map(([, v]) => v.raw - (v.active || 0)).filter((b) => b >= 1100 && b <= 2800)
   const kg = (data.body?.weight || []).slice(-1)[0]?.kg
-  const bmr = Math.round(bmrs.length >= 2 ? median(bmrs) : kg ? kg * 22 : 1700)
+  const bmr = Math.round(bmrs.length >= 2 ? median(bmrs) * F : kg ? kg * 22 : 1700)
   const tr = done.filter(([d]) => isTrainDay(data, d)).map(([, v]) => v.kcal)
   const rs = done.filter(([d]) => !isTrainDay(data, d)).map(([, v]) => v.kcal)
   const all = avg(done.map(([, v]) => v.kcal))
@@ -54,11 +88,11 @@ export function energy(data, date = todayStr()) {
   if (date === today) {
     // lo que ya has gastado: basal de todo el día + la actividad que lleva el reloj
     sofar = v ? v.kcal : null
-    const minimum = v ? bmr + (v.active || 0) : bmr
+    const minimum = v ? bmr + (v.active || 0) * F : bmr
     spent = Math.max(minimum, usual)
     projected = true
-  } else if (v && v.kcal >= 1200 && date < today) spent = v.kcal
-  else if (date < today && v) spent = bmr + (v.active || 0)
+  } else if (v && v.kcal >= 1200 && date < today) spent = v.kcal * F
+  else if (date < today && v) spent = bmr + (v.active || 0) * F
 
   const eaten = Math.round(dayTotals(data.food?.[date] || []).kcal)
   // media de los últimos días cerrados en los que apuntaste la comida
@@ -80,6 +114,7 @@ export function energy(data, date = todayStr()) {
     balance: spent != null ? Math.round(eaten - spent) : null,
     week,
     watch: done.length > 0,
+    cal,
   }
 }
 
@@ -94,6 +129,7 @@ export function targetFor(data, aim, train) {
 
 // objetivo de kcal de un día: el fijo o, si lo activas, el que sale de lo que gastas
 export function kcalGoal(data, date = todayStr()) {
+  if (data.goals?.today?.date === date) return data.goals.today.kcal
   if (!data.goals?.auto) return data.goals.kcal
   return targetFor(data, aimOf(data), isTrainDay(data, date)).kcal
 }
