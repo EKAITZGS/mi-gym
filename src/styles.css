@@ -1874,3 +1874,23 @@ body.modal-open .savebar { display: none; }
 /* Dieta: categorías de alimentos en varias filas (sin scroll lateral) */
 .cat-chips { gap: 6px; padding: 4px 0 6px; }
 .cat-chips .chip { padding: 7px 12px; font-size: 13px; }
+
+/* Dieta: balance de calorías con el reloj */
+.energy .en-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 6px 0 8px; }
+.energy .en-grid div { background: var(--bg2); border: 1px solid var(--line); border-radius: 14px; padding: 10px 8px; text-align: center; min-width: 0; }
+.energy .en-grid span { display: block; font-size: 12px; color: var(--muted); font-weight: 600; }
+.energy .en-grid b { display: block; font-family: var(--font-head); font-size: 22px; font-weight: 800; letter-spacing: -0.02em; margin-top: 2px; font-variant-numeric: tabular-nums; }
+.energy .en-grid .good { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
+.energy .en-grid .good b, .energy .en-grid .good span { color: var(--accent); }
+.energy .en-grid .bad { border-color: color-mix(in srgb, var(--warn) 45%, var(--line)); }
+.energy .en-grid .bad b, .energy .en-grid .bad span { color: var(--warn); }
+.energy .en-note { margin: 0 0 8px; line-height: 1.4; }
+.energy .en-tip { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; background: var(--bg2); border: 1px solid var(--line); border-radius: 12px; padding: 9px 11px; color: var(--text2); line-height: 1.4; }
+.energy .en-tip .ico { color: var(--accent); margin-top: 1px; }
+.energy .en-tip b { color: var(--text); }
+.energy .en-week { margin: 8px 0 0; color: var(--text2); }
+.energy .chk-l.uni-l { margin-top: 10px; font-size: 13px; align-items: flex-start; }
+.dp-target { background: var(--bg2); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; font-size: 13px; color: var(--text2); line-height: 1.45; margin: 10px 0; }
+.dp-target b { color: var(--text); }
+.dp-ai { display: flex; gap: 8px; margin: 4px 0 10px; }
+.dp-tag { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 700; color: var(--accent); margin-bottom: 4px; }

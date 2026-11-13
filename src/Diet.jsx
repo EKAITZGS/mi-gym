@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { FOODS, MEALS, CATS } from './data/foods'
 import { ProteinTip } from './Extras'
-import DayPlanModal from './DayPlan'
+import DayPlanModal, { AutoGoal } from './DayPlan'
 import { addDays, dayTotals, macros, todayStr, uid, num, parseDate } from './store'
 import { Bar, Modal, Ring } from './ui'
 import Icon from './icons'
 import { analyzeFood, analyzeLabel } from './ai'
 import { polarExercisesOn } from './polar'
 import { rateFood } from './rating'
+import { energy, targetFor, aimOf, aimLabel, kcalGoal, kgWeek } from './energy'
 
 const r0 = (n) => Math.round(n)
 const r1 = (n) => Math.round(n * 10) / 10
@@ -812,12 +813,79 @@ function AddFood({ data, setData, date, meal, onClose }) {
   )
 }
 
+// Balance del día: lo que gastas (reloj) frente a lo que comes
+function EnergyCard({ data, setData, date }) {
+  const e = energy(data, date)
+  if (!e.watch && !data.polar?.days?.[date]) return null
+  if (e.spent == null) return null
+  const today = date === todayStr()
+  const aim = aimOf(data)
+  const bal = e.balance
+  const deficit = bal < 0
+  // color: lo que va a favor de tu objetivo en verde
+  const good = aim === 'keep' ? Math.abs(bal) < 300 : aim === 'lose' ? deficit : !deficit
+  const tg = today ? targetFor(data, aim, e.train).kcal : null
+  const burned = polarExercisesOn(data, date).reduce((n, x) => n + x.kcal, 0)
+  return (
+    <div className="card energy">
+      <div className="sec-head nm">
+        <b>{today ? 'Balance de hoy' : 'Balance de ese día'}</b>
+        <span className="muted small">{aimLabel(aim)}</span>
+      </div>
+      <div className="en-grid">
+        <div>
+          <span>{today ? 'Gastas' : 'Gastaste'}</span>
+          <b>
+            {e.projected ? '~' : ''}
+            {e.spent}
+          </b>
+        </div>
+        <div>
+          <span>Comido</span>
+          <b>{e.eaten}</b>
+        </div>
+        <div className={good ? 'good' : 'bad'}>
+          <span>{bal === 0 ? 'Equilibrio' : deficit ? 'Déficit' : 'Superávit'}</span>
+          <b>{Math.abs(bal)}</b>
+        </div>
+      </div>
+      <p className="muted small en-note">
+        {e.projected
+          ? `Previsto para un día de ${e.train ? 'entreno' : 'descanso'} con lo que sueles gastar${e.sofar ? ` · el reloj ya marca ${e.sofar}` : ''}${burned ? ` · entreno ${burned}` : ''}.`
+          : `Según el reloj${burned ? ` (entreno ${burned} kcal)` : ''}.`}
+        {today && !e.eaten ? ' Aún no has apuntado comida.' : ''}
+      </p>
+      {today && (
+        <div className="en-tip">
+          <Icon name="sparkle" size={15} />
+          <span>
+            Para {aimLabel(aim).toLowerCase()} hoy: <b>unas {tg} kcal</b>
+            {data.goals.auto
+              ? ' (tu objetivo ya está ajustado a esto).'
+              : Math.abs(data.goals.kcal - tg) >= 100
+                ? ` · tu objetivo fijo es ${data.goals.kcal}.`
+                : '.'}
+          </span>
+        </div>
+      )}
+      {e.week && (
+        <p className="small en-week">
+          Últimos {e.week.n} días: {e.week.bal < 0 ? 'déficit' : 'superávit'} medio de <b>{Math.abs(e.week.bal)} kcal/día</b> ≈{' '}
+          {kgWeek(e.week.bal) > 0 ? '+' : kgWeek(e.week.bal) < 0 ? '−' : ''}
+          {String(Math.abs(kgWeek(e.week.bal))).replace('.', ',')} kg/semana.
+        </p>
+      )}
+      {today && <AutoGoal data={data} setData={setData} />}
+    </div>
+  )
+}
+
 export default function Diet({ data, setData }) {
   const [date, setDate] = useState(todayStr())
   const [adding, setAdding] = useState(null)
   const entries = data.food[date] || []
   const t = dayTotals(entries)
-  const g = data.goals
+  const g = { ...data.goals, kcal: kcalGoal(data, date) }
   const left = g.kcal - t.kcal
 
   const remove = (id) =>
@@ -880,29 +948,13 @@ export default function Diet({ data, setData }) {
             <span><i className="dotc" style={{ background: 'var(--amber)' }} />Hidratos {r0(t.c)} g</span>
             <span><i className="dotc" style={{ background: 'var(--pink)' }} />Grasa {r0(t.f)} g</span>
           </div>
-          {(() => {
-            const burned = polarExercisesOn(data, date).reduce((n, e) => n + e.kcal, 0)
-            const dayKcal = data.polar?.days?.[date]?.kcal || 0
-            if (!burned && !dayKcal) return null
-            const bal = Math.round(t.kcal - dayKcal)
-            return (
-              <div className="macro-mini">
-                {dayKcal > 0 && (
-                  <span>
-                    <i className="dotc" style={{ background: 'var(--amber)' }} />
-                    Gastadas hoy (reloj): {dayKcal} kcal · {bal <= 0 ? `déficit ${-bal}` : `superávit ${bal}`}
-                  </span>
-                )}
-                {burned > 0 && <span><i className="dotc" style={{ background: 'var(--accent)' }} />Entrenando: {burned} kcal</span>}
-              </div>
-            )
-          })()}
         </div>
       </div>
 
+      <EnergyCard data={data} setData={setData} date={date} />
       {date === todayStr() && <ProteinTip data={data} setData={setData} />}
       <button className="btn full dp-btn" onClick={() => setDayPlan(true)}>
-        <Icon name="sparkle" size={16} /> Día tipo sugerido
+        <Icon name="sparkle" size={16} /> Dieta del día (según lo que gastas)
       </button>
       {dayPlan && <DayPlanModal data={data} setData={setData} onClose={() => setDayPlan(false)} />}
 
