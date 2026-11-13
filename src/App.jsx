@@ -48,8 +48,9 @@ export default function App() {
   useEffect(() => {
     const ret = readPolarReturn()
     if (ret) {
-      setTab('settings')
-      setNotice(ret.ok ? 'Polar conectado. Sincronizando…' : `No se pudo conectar Polar (${ret.error}).`)
+      // al volver de Polar: te quedas en Inicio y se sincroniza solo (si falla, Ajustes para reintentar)
+      if (!ret.ok) setTab('settings')
+      setNotice(ret.ok ? 'Polar conectado. Trayendo los datos del reloj…' : `No se pudo conectar Polar (${ret.error}).`)
     }
     let lastTry = 0
     const auto = (force) => {

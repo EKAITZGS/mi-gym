@@ -3,7 +3,7 @@ import { dayTotals, fmtDate, todayStr, DEFAULT } from './store'
 import { EX_BY_ID } from './data/exercises'
 import { Ring, Thumb } from './ui'
 import Icon from './icons'
-import { polarExercisesOn } from './polar'
+import { polarExercisesOn, getPolar, connectPolar } from './polar'
 import WeeklyReview from './Review'
 import PolarSession from './PolarSession'
 import { ProteinTip } from './Extras'
@@ -49,6 +49,11 @@ export default function Home({ data, setData, onStart, go }) {
     return { s, l: 'LMXJVSD'[i], done: doneDates.has(s), today: s === todayStr() }
   })
 
+  // sin reloj conectado: tocar pasos/kcal lleva directo a conectar Polar
+  const askPolar = () => {
+    if (getPolar()?.token) return
+    if (confirm('¿Conectar tu reloj Polar? Entrarás con tu cuenta de Polar para dar permiso y volverás aquí.')) connectPolar()
+  }
   return (
     <div className="page">
       <div className="eyebrow cap">{dateTxt}</div>
@@ -201,7 +206,7 @@ export default function Home({ data, setData, onStart, go }) {
 
       {/* Inicio: siempre pasos y kcal quemadas del reloj (lo que comes está en Dieta) */}
       <div className="grid2">
-        <button className="card tile" onClick={() => !data.polar && go('settings')}>
+        <button className="card tile" onClick={askPolar}>
           <Ring value={watchDay?.steps || 0} max={data.goals.steps || 7000} size={86} stroke={9}>
             <Icon name="trend" size={20} />
           </Ring>
@@ -210,7 +215,7 @@ export default function Home({ data, setData, onStart, go }) {
             <span className="muted small"> / {miles(data.goals.steps || 7000)} pasos hoy</span>
           </div>
         </button>
-        <button className="card tile" onClick={() => !data.polar && go('settings')}>
+        <button className="card tile" onClick={askPolar}>
           {/* el anillo se llena según lo quemado frente a lo que te toca comer al día */}
           <Ring value={watchDay?.kcal || 0} max={data.goals.kcal || 2200} size={86} stroke={9} color="var(--amber)">
             <Icon name="flame" size={20} />

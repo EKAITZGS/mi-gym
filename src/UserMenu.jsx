@@ -4,7 +4,7 @@ import { Modal } from './ui'
 import Icon from './icons'
 import { ProfileModal, logout } from './Account'
 import { MyTrainer, Students } from './Trainers'
-import { getPolar, syncPolar } from './polar'
+import { getPolar, syncPolar, connectPolar } from './polar'
 
 const ago = (iso) => {
   if (!iso) return 'nunca'
@@ -25,8 +25,9 @@ export default function UserMenu({ data, setData, cloud, onClose, goTab }) {
 
   const syncWatch = async () => {
     if (!polar?.token) {
-      onClose()
-      goTab('settings')
+      // va directo a Polar a dar permiso; al volver se sincroniza solo
+      setSync({ busy: true, msg: '' })
+      connectPolar()
       return
     }
     setSync({ busy: true, msg: '' })
@@ -76,8 +77,8 @@ export default function UserMenu({ data, setData, cloud, onClose, goTab }) {
       <div className="um-list">
         <Row
           icon="watch"
-          title={polar?.token ? (sync.busy ? 'Sincronizando reloj…' : 'Sincronizar reloj') : 'Conectar reloj Polar'}
-          desc={polar?.token ? sync.msg || `Última vez ${ago(data.polar?.lastSync)}` : 'Se conecta en Ajustes'}
+          title={polar?.token ? (sync.busy ? 'Sincronizando reloj…' : 'Sincronizar reloj') : sync.busy ? 'Abriendo Polar…' : 'Conectar reloj Polar'}
+          desc={polar?.token ? sync.msg || `Última vez ${ago(data.polar?.lastSync)}` : 'Entras con tu cuenta de Polar y das permiso'}
           onClick={syncWatch}
           busy={sync.busy}
         />
