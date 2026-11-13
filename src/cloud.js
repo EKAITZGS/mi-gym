@@ -127,7 +127,10 @@ const hasData = (d) => !!(d?.sessions?.length || Object.keys(d?.food || {}).leng
 const pl = (n, one, many) => `${n} ${n === 1 ? one : many}`
 export const summary = (d) =>
   [pl(d?.sessions?.length || 0, 'entreno', 'entrenos'), pl(Object.keys(d?.food || {}).length, 'día de dieta', 'días de dieta'), pl(d?.body?.weight?.length || 0, 'pesaje', 'pesajes')].join(', ')
-const same = (a, b) => JSON.stringify(a) === JSON.stringify(b)
+// Postgres (jsonb) cambia el orden de las claves: se compara con las claves ordenadas
+const canon = (v) =>
+  Array.isArray(v) ? `[${v.map(canon).join(',')}]` : v && typeof v === 'object' ? `{${Object.keys(v).filter((k) => v[k] !== undefined).sort().map((k) => JSON.stringify(k) + ':' + canon(v[k])).join(',')}}` : JSON.stringify(v ?? null)
+const same = (a, b) => canon(a) === canon(b)
 // guarda lo que había en el móvil antes de cambiarlo por lo de la nube, por si acaso
 const keepLocal = () => {
   try {
@@ -180,6 +183,13 @@ export async function connect(user, local, setData) {
     return { action: 'ask' }
   }
   if (other && hasData(local)) keepLocal()
+  // misma cuenta que la última vez en este móvil: lo de la nube es lo bueno (se subió todo al cerrar sesión)
+  if (last === user.id && !same(row.data, local)) {
+    keepLocal()
+    setMeta({ ...base, synced: row.updated_at })
+    setData({ ...DEFAULT, ...row.data })
+    return { action: 'downloaded' }
+  }
   if (other || !hasData(local)) {
     setMeta({ ...base, synced: row.updated_at })
     setData({ ...DEFAULT, ...row.data })
