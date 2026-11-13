@@ -47,14 +47,21 @@ const ERR = [
   [/invalid login credentials/i, 'Email o contraseña incorrectos.'],
   [/already registered|already been registered|user already exists/i, 'Ya hay una cuenta con ese email. Entra con tu contraseña.'],
   [/email not confirmed/i, 'Confirma tu email antes de entrar (mira el correo y la carpeta de spam).'],
-  [/password should be at least|weak password/i, 'La contraseña necesita al menos 6 caracteres.'],
-  [/rate limit|too many|security purposes/i, 'Demasiados intentos. Espera un minuto y prueba otra vez.'],
+  [/password should be at least (\d+)/i, (m) => `La contraseña necesita al menos ${m[1]} caracteres.`],
+  [/password should contain/i, 'La contraseña necesita minúsculas, mayúsculas y números (ej.: Gym2026ok).'],
+  [/pwned|leaked|weak password/i, 'Esa contraseña es demasiado fácil o ha salido en filtraciones. Elige otra.'],
+  [/email rate limit/i, 'Se han mandado demasiados emails de confirmación seguidos. Prueba dentro de un rato (hasta 1 hora).'],
+  [/rate limit|too many|security purposes/i, 'Demasiados intentos seguidos. Espera un minuto y prueba otra vez.'],
   [/invalid.*email|unable to validate email/i, 'Ese email no parece válido.'],
   [/failed to fetch|network/i, 'Sin conexión. Prueba cuando tengas internet.'],
 ]
 const es = (e) => {
   const m = String(e?.message || e || '')
-  return ERR.find(([r]) => r.test(m))?.[1] || `Algo ha fallado: ${m || 'error desconocido'}`
+  for (const [r, t] of ERR) {
+    const hit = m.match(r)
+    if (hit) return typeof t === 'function' ? t(hit) : t
+  }
+  return `Algo ha fallado: ${m || 'error desconocido'}`
 }
 const appUrl = () => location.origin + location.pathname
 

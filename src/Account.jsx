@@ -47,12 +47,22 @@ export default function AccountCard({ data, setData, cloud }) {
     else if (r.action !== 'ask') setMsg({ t: 'green', x: RESULT[r.action] })
     setF((s) => ({ ...s, pass: '' }))
   }
-  const doIn = () => run(async () => afterLogin(await signIn(f.email, f.pass)))
+  const needEmail = () => {
+    if (!/^\S+@\S+\.\S+$/.test(f.email.trim())) throw new Error('Escribe un email válido (ej.: nombre@gmail.com).')
+  }
+  const doIn = () =>
+    run(async () => {
+      needEmail()
+      if (!f.pass) throw new Error('Escribe tu contraseña.')
+      await afterLogin(await signIn(f.email, f.pass))
+    })
   const doUp = () =>
     run(async () => {
       if (!f.name.trim()) throw new Error('Pon tu nombre de perfil (es el que verán tu entrenador o tus alumnos).')
+      needEmail()
       if (f.pass.length < 8) throw new Error('La contraseña necesita al menos 8 caracteres.')
-      if (f.pass !== f.pass2) throw new Error('Las contraseñas no coinciden.')
+      if (f.pass !== f.pass2) throw new Error('Las dos contraseñas no coinciden.')
+      if (!f.ok) throw new Error('Marca la casilla de abajo (aceptar que tus datos se guarden en tu cuenta).')
       const { user, session } = await signUp(f.email, f.pass, f.name, f.role)
       if (session) return afterLogin(user)
       setMode('in')
@@ -60,6 +70,7 @@ export default function AccountCard({ data, setData, cloud }) {
     })
   const doForgot = () =>
     run(async () => {
+      needEmail()
       await resetPassword(f.email)
       setMode('in')
       setMsg({ t: 'green', x: 'Te he mandado un email para poner una contraseña nueva. Ábrelo desde este iPhone.' })
@@ -216,6 +227,11 @@ export default function AccountCard({ data, setData, cloud }) {
             onChange={(e) => set('pass', e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && mode === 'in' && doIn()}
           />
+          {mode === 'up' && f.pass.length > 0 && f.pass.length < 8 && (
+            <p className="small" style={{ color: 'var(--warn)', margin: '4px 0 0' }}>
+              Mínimo 8 caracteres: te falta{8 - f.pass.length === 1 ? '' : 'n'} {8 - f.pass.length}.
+            </p>
+          )}
         </>
       )}
       {mode === 'up' && (
@@ -258,12 +274,7 @@ export default function AccountCard({ data, setData, cloud }) {
       <button
         className="btn primary full"
         style={{ marginTop: 12 }}
-        disabled={
-          busy ||
-          !f.email.includes('@') ||
-          (mode !== 'forgot' && !f.pass) ||
-          (mode === 'up' && (!f.name.trim() || f.pass.length < 8 || f.pass !== f.pass2 || !f.ok))
-        }
+        disabled={busy}
         onClick={mode === 'up' ? doUp : mode === 'forgot' ? doForgot : doIn}
       >
         {busy ? 'Un momento…' : mode === 'up' ? 'Crear cuenta' : mode === 'forgot' ? 'Mandar enlace' : 'Entrar'}
