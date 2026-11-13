@@ -132,9 +132,28 @@ const keepLocal = () => {
 
 // Al entrar en la cuenta: decide qué hacer con lo del móvil y lo de la nube, sin perder nada.
 // → { action: 'uploaded' | 'downloaded' | 'same' | 'conflict', cloud? }
+const LAST = 'migym.lastUid'
 export async function connect(user, local, setData) {
   const row = await pull(user.id)
   const base = { uid: user.id, email: user.email, dirty: false }
+  let last = null
+  try {
+    last = localStorage.getItem(LAST)
+    localStorage.setItem(LAST, user.id)
+  } catch {}
+  // lo que hay en el móvil es de otra cuenta: no se mezcla ni se sube (se guarda aparte)
+  if (last && last !== user.id && hasData(local)) {
+    keepLocal()
+    if (!row) {
+      setData({ ...DEFAULT })
+      const at = await push(user.id, { ...DEFAULT })
+      setMeta({ ...base, synced: at })
+      return { action: 'fresh' }
+    }
+    setMeta({ ...base, synced: row.updated_at })
+    setData({ ...DEFAULT, ...row.data })
+    return { action: 'downloaded' }
+  }
   if (!row) {
     // primera vez: se sube lo que tienes en el móvil
     const at = await push(user.id, local)

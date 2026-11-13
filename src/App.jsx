@@ -10,8 +10,8 @@ import Icon from './icons'
 import { readPolarReturn, getPolar, syncPolar } from './polar'
 import { checkServerAi } from './ai'
 import { syncPush } from './push'
-import { useCloudSync } from './cloud'
-import { NewPassword } from './Account'
+import { useCloudSync, cloudReady } from './cloud'
+import { NewPassword, AuthGate } from './Account'
 
 const TABS = [
   { id: 'home', label: 'Inicio', icon: 'home' },
@@ -142,6 +142,20 @@ export default function App() {
     setTab(id)
     if (id === 'train' && view.name !== 'session') setView({ name: 'list' })
   }
+
+  // hace falta cuenta para usar la app (la sesión se queda abierta hasta cerrar sesión)
+  if (cloudReady() && (!cloud.meta?.uid || cloud.meta.pending))
+    return (
+      <>
+        <AuthGate data={data} setData={setData} cloud={cloud} />
+        {cloud.recovery && <NewPassword onDone={cloud.doneRecovery} />}
+        {notice && (
+          <div className="notice" onClick={() => setNotice(null)}>
+            {notice}
+          </div>
+        )}
+      </>
+    )
 
   return (
     <div className="app">

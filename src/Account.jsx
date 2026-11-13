@@ -1,6 +1,6 @@
 // Cuenta (Supabase): entrar, crear cuenta, recuperar contraseña y estado de la copia en la nube
 import { useState } from 'react'
-import { cloudReady, signIn, signUp, signOut, resetPassword, updatePassword, connect, resolve, summary, sb } from './cloud'
+import { cloudReady, cloudMeta, signIn, signUp, signOut, resetPassword, updatePassword, connect, resolve, summary, sb } from './cloud'
 import { Modal } from './ui'
 import Icon from './icons'
 
@@ -17,6 +17,7 @@ const RESULT = {
   uploaded: 'Listo: tus datos ya están guardados en tu cuenta.',
   downloaded: 'Datos de tu cuenta cargados en este móvil.',
   same: 'Todo al día: este móvil y tu cuenta tienen lo mismo.',
+  fresh: 'Cuenta nueva lista.',
 }
 
 export default function AccountCard({ data, setData, cloud }) {
@@ -77,10 +78,12 @@ export default function AccountCard({ data, setData, cloud }) {
       setMsg({ t: 'green', x: choice === 'cloud' ? RESULT.downloaded : RESULT.uploaded })
     })
   const out = () => {
-    if (!confirm('¿Cerrar sesión? Tus datos se quedan en este móvil, solo deja de guardarse la copia en la nube.')) return
+    if (!confirm('¿Cerrar sesión? Para volver a usar la app tendrás que entrar otra vez. Tus datos quedan guardados en tu cuenta.')) return
     run(async () => {
+      // antes de salir, sube lo que falte
+      if (cloud.meta?.dirty) await cloud.upload()
+      if (cloudMeta()?.dirty) throw new Error('No se han podido subir los últimos cambios (¿sin conexión?). Prueba otra vez con internet.')
       await signOut()
-      setMsg({ t: 'green', x: 'Sesión cerrada. Tus datos siguen en este móvil.' })
     })
   }
 
@@ -201,9 +204,23 @@ export default function AccountCard({ data, setData, cloud }) {
         </button>
       )}
       <p className="muted small" style={{ marginBottom: 0 }}>
-        Con cuenta, tus datos se guardan solos en la nube y los recuperas si cambias de móvil o borras la app. Al entrar
-        se suben los que tienes ahora: no se borra nada.
+        Tus datos se guardan solos en tu cuenta y los recuperas si cambias de móvil o borras la app. Si ya tenías datos en
+        este móvil, se suben al entrar: no se borra nada.
       </p>
+    </div>
+  )
+}
+
+// Pantalla de entrada: sin sesión no se usa la app. La sesión se queda abierta hasta que la cierres.
+export function AuthGate({ data, setData, cloud }) {
+  return (
+    <div className="gate">
+      <div className="gate-in">
+        <img src="./app-icon-192.png" alt="" className="gate-logo" />
+        <h1 className="gate-t">Mi Gym</h1>
+        <p className="muted gate-s">Entrena, come y mira cómo progresas.</p>
+        <AccountCard data={data} setData={setData} cloud={cloud} />
+      </div>
     </div>
   )
 }
