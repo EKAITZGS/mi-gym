@@ -50,8 +50,9 @@ export default function AccountCard({ data, setData, cloud }) {
   const doIn = () => run(async () => afterLogin(await signIn(f.email, f.pass)))
   const doUp = () =>
     run(async () => {
-      if (f.pass.length < 6) throw new Error('La contraseña necesita al menos 6 caracteres.')
-      if (!f.name.trim()) throw new Error('Pon tu nombre (es el que verán tu entrenador o tus alumnos).')
+      if (!f.name.trim()) throw new Error('Pon tu nombre de perfil (es el que verán tu entrenador o tus alumnos).')
+      if (f.pass.length < 8) throw new Error('La contraseña necesita al menos 8 caracteres.')
+      if (f.pass !== f.pass2) throw new Error('Las contraseñas no coinciden.')
       const { user, session } = await signUp(f.email, f.pass, f.name, f.role)
       if (session) return afterLogin(user)
       setMode('in')
@@ -183,7 +184,7 @@ export default function AccountCard({ data, setData, cloud }) {
           <button className={mode === 'in' ? 'on' : ''} onClick={() => (setMode('in'), setMsg(null))}>
             Entrar
           </button>
-          <button className={mode === 'up' ? 'on' : ''} onClick={() => (setMode('up'), setMsg(null))}>
+          <button className={mode === 'up' ? 'on' : ''} onClick={() => (setMode('up'), setMsg(null), set('pass2', ''))}>
             Crear cuenta
           </button>
         </div>
@@ -191,6 +192,45 @@ export default function AccountCard({ data, setData, cloud }) {
       {mode === 'forgot' && <p className="small" style={{ marginTop: 0 }}>Escribe tu email y te mando un enlace para poner otra contraseña.</p>}
       {mode === 'up' && (
         <>
+          <label className="lbl">Nombre de perfil</label>
+          <input className="inp" autoComplete="nickname" placeholder="Cómo te verán tu entrenador o tus alumnos" value={f.name} onChange={(e) => set('name', e.target.value.slice(0, 40))} />
+        </>
+      )}
+      <label className="lbl">Email</label>
+      <input className="inp" type="email" inputMode="email" autoComplete="email" autoCapitalize="none" value={f.email} onChange={(e) => set('email', e.target.value)} />
+      {mode !== 'forgot' && (
+        <>
+          <div className="lbl-row">
+            <label className="lbl">Contraseña</label>
+            <button type="button" className="link-mini" onClick={() => set('show', !f.show)}>
+              {f.show ? 'Ocultar' : 'Ver'}
+            </button>
+          </div>
+          <input
+            className="inp"
+            type={f.show ? 'text' : 'password'}
+            autoComplete={mode === 'up' ? 'new-password' : 'current-password'}
+            autoCapitalize="none"
+            placeholder={mode === 'up' ? '8 caracteres o más' : ''}
+            value={f.pass}
+            onChange={(e) => set('pass', e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && mode === 'in' && doIn()}
+          />
+        </>
+      )}
+      {mode === 'up' && (
+        <>
+          <label className="lbl">Repetir contraseña</label>
+          <input
+            className="inp"
+            type={f.show ? 'text' : 'password'}
+            autoComplete="new-password"
+            autoCapitalize="none"
+            value={f.pass2 || ''}
+            onChange={(e) => set('pass2', e.target.value)}
+          />
+          {f.pass2 && f.pass2 !== f.pass && <p className="small" style={{ color: 'var(--warn)', margin: '4px 0 0' }}>No coinciden.</p>}
+
           <label className="lbl">Tipo de cuenta</label>
           <div className="seg">
             <button className={f.role === 'user' ? 'on' : ''} onClick={() => set('role', 'user')}>
@@ -202,32 +242,28 @@ export default function AccountCard({ data, setData, cloud }) {
           </div>
           <p className="muted small" style={{ margin: '6px 0 0' }}>
             {f.role === 'trainer'
-              ? 'Apareces en la lista de entrenadores: los usuarios te piden entrenar y, si aceptas, ves sus entrenos y su progreso. También puedes usar la app para ti.'
-              : 'Usas la app para entrenar y comer, y si quieres puedes pedir a un entrenador que te lleve.'}
+              ? 'Apareces en la lista de entrenadores: los usuarios te piden entrenar y, si aceptas, ves sus entrenos y su progreso. También puedes usar la app para ti. Lo puedes cambiar luego en tu perfil.'
+              : 'Usas la app para entrenar y comer, y si quieres puedes pedir a un entrenador que te lleve. Lo puedes cambiar luego en tu perfil.'}
           </p>
-          <label className="lbl">Nombre</label>
-          <input className="inp" autoComplete="name" value={f.name} onChange={(e) => set('name', e.target.value.slice(0, 40))} />
-        </>
-      )}
-      <label className="lbl">Email</label>
-      <input className="inp" type="email" inputMode="email" autoComplete="email" autoCapitalize="none" value={f.email} onChange={(e) => set('email', e.target.value)} />
-      {mode !== 'forgot' && (
-        <>
-          <label className="lbl">Contraseña</label>
-          <input
-            className="inp"
-            type="password"
-            autoComplete={mode === 'up' ? 'new-password' : 'current-password'}
-            value={f.pass}
-            onChange={(e) => set('pass', e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && (mode === 'up' ? doUp() : doIn())}
-          />
+
+          <label className="chk-l uni-l" style={{ marginTop: 12, alignItems: 'flex-start' }}>
+            <input type="checkbox" checked={!!f.ok} onChange={(e) => set('ok', e.target.checked)} />
+            <span className="small">
+              Acepto que mis datos (entrenos, dieta, peso y reloj) se guarden en mi cuenta para usar la app. Solo los verá
+              el entrenador que yo acepte, y puedo borrarlos cuando quiera.
+            </span>
+          </label>
         </>
       )}
       <button
         className="btn primary full"
         style={{ marginTop: 12 }}
-        disabled={busy || !f.email.includes('@') || (mode !== 'forgot' && !f.pass)}
+        disabled={
+          busy ||
+          !f.email.includes('@') ||
+          (mode !== 'forgot' && !f.pass) ||
+          (mode === 'up' && (!f.name.trim() || f.pass.length < 8 || f.pass !== f.pass2 || !f.ok))
+        }
         onClick={mode === 'up' ? doUp : mode === 'forgot' ? doForgot : doIn}
       >
         {busy ? 'Un momento…' : mode === 'up' ? 'Crear cuenta' : mode === 'forgot' ? 'Mandar enlace' : 'Entrar'}
@@ -283,10 +319,10 @@ export function NewPassword({ onDone }) {
   return (
     <Modal title="Nueva contraseña" onClose={onDone}>
       <label className="lbl" style={{ marginTop: 0 }}>
-        Contraseña nueva (6 caracteres o más)
+        Contraseña nueva (8 caracteres o más)
       </label>
       <input className="inp" type="password" autoComplete="new-password" value={p} onChange={(e) => setP(e.target.value)} />
-      <button className="btn primary full" style={{ marginTop: 12 }} disabled={busy || p.length < 6 || msg?.t === 'green'} onClick={save}>
+      <button className="btn primary full" style={{ marginTop: 12 }} disabled={busy || p.length < 8 || msg?.t === 'green'} onClick={save}>
         Guardar
       </button>
       {msg && <div className={'advice sm ' + msg.t}>{msg.x}</div>}
@@ -399,8 +435,8 @@ export function ProfileModal({ email, onClose }) {
           </div>
 
           <label className="lbl">Cambiar contraseña</label>
-          <input className="inp" type="password" autoComplete="new-password" placeholder="Nueva (6 caracteres o más)" value={pass} onChange={(e) => setPass(e.target.value)} />
-          <button className="btn full" style={{ marginTop: 8 }} disabled={busy || pass.length < 6} onClick={savePass}>
+          <input className="inp" type="password" autoComplete="new-password" placeholder="Nueva (8 caracteres o más)" value={pass} onChange={(e) => setPass(e.target.value)} />
+          <button className="btn full" style={{ marginTop: 8 }} disabled={busy || pass.length < 8} onClick={savePass}>
             Cambiar contraseña
           </button>
         </>
