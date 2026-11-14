@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { EXERCISES, EX_BY_ID, GROUPS } from './data/exercises'
-import { WEEKDAYS, uid, lastSets, prefillSets, exStats, suggestion, fmtKg, num, pad, TRACKS, trackOf, setFilled, setTxt, todayStr } from './store'
+import { WEEKDAYS, addDays, uid, lastSets, prefillSets, exStats, suggestion, fmtKg, num, pad, TRACKS, trackOf, setFilled, setTxt, todayStr } from './store'
 import { Modal, Thumb, LineChart, ExPhoto } from './ui'
 import { techFor } from './data/technique'
 import { nightsOf } from './stats'
@@ -11,6 +11,7 @@ import Setup from './Setup'
 import { PlanVolume } from './Extras'
 import { FEELINGS, ZONES, adviceFor, painFor, needsDeload } from './coach'
 import Coach from './Coach.jsx'
+import { DayModal, doneSessions } from './DayDetail'
 
 const ORDER = [1, 2, 3, 4, 5, 6, 0] // lunes primero
 
@@ -1408,6 +1409,7 @@ export default function Workout({ data, setData, view, setView, onStart, onStart
   const [chat, setChat] = useState(false)
   const [coach, setCoach] = useState(false)
   const [flash, setFlash] = useState(null)
+  const [dayOpen, setDayOpen] = useState(null)
   useEffect(() => {
     if (!flash) return
     const t = setTimeout(() => setFlash(null), 2500)
@@ -1478,14 +1480,18 @@ export default function Workout({ data, setData, view, setView, onStart, onStart
       <div className="week">
         {ORDER.map((w) => {
           const ds = byWeekday(w)
+          // fecha de ese día en esta semana (lunes primero)
+          const date = addDays(todayStr(), ORDER.indexOf(w) - ORDER.indexOf(today))
+          const done = doneSessions(data, date).length > 0
           return (
-            <div className={'wday' + (w === today ? ' today' : '') + (ds.length ? ' has' : '')} key={w}>
+            <button className={'wday' + (w === today ? ' today' : '') + (ds.length ? ' has' : '') + (done ? ' done' : '')} key={w} onClick={() => setDayOpen(date)} aria-label={WEEKDAYS[w]}>
               <span className="wd">{'DLMXJVS'[w]}</span>
-              <span className="dot" />
-            </div>
+              {done ? <Icon name="check" size={12} stroke={3} className="wcheck" /> : <span className="dot" />}
+            </button>
           )
         })}
       </div>
+      {dayOpen && <DayModal data={data} date={dayOpen} onClose={() => setDayOpen(null)} />}
 
       <div className="sec-head">
         <h4>Mis días</h4>

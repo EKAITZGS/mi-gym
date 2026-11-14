@@ -13,6 +13,7 @@ Prefiere respuestas cortas, directas y sinceras. Las propuestas del coach nunca 
 ## Ficheros clave
 - Menú de la cuenta: en la barra de abajo la 5.ª pestaña es tu inicial (`src/UserMenu.jsx`): sincronizar reloj, Perfil (`ProfileModal`), Entrenador/Tus alumnos, Ajustes (la pestaña `settings` ya no está en la barra) y Cerrar sesión (`logout` de Account.jsx).
 - `src/App.jsx` pestañas, vuelta automática a entreno en curso, sincronización Polar y de avisos.
+- `src/DayDetail.jsx`: `DayModal` (al tocar un día de la semana en Entreno: entrenos apuntados con series y RIR, entrenos del reloj con pulso → `PolarSession`, pasos y kcal; días futuros = lo que toca) y `SessionCard`/`HrRow` (también en la ficha del alumno). En la semana, los días con entreno hecho llevan ✓.
 - `src/Workout.jsx` biblioteca, editor de día (borrador + Guardar + confirmación al salir, `editGuard`), sesión (unilateral izq/der, drops), check-in.
 - `src/Home.jsx` Inicio: entreno del día / "Hecho hoy", reloj Polar (pasos + detalle con curva de pulso), proteína que falta, series por músculo, cintura y fotos.
 - `src/Diet.jsx` dieta (escáner, foto IA con Groq, repetir de ayer, comidas favoritas).

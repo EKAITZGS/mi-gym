@@ -5,8 +5,9 @@ import { Modal } from './ui'
 import { Chat, WorkoutBuilder, SentWorkouts, TrainerWorkouts } from './CoachTools'
 import Icon from './icons'
 import PolarSession, { HrSpark } from './PolarSession'
+import { SessionCard, hasSet, fmtDay } from './DayDetail'
 import { EX_BY_ID } from './data/exercises'
-import { setTxt, WEEKDAYS, fmtKg } from './store'
+import { WEEKDAYS, fmtKg } from './store'
 
 const fmtDate = (s) => `${s.slice(8, 10)}/${s.slice(5, 7)}`
 const exName = (id) => (EX_BY_ID[id]?.name || id).replace(/ \(.*\)/, '')
@@ -200,13 +201,6 @@ export function Students({ uid, data, setData, inbox, onInbox }) {
 }
 
 // Lo que ve el entrenador de un alumno: entrenos, plan y progreso (peso solo como media)
-const DOW = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb']
-const MON = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
-const fmtDay = (s) => {
-  const d = new Date(s + 'T12:00:00')
-  return `${DOW[d.getDay()]} ${d.getDate()} ${MON[d.getMonth()]}`
-}
-const hasSet = (x) => !!(x.r || x.s || x.m || x.km || x.min)
 
 function StudentView({ student, me, data, setData, unread, onInbox, onClose, onRemove }) {
   const [st] = useLoad(() => studentData(student.user_id), [student.user_id])
@@ -297,56 +291,7 @@ function StudentView({ student, me, data, setData, unread, onInbox, onClose, onR
             <>
               {!sessions.length && <p className="muted small">Aún no ha entrenado.</p>}
               {sessions.slice(0, 20).map((s) => (
-                <div className="sv-card" key={s.id}>
-                  <div className="sv-head">
-                    <b>{s.dayName || 'Entreno'}</b>
-                    <span className="sv-chip">
-                      {fmtDay(s.date)}
-                      {s.min ? ` · ${s.min} min` : ''}
-                    </span>
-                  </div>
-                  {Object.entries(s.entries).map(([id, sets]) => {
-                    const done = sets.filter(hasSet)
-                    if (!done.length) return null
-                    const rir = s.checkin?.rir?.[id]
-                    return (
-                      <div className="sv-ex" key={id}>
-                        <div className="sv-name">
-                          {nameOf(id)}
-                          {rir != null && <span className={'sv-rir' + (rir === 0 ? ' hard' : '')}>RIR {rir}</span>}
-                        </div>
-                        <div className="sv-sets">
-                          {done.map((x, k) => (
-                            <span className="sv-set" key={k}>
-                              {setTxt(x)}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )
-                  })}
-                  {watch
-                    .filter((e) => e.date === s.date)
-                    .map((e) => (
-                      <button className="sv-hr" key={e.id} onClick={() => setPx(e)}>
-                        <Icon name="heart" size={15} />
-                        <span className="grow">
-                          {e.sport} ·{' '}
-                          {e.hrAvg ? (
-                            <>
-                              <b>{e.hrAvg}</b> ppm{e.hrMax ? ` (máx. ${e.hrMax})` : ''}
-                            </>
-                          ) : (
-                            'sin pulso'
-                          )}{' '}
-                          · {e.min} min
-                        </span>
-                        <HrSpark hr={e.hr} w={56} h={20} />
-                        <Icon name="right" size={14} className="muted" />
-                      </button>
-                    ))}
-                  {s.checkin?.note && <div className="sv-note">“{s.checkin.note}”</div>}
-                </div>
+                <SessionCard key={s.id} s={s} nameOf={nameOf} watch={watch.filter((e) => e.date === s.date)} onHr={setPx} />
               ))}
             </>
           )}

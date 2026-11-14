@@ -2028,3 +2028,8 @@ body.modal-open .savebar { display: none; }
 .aim-good { color: var(--accent); font-size: 14px; margin: 8px 0; line-height: 1.4; }
 .aim-tips { margin: 4px 0 8px; }
 .aim-tips summary { cursor: pointer; }
+/* semana de Entreno: los días se pueden tocar */
+button.wday { font: inherit; color: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+button.wday:active { transform: scale(0.96); }
+.wday .wcheck { color: var(--accent); margin: -3px 0; }
+.wday.done .wd { color: var(--text); }
