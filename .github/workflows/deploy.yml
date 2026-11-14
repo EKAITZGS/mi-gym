@@ -21,6 +21,19 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+      # Beta de MI-GYM 2.0 (rama migym-2.0) en /beta/, para probarla sin tocar la app principal.
+      # Las fotos de ejercicios se sirven desde la carpeta ex/ de la app principal (no se duplican).
+      - name: Beta (rama migym-2.0)
+        run: |
+          git fetch --depth 1 origin migym-2.0
+          git worktree add ../beta origin/migym-2.0
+          cd ../beta
+          npm ci
+          npm run build
+          sed -i 's#"ex/#"../ex/#g' dist/assets/exercises-*.js
+          rm -rf dist/ex
+          mkdir -p "$GITHUB_WORKSPACE/dist/beta"
+          cp -r dist/. "$GITHUB_WORKSPACE/dist/beta/"
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
