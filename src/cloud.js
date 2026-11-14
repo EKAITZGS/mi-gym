@@ -444,7 +444,29 @@ export async function requestTrainer(trainerId) {
 export const removeLink = (id) => q((c) => c.from('coach_links').delete().eq('id', id))
 export const answerLink = (id, ok) => q((c) => c.from('coach_links').update({ status: ok ? 'accepted' : 'rejected', updated_at: new Date().toISOString() }).eq('id', id))
 export const profilesOf = (ids) => (ids.length ? q((c) => c.from('profiles').select('id, name').in('id', ids)) : Promise.resolve([]))
-export const studentData = (uid) => q((c) => c.from('user_data').select('data, updated_at').eq('user_id', uid).maybeSingle())
+// Datos del alumno: con 05-privacidad.sql el servidor devuelve solo plan, entrenos, cuerpo y pulso (student_data);
+// si esa función aún no existe, se lee la fila entera (como antes) y la app enseña solo lo mismo.
+export async function studentData(uid) {
+  const c = await sb()
+  const r = await c.rpc('student_data', { uid })
+  if (!r.error) return Array.isArray(r.data) ? r.data[0] || null : r.data
+  if (!/function|does not exist|schema cache/i.test(r.error.message)) throw new Error(es(r.error))
+  return q((c2) => c2.from('user_data').select('data, updated_at').eq('user_id', uid).maybeSingle())
+}
+
+// Eliminar la cuenta entera (datos, perfil, relaciones y usuario). Necesita 05-privacidad.sql en Supabase.
+export async function deleteAccount() {
+  const c = await sb()
+  const { error } = await c.rpc('delete_my_account')
+  if (error) {
+    if (/function|does not exist|schema cache/i.test(error.message)) throw new Error('Falta activar el borrado de cuenta en Supabase (05-privacidad.sql).')
+    throw new Error(es(error))
+  }
+  try {
+    for (const k of ['migym.v1', 'migym.cloud', 'migym.lastUid', 'migym.push', 'migym.polar']) localStorage.removeItem(k)
+  } catch {}
+  await signOut()
+}
 
 // ---- Mensajes y entrenos del entrenador (supabase/04-mensajes.sql) ----
 const need04 = (e) => (/coach_messages|coach_workouts|in_link|does not exist/i.test(e.message) ? new Error('Falta activar mensajes y entrenos en Supabase (04-mensajes.sql).') : e)

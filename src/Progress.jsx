@@ -96,7 +96,15 @@ export default function Progress({ data, setData }) {
     <div className="page">
       <h1 className="title">Progreso</h1>
       <AimCard data={data} setData={setData} />
-      <RankCard data={data} />
+      {data.sessions.length > 0 && (
+        <details className="card rank-fold">
+          <summary>
+            <b>Tu personaje</b>
+            <span className="muted small">rangos por músculo según tu fuerza</span>
+          </summary>
+          <RankCard data={data} />
+        </details>
+      )}
       <MuscleMap data={data} />
       <Highlights data={data} onOpen={setOpen} />
       <SleepCard data={data} setData={setData} />

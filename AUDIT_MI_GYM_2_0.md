@@ -174,3 +174,8 @@ sleepFix: { date: {start,end} }, pushPrefs: {...}, setupDone: bool
 1. Probar la rama en el iPhone (p. ej. `npm run build` y servir `dist/`, o un despliegue de prueba) con tu cuenta real.
 2. Si todo bien: merge `migym-2.0` → `main` (Actions publica). Antes, exportar una copia desde Perfil → Ajustes.
 3. Rollback: `git revert -m 1 <merge>` y push a `main`; los datos no necesitan deshacerse (migraciones aditivas y copia `migym.v1.pre-2` en el móvil).
+
+### Pulido de producto (posterior a la validación en el iPhone)
+- Inicio, Entrenamiento y Progreso sin cifras de relleno; Entrenamiento con una sola forma de empezar y «Hoy» como lista de ejercicios; explicaciones plegadas; nombre único MI-GYM; números coherentes.
+- Privacidad y condiciones dentro de la app (`Legal.jsx`); «Eliminar mi cuenta»; pantalla de error con copia de seguridad.
+- **Pendiente de ejecutar por el propietario en Supabase: `supabase/05-privacidad.sql`** (resuelve R3 y activa el borrado de cuenta). La app funciona antes y después; hasta entonces «Eliminar mi cuenta» avisa de que falta activarlo.

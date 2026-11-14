@@ -2207,3 +2207,14 @@ button.wday:active { transform: scale(0.96); }
 .fields select.inp.sm { min-width: 128px; }
 .aim-todo .grow { flex-basis: 100%; }
 .aim-act { margin-top: -2px; }
+
+/* legal */
+.legal h4 { margin: 14px 0 4px; color: var(--text); text-transform: none; letter-spacing: 0; font-size: 14px; }
+.legal p, .legal li { font-size: 14px; line-height: 1.5; color: var(--text2); margin: 0 0 6px; }
+.legal ul { padding-left: 18px; margin: 0 0 6px; }
+/* Tu personaje plegado */
+.rank-fold summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 8px; min-height: 28px; }
+.rank-fold summary::-webkit-details-marker { display: none; }
+.rank-fold summary::after { content: '›'; font-size: 22px; color: var(--muted); transform: rotate(90deg); transition: transform 0.2s; }
+.rank-fold[open] summary::after { transform: rotate(-90deg); }
+.rank-fold .rank-card { margin: 10px -14px -14px; border: 0; border-radius: 0 0 var(--r) var(--r); }

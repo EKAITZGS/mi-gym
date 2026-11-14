@@ -11,6 +11,8 @@ import { MyTrainer, Students } from './Trainers'
 import { cloudReady, CLEAN } from './cloud'
 import { getPolar, connectPolar, syncPolar, disconnectPolar } from './polar'
 import { Modal } from './ui'
+import LegalModal from './Legal'
+import { deleteAccount } from './cloud'
 import { calcGoals, ACTIVITY } from './stats'
 
 // Calcula kcal y proteína; los datos que pide no se guardan, solo el resultado si lo aceptas
@@ -67,6 +69,8 @@ export function GoalCalc({ onApply, onClose, skipLabel }) {
 export default function Settings({ data, setData, cloud, onBack }) {
   const [msg, setMsg] = useState('')
   const [calc, setCalc] = useState(false)
+  const [legal, setLegal] = useState(false)
+  const [delBusy, setDelBusy] = useState(false)
   // preferencia de este móvil (no va en la copia de seguridad)
   const [restPref, setRestPref] = useState(() => {
     try {
@@ -383,7 +387,32 @@ export default function Settings({ data, setData, cloud, onBack }) {
         <button className="btn danger full" onClick={reset}>
           Borrar todos mis datos
         </button>
+        {cloud?.meta?.uid && (
+          <button
+            className="btn danger full"
+            disabled={delBusy}
+            onClick={async () => {
+              if (!confirm('¿Eliminar tu cuenta? Se borran tus datos de la nube, tu perfil, tus entrenadores o alumnos y el usuario. No se puede deshacer.')) return
+              if (!confirm('Última confirmación: ¿eliminar la cuenta definitivamente? Si quieres conservar tus datos, exporta antes una copia.')) return
+              setDelBusy(true)
+              try {
+                await deleteAccount()
+                location.reload()
+              } catch (e) {
+                setDelBusy(false)
+                alert(e.message)
+              }
+            }}
+          >
+            {delBusy ? 'Eliminando…' : 'Eliminar mi cuenta'}
+          </button>
+        )}
       </details>
+
+      <button className="link small" onClick={() => setLegal(true)}>
+        Privacidad y condiciones de uso
+      </button>
+      {legal && <LegalModal onClose={() => setLegal(false)} />}
 
       <div className="brand">
         <img src="./logo.svg" alt="" width="56" height="56" />

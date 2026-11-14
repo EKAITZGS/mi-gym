@@ -1,5 +1,6 @@
 // Cuenta (Supabase): entrar, crear cuenta, recuperar contraseña y estado de la copia en la nube
 import { useEffect, useState } from 'react'
+import LegalModal from './Legal'
 import { cloudReady, cloudMeta, signIn, signUp, signOut, resetPassword, updatePassword, connect, resolve, summary, sb, getMyProfile, updateProfile, countStudents } from './cloud'
 import { Modal } from './ui'
 import Icon from './icons'
@@ -27,6 +28,7 @@ export default function AccountCard({ data, setData, cloud }) {
   const [msg, setMsg] = useState(null) // { t: 'green' | 'yellow', x }
   const [conflict, setConflict] = useState(null)
   const [profile, setProfile] = useState(false)
+  const [legal, setLegal] = useState(false)
   if (!cloudReady()) return null
   const m = cloud.meta
   const set = (k, v) => setF((s) => ({ ...s, [k]: v }))
@@ -269,6 +271,10 @@ export default function AccountCard({ data, setData, cloud }) {
               el entrenador que yo acepte, y puedo borrarlos cuando quiera.
             </span>
           </label>
+          <button className="link small" onClick={() => setLegal(true)}>
+            Leer la privacidad y las condiciones
+          </button>
+          {legal && <LegalModal onClose={() => setLegal(false)} />}
         </>
       )}
       <button
