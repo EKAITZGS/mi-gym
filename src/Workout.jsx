@@ -1031,14 +1031,13 @@ function SesHead({ a, items, cloud, online }) {
     return () => clearInterval(t)
   }, [])
   const mins = a.start ? Math.max(0, Math.round((Date.now() - a.start) / 60000)) : null
-  let total = 0, done = 0, kg = 0
+  let total = 0, done = 0
   for (const it of items) {
     const sets = a.entries?.[it.ex] || []
     for (const s of sets) {
       if (s.warm) continue
       total++
       if (s.done || s.r || s.r2 || s.s || s.m || s.km || s.min) done++
-      kg += num(s.w) * num(s.r) + (s.drops || []).reduce((q, x) => q + num(x.w) * num(x.r), 0)
     }
   }
   return (
@@ -1054,10 +1053,6 @@ function SesHead({ a, items, cloud, online }) {
             <small>/{total}</small>
           </b>
           <span>series</span>
-        </div>
-        <div>
-          <b>{kg ? Math.round(kg).toLocaleString('es-ES') : '0'}</b>
-          <span>kg</span>
         </div>
       </div>
       <SyncPill cloud={cloud} online={online} />
@@ -1868,37 +1863,8 @@ export default function Workout({ data, setData, view, setView, onStart, onStart
       )}
       {todays.map(dayCard)}
 
-      <WeeklyReview data={data} setData={setData} focusId={todays[0]?.id} rest={todays.length === 0} />
-
-      {(() => {
-        const prs = recentPRs(data.sessions, 7).slice(0, 3)
-        if (!prs.length) return null
-        return (
-          <div className="card list-card">
-            <div className="sec-head nm">
-              <b>
-                <Icon name="trophy" size={16} className="inl gold" /> Récords esta semana
-              </b>
-            </div>
-            {prs.map((p) => (
-              <button key={p.id} className="row nob li" onClick={() => setExOpen(EX_BY_ID[p.id])}>
-                <Thumb ex={EX_BY_ID[p.id]} size={36} />
-                <div className="grow">
-                  <div className="li-t">{EX_BY_ID[p.id]?.name || p.id}</div>
-                  <div className="muted small">
-                    {fmtKg(p.w)} kg × {p.r} · {p.date.slice(8)}/{p.date.slice(5, 7)}
-                  </div>
-                </div>
-                <span className="delta up">+{fmtKg(Math.round((p.e - p.prev) * 10) / 10)} kg</span>
-              </button>
-            ))}
-          </div>
-        )
-      })()}
-
       <div className="sec-head">
         <h4>Últimos entrenos</h4>
-        {recent.length > 0 && <span className="muted small">{doneSessions(data).length} en total</span>}
       </div>
       {recent.length === 0 && <State icon="dumbbell" title="Todavía no hay entrenos" text="Cuando termines uno, aquí verás series, kg y tu pulso del reloj." />}
       {recent.length > 0 && (
