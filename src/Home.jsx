@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { dayTotals, fmtDate, todayStr, DEFAULT } from './store'
+import { useMemo, useState } from 'react'
+import { dayTotals, fmtDate, todayStr, DEFAULT, fmtKg } from './store'
 import { EX_BY_ID } from './data/exercises'
 import { Ring, Thumb } from './ui'
 import Icon from './icons'
@@ -7,25 +7,26 @@ import { polarExercisesOn, getPolar, connectPolar } from './polar'
 import WeeklyReview from './Review'
 import PolarSession from './PolarSession'
 import { ProteinTip } from './Extras'
-import { PlanMaker } from './Workout'
+import { PlanMaker, ExerciseModal } from './Workout'
 import { GoalCalc } from './Settings'
-import { streakWeeks, weekTotals } from './stats'
+import { streakWeeks, weekTotals, recentPRs, sessionVol } from './stats'
 import { SleepLine } from './Sleep'
-
-const miles = (n) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+import { DayModal, doneSessions, fmtDay } from './DayDetail'
+import { Stat, State, miles, fmtMin } from './ds'
 
 const greeting = () => {
   const h = new Date().getHours()
   return h < 13 ? 'Buenos días' : h < 21 ? 'Buenas tardes' : 'Buenas noches'
 }
 
-export default function Home({ data, setData, onStart, go }) {
+export default function Home({ data, setData, onStart, go, onOpenStart, name }) {
   const [maker, setMaker] = useState(false)
   const [welcome, setWelcome] = useState(null) // 'goals' | 'plan': bienvenida paso a paso
   const [polarEx, setPolarEx] = useState(null)
+  const [dayOpen, setDayOpen] = useState(null)
+  const [exOpen, setExOpen] = useState(null)
   const wd = new Date().getDay()
   const todays = data.plan.filter((d) => d.weekday === wd)
-  const others = data.plan.filter((d) => d.weekday !== wd)
   const t = dayTotals(data.food[todayStr()] || [])
   // datos del reloj de hoy (pasos y kcal del día)
   const watchDay = (() => {
@@ -41,6 +42,7 @@ export default function Home({ data, setData, onStart, go }) {
   const done = data.sessions.filter((s) => s.date >= monday).length
   const planned = data.plan.filter((d) => d.weekday != null).length
   const dateTxt = new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })
+  const firstName = (name || '').trim().split(' ')[0]
 
   const weekDots = Array.from({ length: 7 }, (_, i) => {
     const d = new Date()
@@ -48,6 +50,21 @@ export default function Home({ data, setData, onStart, go }) {
     const s = fmtDate(d)
     return { s, l: 'LMXJVSD'[i], done: doneDates.has(s), today: s === todayStr() }
   })
+  const streak = streakWeeks(data.sessions)
+  const wk = weekTotals(data.sessions)
+  const prs = useMemo(() => recentPRs(data.sessions, 7).slice(0, 3), [data.sessions])
+  const lastSes = useMemo(() => doneSessions(data).slice(-1)[0] || null, [data.sessions])
+  const nextDay = useMemo(() => {
+    // próxima sesión programada (hoy si aún no está hecha; si no, el siguiente día con rutina)
+    const todayDone = doneDates.has(todayStr())
+    for (let k = todayDone ? 1 : 0; k < 8; k++) {
+      const w = (wd + k) % 7
+      const d = data.plan.find((x) => x.weekday === w)
+      if (d) return { d, k }
+    }
+    return null
+  }, [data.plan, data.sessions])
+  const hasAny = data.sessions.length > 0 || data.plan.length > 0
 
   // sin reloj conectado: tocar pasos/kcal lleva directo a conectar Polar
   const askPolar = () => {
@@ -57,15 +74,18 @@ export default function Home({ data, setData, onStart, go }) {
   return (
     <div className="page">
       <div className="eyebrow cap">{dateTxt}</div>
-      <h1 className="title">{greeting()}</h1>
+      <h1 className="title">
+        {greeting()}
+        {firstName ? `, ${firstName}` : ''}
+      </h1>
 
       {!data.setupDone && data.sessions.length === 0 && (
         <div className="card onboard">
-          <b>Bienvenido a Mi Gym</b>
+          <b>Bienvenido a MI-GYM</b>
           <p className="muted small">En 2 minutos lo dejamos listo:</p>
           <ol className="small welcome-steps">
             <li>Tus objetivos de calorías y proteína.</li>
-            <li>Tu plan de entreno (automático o eligiéndolo tú).</li>
+            <li>Tu rutina (generada a tu medida o eligiéndola tú).</li>
             <li>¡A entrenar! Todo se guarda en tu cuenta.</li>
           </ol>
           <button className="btn primary full" onClick={() => setWelcome('goals')}>
@@ -112,7 +132,7 @@ export default function Home({ data, setData, onStart, go }) {
                   {watch ? ` · ${watch.min} min · ${watch.kcal} kcal` : doneToday.min ? ` · ${doneToday.min} min` : ''}
                 </p>
                 <p className="small hero-note">¡Buen trabajo! Ahora toca comer bien y descansar.</p>
-                <button className="link small hero-again" onClick={() => onStart(d.id)}>
+                <button className="link small hero-again" onClick={onOpenStart}>
                   Entrenar otra vez hoy
                 </button>
               </div>
@@ -124,7 +144,7 @@ export default function Home({ data, setData, onStart, go }) {
             {cover?.imgs?.[0] && <img src={cover.imgs[0]} alt="" />}
             <div className="hero-shade" />
             <div className="hero-txt">
-              <span className="daypill">Entreno de hoy</span>
+              <span className="daypill">{data.active?.dayId === d.id ? 'Entreno en curso' : 'Entreno de hoy'}</span>
               <h2>{d.name}</h2>
               <div className="hero-thumbs">
                 {d.items.slice(0, 5).map((i) => (
@@ -132,39 +152,92 @@ export default function Home({ data, setData, onStart, go }) {
                 ))}
                 <span className="small">{d.items.length ? `${d.items.length} ejercicios` : 'Sin ejercicios aún: añádelos mientras entrenas'}</span>
               </div>
-              <button className="btn primary full" onClick={() => onStart(d.id)}>
-                <Icon name="play" size={14} fill="currentColor" stroke={0} />
-                {data.active?.dayId === d.id ? 'Continuar entreno' : 'Empezar entreno'}
+              <button className="cta" style={{ margin: '12px 0 0' }} onClick={onOpenStart}>
+                <Icon name="play" size={16} fill="currentColor" stroke={0} />
+                {data.active?.dayId === d.id ? 'Continuar entrenamiento' : 'Comenzar entrenamiento'}
               </button>
             </div>
           </div>
         )
       })}
       {todays.length === 0 && (
-        <div className="card rest">
-          <div className="rest-ic">
-            <Icon name="calendar" size={22} />
-          </div>
-          <div className="grow">
-            <b>{data.plan.length === 0 ? 'Aún no tienes plan' : 'Hoy toca descanso'}</b>
-            <p className="muted small">
-              {data.plan.length === 0
-                ? 'Crea tus días o genera un plan automático.'
-                : 'Recuperar también es entrenar. Si te apetece, elige otro día:'}
-            </p>
-            <div className="chips wrap">
-              {others.map((d) => (
-                <button key={d.id} className="chip" onClick={() => onStart(d.id)}>
-                  {d.name}
-                </button>
-              ))}
+        <>
+          <button className="cta" onClick={onOpenStart}>
+            <Icon name="play" size={18} fill="currentColor" stroke={0} /> {data.active ? 'Continuar entrenamiento' : 'Comenzar entrenamiento'}
+          </button>
+          <div className="card rest">
+            <div className="rest-ic">
+              <Icon name="calendar" size={22} />
+            </div>
+            <div className="grow">
+              <b>{data.plan.length === 0 ? 'Aún no tienes rutina' : 'Hoy toca descanso'}</b>
+              <p className="muted small">
+                {data.plan.length === 0
+                  ? 'Créala en Rutinas o empieza un entreno libre.'
+                  : nextDay
+                    ? `Recuperar también es entrenar. Siguiente sesión: ${nextDay.d.name} (${nextDay.k === 1 ? 'mañana' : 'en ' + nextDay.k + ' días'}).`
+                    : 'Recuperar también es entrenar.'}
+              </p>
               {data.plan.length === 0 && (
-                <button className="chip on" onClick={() => go('train')}>
-                  Ir a Entreno
+                <button className="btn sm-btn" onClick={() => go('routines')}>
+                  Ir a Rutinas
                 </button>
               )}
             </div>
           </div>
+        </>
+      )}
+      {todays.length > 0 && nextDay && nextDay.k > 0 && (
+        <p className="muted small" style={{ margin: '-6px 4px 12px' }}>
+          Siguiente sesión: <b>{nextDay.d.name}</b> · {nextDay.k === 1 ? 'mañana' : `en ${nextDay.k} días`}
+        </p>
+      )}
+
+      {hasAny && (
+        <div className="stats four">
+          <Stat v={done} unit={planned ? `/${planned}` : ''} label="entrenos" tone={done > 0 ? 'accent' : ''} />
+          <Stat v={wk.min ? fmtMin(wk.min) : '—'} label="tiempo" />
+          <Stat v={wk.vol ? miles(wk.vol) : '—'} unit={wk.vol ? 'kg' : ''} label="volumen" />
+          <Stat v={streak || '—'} unit={streak ? (streak === 1 ? 'sem' : 'sem') : ''} label="racha" />
+        </div>
+      )}
+
+      {lastSes && (
+        <button className="card last-ses" onClick={() => setDayOpen(lastSes.date)}>
+          <span className="ls-ic">
+            <Icon name="dumbbell" size={20} />
+          </span>
+          <span className="grow">
+            <div className="ls-t">Último entreno: {lastSes.dayName || 'Entreno'}</div>
+            <div className="ls-d">
+              {fmtDay(lastSes.date)} · {Object.keys(lastSes.entries || {}).length} ej. · {Object.values(lastSes.entries || {}).reduce((n, ss) => n + ss.length, 0)} series
+              {sessionVol(lastSes) ? ` · ${miles(sessionVol(lastSes))} kg` : ''}
+              {lastSes.min ? ` · ${lastSes.min} min` : ''}
+            </div>
+          </span>
+          <Icon name="right" size={16} className="muted" />
+        </button>
+      )}
+
+      {prs.length > 0 && (
+        <div className="card list-card">
+          <div className="sec-head nm">
+            <b>
+              <Icon name="trophy" size={16} className="inl gold" /> Récords esta semana
+            </b>
+          </div>
+          {prs.map((p) => (
+            <button key={p.id} className="row nob li" onClick={() => setExOpen(EX_BY_ID[p.id])}>
+              <Thumb ex={EX_BY_ID[p.id]} size={36} />
+              <div className="grow">
+                <div className="li-t">{EX_BY_ID[p.id]?.name || p.id}</div>
+                <div className="muted small">
+                  {fmtKg(p.w)} kg × {p.r} · {p.date.slice(8)}/{p.date.slice(5, 7)}
+                </div>
+              </div>
+              <span className="delta up">+{fmtKg(Math.round((p.e - p.prev) * 10) / 10)} kg</span>
+            </button>
+          ))}
         </div>
       )}
 
@@ -174,17 +247,15 @@ export default function Home({ data, setData, onStart, go }) {
       {data.polar && (() => {
         const today = todayStr()
         const ex = polarExercisesOn(data, today)
-        // pasos y kcal van en anillos más abajo; aquí solo los entrenos del reloj de hoy
         if (!ex.length) return null
-        const show = ex
         return (
           <div className="card polar-card">
             <div className="sec-head nm">
               <b>
-                <Icon name="trend" size={16} className="inl" /> Reloj Polar
+                <Icon name="watch" size={16} className="inl" /> Reloj Polar
               </b>
             </div>
-            {show.map((e) => (
+            {ex.map((e) => (
               <button className="polar-ex" key={e.id} onClick={() => setPolarEx(e)}>
                 <div className="grow">
                   <div className="li-t">
@@ -216,7 +287,6 @@ export default function Home({ data, setData, onStart, go }) {
           </div>
         </button>
         <button className="card tile" onClick={askPolar}>
-          {/* el anillo se llena según lo quemado frente a lo que te toca comer al día */}
           <Ring value={watchDay?.kcal || 0} max={data.goals.kcal || 2200} size={86} stroke={9} color="var(--amber)">
             <Icon name="flame" size={20} />
           </Ring>
@@ -227,11 +297,23 @@ export default function Home({ data, setData, onStart, go }) {
         </button>
       </div>
       {!data.polar ? (
-        <p className="muted small" style={{ margin: '-4px 4px 10px' }}>Conecta tu reloj en Ajustes para ver pasos y calorías quemadas.</p>
+        <p className="muted small" style={{ margin: '-4px 4px 10px' }}>Conecta tu reloj en Perfil para ver pasos y calorías quemadas.</p>
       ) : !watchDay ? (
         <p className="muted small" style={{ margin: '-4px 4px 10px' }}>Aún no hay datos del reloj de hoy: se actualizan al sincronizar.</p>
       ) : null}
 
+      <button className="card last-ses" onClick={() => go('diet')}>
+        <span className="ls-ic">
+          <Icon name="food" size={20} />
+        </span>
+        <span className="grow">
+          <div className="ls-t">Dieta de hoy</div>
+          <div className="ls-d">
+            {t.kcal > 0 ? `${miles(t.kcal)} / ${miles(data.goals.kcal || 2200)} kcal · ${Math.round(t.p)} / ${data.goals.protein || 150} g proteína` : 'Aún no has apuntado nada hoy'}
+          </div>
+        </span>
+        <Icon name="right" size={16} className="muted" />
+      </button>
       <ProteinTip data={data} setData={setData} />
 
       <div className="card">
@@ -242,16 +324,6 @@ export default function Home({ data, setData, onStart, go }) {
             {planned ? ` de ${planned}` : ''}
           </span>
         </div>
-        {(() => {
-          const streak = streakWeeks(data.sessions)
-          const wk = weekTotals(data.sessions)
-          const bits = [
-            streak > 1 && `🔥 ${streak} semanas seguidas`,
-            wk.vol > 0 && `${miles(wk.vol)} kg`,
-            wk.min > 0 && (wk.min >= 60 ? `${Math.floor(wk.min / 60)} h ${wk.min % 60} min` : `${wk.min} min`),
-          ].filter(Boolean)
-          return bits.length > 0 && <p className="muted small" style={{ margin: '0 0 8px' }}>{bits.join(' · ')}</p>
-        })()}
         <div className="wdots">
           {weekDots.map((d) => (
             <div key={d.s} className={'wdot' + (d.done ? ' done' : '') + (d.today ? ' today' : '')}>
@@ -261,6 +333,8 @@ export default function Home({ data, setData, onStart, go }) {
           ))}
         </div>
       </div>
+      {dayOpen && <DayModal data={data} date={dayOpen} onClose={() => setDayOpen(null)} />}
+      {exOpen && <ExerciseModal ex={exOpen} data={data} setData={setData} onClose={() => setExOpen(null)} />}
     </div>
   )
 }

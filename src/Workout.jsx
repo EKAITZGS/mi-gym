@@ -11,7 +11,8 @@ import Setup from './Setup'
 import { PlanVolume } from './Extras'
 import { FEELINGS, ZONES, adviceFor, painFor, needsDeload } from './coach'
 import Coach from './Coach.jsx'
-import { DayModal, doneSessions } from './DayDetail'
+import { DayModal, doneSessions, fmtDay } from './DayDetail'
+import { State } from './ds'
 
 const ORDER = [1, 2, 3, 4, 5, 6, 0] // lunes primero
 
@@ -1404,7 +1405,7 @@ function Session({ data, setData, onExit }) {
 }
 
 /* ---------- Pantalla Entreno ---------- */
-export default function Workout({ data, setData, view, setView, onStart, onStartFree }) {
+export default function Workout({ data, setData, view, setView, onStart, onStartFree, mode = 'train', onOpenStart, goTab }) {
   const [maker, setMaker] = useState(false)
   const [chat, setChat] = useState(false)
   const [coach, setCoach] = useState(false)
@@ -1450,17 +1451,125 @@ export default function Workout({ data, setData, view, setView, onStart, onStart
     setView({ name: 'edit', id: uid(), isNew: true })
   }
   const sorted = [...data.plan].sort((a, b) => ((a.weekday ?? 9) + 6) % 7 - ((b.weekday ?? 9) + 6) % 7)
+  const todays = byWeekday(today)
+  const recent = doneSessions(data).slice(-6).reverse()
+  const dayCard = (d) => {
+    const cover = EX_BY_ID[d.items[0]?.ex]
+    const groups = [...new Set(d.items.map((i) => EX_BY_ID[i.ex]?.group).filter(Boolean))]
+    const sets = d.items.reduce((n, i) => n + Number(i.sets || 0), 0)
+    return (
+      <div className={'daycard' + (d.weekday === today ? ' is-today' : '')} key={d.id}>
+        <div className={'daycover' + (cover?.imgs?.[0] ? '' : ' empty')}>
+          {cover?.imgs?.[0] ? (
+            <img src={cover.imgs[0]} alt="" loading="lazy" />
+          ) : (
+            <div className="cover-empty">
+              <Icon name="dumbbell" size={64} stroke={1.5} />
+            </div>
+          )}
+          <div className="daycover-shade" />
+          <div className="daycover-txt">
+            <span className="daypill">
+              {d.weekday != null ? WEEKDAYS[d.weekday] : 'Sin día'}
+              {d.weekday === today ? ' · Hoy' : ''}
+              {d.fromTrainer ? ' · de tu entrenador' : ''}
+            </span>
+            <h3>{d.name}</h3>
+            <span className="small">
+              {d.items.length
+                ? `${d.items.length} ejercicios · ${sets} series${groups.length ? ' · ' + groups.join(', ') : ''}`
+                : 'Sin ejercicios: añádelos al empezar o en editar'}
+            </span>
+          </div>
+        </div>
+        <div className="dayfoot">
+          <select
+            className="inp mini-sel"
+            value={d.weekday ?? ''}
+            onChange={(e) => setWeekday(d.id, e.target.value === '' ? null : Number(e.target.value))}
+            aria-label="Día de la semana"
+          >
+            <option value="">Sin día</option>
+            {ORDER.map((w) => (
+              <option key={w} value={w}>
+                {WEEKDAYS[w]}
+              </option>
+            ))}
+          </select>
+          <button className="icon-btn" onClick={() => setView({ name: 'edit', id: d.id })} aria-label="Editar">
+            <Icon name="edit" size={17} />
+          </button>
+          <button className="btn primary sm-btn" onClick={() => onStart(d.id)}>
+            <Icon name="play" size={14} fill="currentColor" stroke={0} />
+            {data.active?.dayId === d.id ? 'Seguir' : 'Empezar'}
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (mode === 'routines')
+    return (
+      <div className="page">
+        {flash && <div className="notice">{flash}</div>}
+        <div className="head">
+          <div>
+            <div className="eyebrow">Tu plan semanal</div>
+            <h1 className="title">Rutinas</h1>
+          </div>
+          <button className="icon-btn" onClick={() => setView({ name: 'library' })} aria-label="Biblioteca de ejercicios">
+            <Icon name="book" size={18} />
+          </button>
+        </div>
+        <div className="sec-head">
+          <h4>Mis días</h4>
+          <span className="muted small">{data.plan.length} {data.plan.length === 1 ? 'día' : 'días'}</span>
+        </div>
+        {data.plan.length === 0 && (
+          <State icon="calendar" title="Aún no tienes rutina" text="Genera un plan a tu medida o crea tus días uno a uno." action="Crear mi plan" onAction={() => setMaker(true)} />
+        )}
+        {sorted.map(dayCard)}
+        <PlanVolume days={data.plan.filter((d) => d.weekday != null)} />
+        <div className="sec-head">
+          <h4>Herramientas</h4>
+        </div>
+        <div className="tiles">
+          <button className="tile2 accent" onClick={() => setMaker(true)}>
+            <span className="tile2-ic"><Icon name="sparkle" size={18} /></span>
+            <span className="tile2-t">Generar plan</span>
+            <span className="tile2-s">Paso a paso o sorpréndeme</span>
+          </button>
+          <button className="tile2" onClick={addDay}>
+            <span className="tile2-ic"><Icon name="plus" size={18} /></span>
+            <span className="tile2-t">Nuevo día</span>
+            <span className="tile2-s">Crear uno vacío</span>
+          </button>
+          <button className="tile2" onClick={() => setView({ name: 'library' })}>
+            <span className="tile2-ic"><Icon name="book" size={18} /></span>
+            <span className="tile2-t">Biblioteca</span>
+            <span className="tile2-s">{EXERCISES.length} ejercicios</span>
+          </button>
+          <button className="tile2 accent" onClick={() => setCoach(true)}>
+            <span className="tile2-ic"><Icon name="sparkle" size={18} /></span>
+            <span className="tile2-t">Mejorar con IA</span>
+            <span className="tile2-s">Ajusta tu rutina</span>
+          </button>
+        </div>
+        {maker && <PlanMaker data={data} setData={setData} onClose={() => setMaker(false)} />}
+        {coach && <Coach data={data} setData={setData} onClose={() => setCoach(false)} />}
+      </div>
+    )
 
   return (
     <div className="page">
       {flash && <div className="notice">{flash}</div>}
       <div className="head">
         <div>
-          <div className="eyebrow">Tu rutina</div>
-          <h1 className="title">Entreno</h1>
+          <div className="eyebrow">{new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}</div>
+          <h1 className="title">Entrenamiento</h1>
         </div>
-        <button className="icon-btn" onClick={() => setView({ name: 'library' })} aria-label="Biblioteca">
-          <Icon name="book" size={18} />
+        <button className="icon-btn" onClick={() => setChat(true)} aria-label="Preguntar al entrenador">
+          <Icon name="sparkle" size={18} />
         </button>
       </div>
 
@@ -1475,7 +1584,9 @@ export default function Workout({ data, setData, view, setView, onStart, onStart
         </button>
       )}
 
-      <WeeklyReview data={data} setData={setData} />
+      <button className="cta" onClick={onOpenStart}>
+        <Icon name="play" size={18} fill="currentColor" stroke={0} /> {data.active ? 'Continuar entrenamiento' : 'Comenzar entrenamiento'}
+      </button>
 
       <div className="week">
         {ORDER.map((w) => {
@@ -1494,101 +1605,69 @@ export default function Workout({ data, setData, view, setView, onStart, onStart
       {dayOpen && <DayModal data={data} date={dayOpen} onClose={() => setDayOpen(null)} />}
 
       <div className="sec-head">
-        <h4>Mis días</h4>
-        <span className="muted small">{data.plan.length} días</span>
+        <h4>Hoy</h4>
+        {todays.length > 0 && <span className="muted small">{WEEKDAYS[today]}</span>}
       </div>
-      {data.plan.length === 0 && (
-        <div className="empty-state">
-          <Icon name="calendar" size={28} />
-          <p>No tienes ningún día. Crea uno o genera un plan automático.</p>
+      {todays.length === 0 && (
+        <div className="card rest">
+          <div className="rest-ic">
+            <Icon name="calendar" size={22} />
+          </div>
+          <div className="grow">
+            <b>{data.plan.length === 0 ? 'Aún no tienes rutina' : 'Hoy toca descanso'}</b>
+            <p className="muted small">
+              {data.plan.length === 0 ? 'Créala en Rutinas o empieza un entreno libre.' : 'Si te apetece entrenar igual, elige otra rutina desde Comenzar.'}
+            </p>
+            {data.plan.length === 0 && (
+              <button className="btn sm-btn" onClick={() => goTab?.('routines')}>
+                Ir a Rutinas
+              </button>
+            )}
+          </div>
         </div>
       )}
-      {sorted.map((d) => {
-        const cover = EX_BY_ID[d.items[0]?.ex]
-        const groups = [...new Set(d.items.map((i) => EX_BY_ID[i.ex]?.group).filter(Boolean))]
-        const sets = d.items.reduce((n, i) => n + Number(i.sets || 0), 0)
-        return (
-          <div className={'daycard' + (d.weekday === today ? ' is-today' : '')} key={d.id}>
-            <div className={'daycover' + (cover?.imgs?.[0] ? '' : ' empty')}>
-              {cover?.imgs?.[0] ? (
-                <img src={cover.imgs[0]} alt="" loading="lazy" />
-              ) : (
-                <div className="cover-empty">
-                  <Icon name="dumbbell" size={64} stroke={1.5} />
-                </div>
-              )}
-              <div className="daycover-shade" />
-              <div className="daycover-txt">
-                <span className="daypill">{d.weekday != null ? WEEKDAYS[d.weekday] : 'Sin día'}{d.weekday === today ? ' · Hoy' : ''}</span>
-                <h3>{d.name}</h3>
-                <span className="small">
-                  {d.items.length
-                    ? `${d.items.length} ejercicios · ${sets} series${groups.length ? ' · ' + groups.join(', ') : ''}`
-                    : 'Sin ejercicios: añádelos al empezar o en editar'}
-                </span>
-              </div>
-            </div>
-            <div className="dayfoot">
-              <select
-                className="inp mini-sel"
-                value={d.weekday ?? ''}
-                onChange={(e) => setWeekday(d.id, e.target.value === '' ? null : Number(e.target.value))}
-                aria-label="Día de la semana"
-              >
-                <option value="">Sin día</option>
-                {ORDER.map((w) => (
-                  <option key={w} value={w}>
-                    {WEEKDAYS[w]}
-                  </option>
-                ))}
-              </select>
-              <button className="icon-btn" onClick={() => setView({ name: 'edit', id: d.id })} aria-label="Editar">
-                <Icon name="edit" size={17} />
-              </button>
-              <button className="btn primary sm-btn" onClick={() => onStart(d.id)}>
-                <Icon name="play" size={14} fill="currentColor" stroke={0} />
-                {data.active?.dayId === d.id ? 'Seguir' : 'Empezar'}
-              </button>
-            </div>
-          </div>
-        )
-      })}
+      {todays.map(dayCard)}
 
-      <PlanVolume days={data.plan.filter((d) => d.weekday != null)} />
+      <WeeklyReview data={data} setData={setData} focusId={todays[0]?.id} rest={todays.length === 0} />
 
       <div className="sec-head">
-        <h4>Herramientas</h4>
+        <h4>Últimos entrenos</h4>
+        {recent.length > 0 && <span className="muted small">{doneSessions(data).length} en total</span>}
       </div>
+      {recent.length === 0 && <State icon="dumbbell" title="Todavía no hay entrenos" text="Cuando termines uno, aquí verás series, kg y tu pulso del reloj." />}
+      {recent.length > 0 && (
+        <div className="card list-card">
+          {recent.map((s) => {
+            const nSets = Object.values(s.entries || {}).reduce((n, ss) => n + ss.length, 0)
+            const vol = Math.round(Object.values(s.entries || {}).reduce((t, ss) => t + setsVol(ss), 0))
+            return (
+              <button key={s.id} className="row nob li" onClick={() => setDayOpen(s.date)}>
+                <span className="ls-ic" style={{ width: 38, height: 38, borderRadius: 11, background: 'var(--card2)', color: 'var(--accent)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                  <Icon name="dumbbell" size={18} />
+                </span>
+                <div className="grow">
+                  <div className="li-t">{s.dayName || 'Entreno'}</div>
+                  <div className="muted small">
+                    {fmtDay(s.date)} · {Object.keys(s.entries || {}).length} ej. · {nSets} series{vol ? ` · ${vol.toLocaleString('es-ES')} kg` : ''}{s.min ? ` · ${s.min} min` : ''}
+                  </div>
+                </div>
+                <Icon name="right" size={16} className="muted" />
+              </button>
+            )
+          })}
+        </div>
+      )}
+
       <div className="tiles">
         <button className="tile2 accent" onClick={onStartFree}>
-          <span className="tile2-ic"><Icon name="play" size={18} fill="currentColor" stroke={0} /></span>
+          <span className="tile2-ic"><Icon name="bolt" size={18} /></span>
           <span className="tile2-t">Entreno libre</span>
           <span className="tile2-s">Sin plan, a tu aire</span>
         </button>
-        <button className="tile2 accent" onClick={() => setCoach(true)}>
-          <span className="tile2-ic"><Icon name="sparkle" size={18} /></span>
-          <span className="tile2-t">Mejorar con IA</span>
-          <span className="tile2-s">Ajusta tu rutina</span>
-        </button>
-        <button className="tile2 accent" onClick={() => setChat(true)}>
+        <button className="tile2" onClick={() => setChat(true)}>
           <span className="tile2-ic"><Icon name="sparkle" size={18} /></span>
           <span className="tile2-t">Preguntar</span>
           <span className="tile2-s">Chat con el entrenador</span>
-        </button>
-        <button className="tile2" onClick={() => setMaker(true)}>
-          <span className="tile2-ic"><Icon name="calendar" size={18} /></span>
-          <span className="tile2-t">Mi plan</span>
-          <span className="tile2-s">Crear o cambiar</span>
-        </button>
-        <button className="tile2" onClick={addDay}>
-          <span className="tile2-ic"><Icon name="plus" size={18} /></span>
-          <span className="tile2-t">Nuevo día</span>
-          <span className="tile2-s">Crear uno vacío</span>
-        </button>
-        <button className="tile2" onClick={() => setView({ name: 'library' })}>
-          <span className="tile2-ic"><Icon name="book" size={18} /></span>
-          <span className="tile2-t">Ejercicios</span>
-          <span className="tile2-s">Fotos y progreso</span>
         </button>
       </div>
       {maker && <PlanMaker data={data} setData={setData} onClose={() => setMaker(false)} />}

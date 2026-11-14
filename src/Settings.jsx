@@ -64,7 +64,7 @@ export function GoalCalc({ onApply, onClose, skipLabel }) {
   )
 }
 
-export default function Settings({ data, setData, cloud }) {
+export default function Settings({ data, setData, cloud, onBack }) {
   const [msg, setMsg] = useState('')
   const [calc, setCalc] = useState(false)
   // preferencia de este móvil (no va en la copia de seguridad)
@@ -178,6 +178,11 @@ export default function Settings({ data, setData, cloud }) {
 
   return (
     <div className="page">
+      {onBack && (
+        <button className="link" onClick={onBack}>
+          <Icon name="left" size={18} /> Perfil
+        </button>
+      )}
       <h1 className="title">Ajustes</h1>
 
       <h4>Entreno</h4>

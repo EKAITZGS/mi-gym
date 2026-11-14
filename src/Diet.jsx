@@ -903,7 +903,7 @@ function EnergyCard({ data, setData, date }) {
   )
 }
 
-export default function Diet({ data, setData }) {
+export default function Diet({ data, setData, onBack }) {
   const [date, setDate] = useState(todayStr())
   const [adding, setAdding] = useState(null)
   const entries = data.food[date] || []
@@ -933,6 +933,11 @@ export default function Diet({ data, setData }) {
 
   return (
     <div className="page">
+      {onBack && (
+        <button className="link" onClick={onBack}>
+          <Icon name="left" size={18} /> Inicio
+        </button>
+      )}
       <div className="datenav">
         <button className="icon-btn" aria-label="Día anterior" onClick={() => setDate(addDays(date, -1))}>
           <Icon name="left" size={18} />

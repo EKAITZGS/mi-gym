@@ -4,28 +4,44 @@ import { setCustomExercises } from './data/exercises'
 import Home from './Home'
 import Workout, { editGuard } from './Workout'
 import Diet from './Diet'
-import Settings from './Settings'
 import Progress from './Progress'
+import Profile, { initialOf } from './Profile'
+import StartSheet from './StartSheet'
 import Icon from './icons'
 import { readPolarReturn, getPolar, syncPolar } from './polar'
 import { checkServerAi } from './ai'
 import { syncPush } from './push'
 import { useCloudSync, cloudReady, inbox } from './cloud'
 import { NewPassword, AuthGate } from './Account'
-import UserMenu, { initialOf } from './UserMenu'
 
+// Navegación principal (móvil: barra inferior; escritorio: lateral)
 const TABS = [
   { id: 'home', label: 'Inicio', icon: 'home' },
-  { id: 'train', label: 'Entreno', icon: 'dumbbell' },
-  { id: 'diet', label: 'Dieta', icon: 'food' },
+  { id: 'train', label: 'Entrenamiento', icon: 'dumbbell' },
+  { id: 'routines', label: 'Rutinas', icon: 'list' },
   { id: 'progress', label: 'Progreso', icon: 'trend' },
 ]
+
+const useOnline = () => {
+  const [on, setOn] = useState(() => (typeof navigator === 'undefined' ? true : navigator.onLine !== false))
+  useEffect(() => {
+    const a = () => setOn(true)
+    const b = () => setOn(false)
+    window.addEventListener('online', a)
+    window.addEventListener('offline', b)
+    return () => {
+      window.removeEventListener('online', a)
+      window.removeEventListener('offline', b)
+    }
+  }, [])
+  return on
+}
 
 export default function App() {
   const [data, setData] = useStore()
   // copia en la nube (si hay cuenta): sube los cambios y baja los de otro móvil
   const cloud = useCloudSync(data, setData)
-  const [menu, setMenu] = useState(false)
+  const online = useOnline()
   // avisos del entrenador / alumnos: mensajes sin leer, entrenos mandados y solicitudes
   const [box, setBox] = useState(null)
   const refreshBox = () => {
@@ -35,9 +51,9 @@ export default function App() {
         if (!r) return
         setBox((prev) => {
           const was = prev || { messages: 0, workouts: 0, requests: 0 }
-          if (r.workouts > was.workouts) setNotice(r.workouts === 1 ? (r.changes?.length ? `Tu entrenador te propone cambios en tu día ${r.changes[0]}. Míralo en tu menú → Entrenador.` : 'Tu entrenador te ha mandado un entreno. Míralo en tu menú → Entrenador.') : `Tienes ${r.workouts} entrenos de tu entrenador por revisar (tu menú → Entrenador).`)
-          else if (r.requests > was.requests) setNotice('Tienes una solicitud de alumno nueva (tu menú → Tus alumnos).')
-          else if (r.messages > was.messages) setNotice(r.messages === 1 ? 'Tienes un mensaje nuevo (tu menú).' : `Tienes ${r.messages} mensajes nuevos (tu menú).`)
+          if (r.workouts > was.workouts) setNotice(r.workouts === 1 ? (r.changes?.length ? `Tu entrenador te propone cambios en tu día ${r.changes[0]}. Míralo en Perfil → Entrenador.` : 'Tu entrenador te ha mandado un entreno. Míralo en Perfil → Entrenador.') : `Tienes ${r.workouts} entrenos de tu entrenador por revisar (Perfil → Entrenador).`)
+          else if (r.requests > was.requests) setNotice('Tienes una solicitud de alumno nueva (Perfil → Tus alumnos).')
+          else if (r.messages > was.messages) setNotice(r.messages === 1 ? 'Tienes un mensaje nuevo (Perfil).' : `Tienes ${r.messages} mensajes nuevos (Perfil).`)
           return r
         })
       })
@@ -61,11 +77,12 @@ export default function App() {
   const [tab, setTab] = useState(resume ? 'train' : 'home')
   const [view, setView] = useState(resume ? { name: 'session' } : { name: 'list' })
   const [notice, setNotice] = useState(null)
+  const [startSheet, setStartSheet] = useState(false)
   const storedPolarEx = () => { try { return JSON.parse(localStorage.getItem('migym.v1') || '{}').polar?.exercises || {} } catch { return {} } }
 
   // al abrir el enlace de confirmación del email
   useEffect(() => {
-    if (cloud.confirmed) setNotice('Email confirmado. Ya puedes entrar con tu cuenta en Ajustes → Tu cuenta.')
+    if (cloud.confirmed) setNotice('Email confirmado. Ya puedes entrar con tu cuenta.')
   }, [cloud.confirmed])
 
   // ¿hay IA sin clave en el Worker?
@@ -77,8 +94,8 @@ export default function App() {
   useEffect(() => {
     const ret = readPolarReturn()
     if (ret) {
-      // al volver de Polar: te quedas en Inicio y se sincroniza solo (si falla, Ajustes para reintentar)
-      if (!ret.ok) setTab('settings')
+      // al volver de Polar: te quedas en Inicio y se sincroniza solo (si falla, Perfil para reintentar)
+      if (!ret.ok) setTab('profile')
       setNotice(ret.ok ? 'Polar conectado. Trayendo los datos del reloj…' : `No se pudo conectar Polar (${ret.error}).`)
     }
     let lastTry = 0
@@ -161,8 +178,9 @@ export default function App() {
   }
 
   const startFree = () => {
-    if (data.active && !confirm('Tienes otro entreno en curso. ¿Empezar uno libre y descartar el otro?')) return
-    setData((d) => ({ ...d, active: { dayId: 'free', name: 'Entreno libre', date: todayStr(), start: Date.now(), items: [], entries: {} } }))
+    if (data.active && data.active.dayId !== 'free' && !confirm('Tienes otro entreno en curso. ¿Empezar uno libre y descartar el otro?')) return
+    if (!data.active || data.active.dayId !== 'free')
+      setData((d) => ({ ...d, active: { dayId: 'free', name: 'Entreno libre', date: todayStr(), start: Date.now(), items: [], entries: {} } }))
     setTab('train')
     setView({ name: 'session' })
   }
@@ -171,7 +189,10 @@ export default function App() {
     if (editGuard.dirty && !confirm('Tienes cambios sin guardar en el día que estás editando. ¿Salir sin guardar?')) return
     editGuard.dirty = false
     setTab(id)
-    if (id === 'train' && view.name !== 'session') setView({ name: 'list' })
+    // Entrenamiento y Rutinas comparten las vistas (sesión, editor, biblioteca): al cambiar se vuelve a la lista,
+    // salvo que haya una sesión en pantalla y vayas a Entrenamiento (se sigue con ella)
+    if (id === 'train' && view.name === 'session') return
+    if (id === 'train' || id === 'routines') setView({ name: 'list' })
   }
 
   // hace falta cuenta para usar la app (la sesión se queda abierta hasta cerrar sesión)
@@ -188,19 +209,34 @@ export default function App() {
       </>
     )
 
+  const openStart = () => setStartSheet(true)
+  const navBtn = (t) => (
+    <button key={t.id} className={tab === t.id ? 'on' : ''} onClick={() => goTab(t.id)} aria-current={tab === t.id ? 'page' : undefined}>
+      <Icon name={t.icon} size={23} stroke={tab === t.id ? 2.3 : 1.8} />
+      <span className="tab-label">{t.label}</span>
+    </button>
+  )
+
   return (
     <div className="app">
+      {!online && (
+        <div className="offline-bar" role="status">
+          <Icon name="offline" size={15} /> Sin conexión: todo se guarda en el móvil y se subirá al volver
+        </div>
+      )}
       <main className="main">
-        {tab === 'home' && <Home data={data} setData={setData} onStart={start} go={goTab} />}
-        {tab === 'train' && <Workout data={data} setData={setData} view={view} setView={setView} onStart={start} onStartFree={startFree} />}
-        {tab === 'diet' && <Diet data={data} setData={setData} />}
-        {tab === 'progress' && <Progress data={data} setData={setData} />}
-        {tab === 'settings' && <Settings data={data} setData={setData} cloud={cloud} />}
+        {tab === 'home' && <Home data={data} setData={setData} onStart={start} go={goTab} onOpenStart={openStart} name={cloud.meta?.name} />}
+        {(tab === 'train' || tab === 'routines') && (
+          <Workout data={data} setData={setData} view={view} setView={setView} onStart={start} onStartFree={startFree} mode={tab} onOpenStart={openStart} goTab={goTab} />
+        )}
+        {tab === 'diet' && <Diet data={data} setData={setData} onBack={() => goTab('home')} />}
+        {tab === 'progress' && <Progress data={data} setData={setData} go={goTab} />}
+        {tab === 'profile' && <Profile data={data} setData={setData} cloud={cloud} inbox={box} onInbox={refreshBox} online={online} />}
       </main>
       {cloud.recovery && <NewPassword onDone={cloud.doneRecovery} />}
       {saveFail && (
         <div className="notice" style={{ background: 'var(--danger)', color: '#fff', top: 0 }} role="alert">
-          No se está guardando: lo de ahora se perderá al cerrar. Haz una copia en Ajustes y libera espacio en el iPhone.
+          No se está guardando: lo de ahora se perderá al cerrar. Haz una copia en Perfil → Ajustes y libera espacio en el iPhone.
         </div>
       )}
       {notice && (
@@ -208,29 +244,21 @@ export default function App() {
           {notice}
         </div>
       )}
-      <nav className="tabbar">
-        {TABS.map((t) => (
-          <button key={t.id} className={tab === t.id ? 'on' : ''} onClick={() => goTab(t.id)}>
-            <Icon name={t.icon} size={23} stroke={tab === t.id ? 2.3 : 1.8} />
-            <span>{t.label}</span>
-          </button>
-        ))}
-        {cloudReady() ? (
-          <button className={tab === 'settings' || menu ? 'on' : ''} onClick={() => setMenu(true)} aria-label="Tu cuenta">
-            <span className="tab-av">
-              {initialOf(cloud.meta)}
-              {boxN > 0 && <i className="tab-badge">{boxN > 9 ? '9+' : boxN}</i>}
-            </span>
-            <span>{(cloud.meta?.name || 'Tú').split(' ')[0].slice(0, 10)}</span>
-          </button>
-        ) : (
-          <button className={tab === 'settings' ? 'on' : ''} onClick={() => goTab('settings')}>
-            <Icon name="settings" size={23} stroke={tab === 'settings' ? 2.3 : 1.8} />
-            <span>Ajustes</span>
-          </button>
-        )}
+      {startSheet && <StartSheet data={data} onStart={start} onStartFree={startFree} onClose={() => setStartSheet(false)} onRoutines={() => goTab('routines')} />}
+      <nav className="tabbar" aria-label="Navegación principal">
+        <div className="nav-brand">
+          <img src="./logo.svg" alt="" />
+          MI-GYM
+        </div>
+        {TABS.map(navBtn)}
+        <button className={tab === 'profile' ? 'on' : ''} onClick={() => goTab('profile')} aria-label="Perfil" aria-current={tab === 'profile' ? 'page' : undefined}>
+          <span className="tab-av">
+            {cloudReady() ? initialOf(cloud.meta) : <Icon name="user" size={15} />}
+            {boxN > 0 && <i className="tab-badge">{boxN > 9 ? '9+' : boxN}</i>}
+          </span>
+          <span className="tab-label">Perfil</span>
+        </button>
       </nav>
-      {menu && <UserMenu data={data} setData={setData} cloud={cloud} inbox={box} onInbox={refreshBox} onClose={() => (setMenu(false), refreshBox())} goTab={goTab} />}
     </div>
   )
 }
