@@ -3,7 +3,7 @@ import { EXERCISES, EX_BY_ID, GROUPS } from './data/exercises'
 import { WEEKDAYS, addDays, uid, lastSets, prefillSets, exStats, suggestion, fmtKg, num, pad, TRACKS, trackOf, setFilled, setTxt, todayStr } from './store'
 import { Modal, Thumb, LineChart, ExPhoto } from './ui'
 import { techFor } from './data/technique'
-import { nightsOf, progressRead } from './stats'
+import { nightsOf, progressRead, streakWeeks, weekTotals, recentPRs } from './stats'
 import Icon from './icons'
 import WeeklyReview, { CoachChat } from './Review'
 import { LEVELS, EQUIP, MINUTES, DAY_TYPES, SPLITS, GOALS, DEFAULT_WEEKDAYS, splitFor, typesFor, pickFor, prescribe, buildDay, buildPlan, stripSlots, analyzePlan } from './plans'
@@ -13,7 +13,7 @@ import { FEELINGS, ZONES, adviceFor, painFor, needsDeload, recentPains, zoneHits
 import { groupsOf } from './ranks'
 import Coach from './Coach.jsx'
 import { DayModal, doneSessions, fmtDay } from './DayDetail'
-import { State, SyncPill, Badge, fmtMin } from './ds'
+import { State, SyncPill, Badge, Stat, fmtMin, miles } from './ds'
 
 const ORDER = [1, 2, 3, 4, 5, 6, 0] // lunes primero
 
@@ -1650,6 +1650,7 @@ export default function Workout({ data, setData, view, setView, onStart, onStart
   const [coach, setCoach] = useState(false)
   const [flash, setFlash] = useState(null)
   const [dayOpen, setDayOpen] = useState(null)
+  const [exOpen, setExOpen] = useState(null)
   useEffect(() => {
     if (!flash) return
     const t = setTimeout(() => setFlash(null), 2500)
@@ -1827,6 +1828,20 @@ export default function Workout({ data, setData, view, setView, onStart, onStart
         <Icon name="play" size={18} fill="currentColor" stroke={0} /> {data.active ? 'Continuar entrenamiento' : 'Comenzar entrenamiento'}
       </button>
 
+      {data.sessions.length > 0 && (() => {
+        const wk = weekTotals(data.sessions)
+        const streak = streakWeeks(data.sessions)
+        const planned = data.plan.filter((d) => d.weekday != null).length
+        return (
+          <div className="stats four">
+            <Stat v={wk.n} unit={planned ? `/${planned}` : ''} label="entrenos esta semana" tone={wk.n > 0 ? 'accent' : ''} />
+            <Stat v={wk.min ? fmtMin(wk.min) : '—'} label="tiempo" />
+            <Stat v={wk.vol ? miles(wk.vol) : '—'} unit={wk.vol ? 'kg' : ''} label="volumen" />
+            <Stat v={streak || '—'} unit={streak ? 'sem' : ''} label="racha" />
+          </div>
+        )
+      })()}
+
       <div className="week">
         {ORDER.map((w) => {
           const ds = byWeekday(w)
@@ -1869,6 +1884,32 @@ export default function Workout({ data, setData, view, setView, onStart, onStart
 
       <WeeklyReview data={data} setData={setData} focusId={todays[0]?.id} rest={todays.length === 0} />
 
+      {(() => {
+        const prs = recentPRs(data.sessions, 7).slice(0, 3)
+        if (!prs.length) return null
+        return (
+          <div className="card list-card">
+            <div className="sec-head nm">
+              <b>
+                <Icon name="trophy" size={16} className="inl gold" /> Récords esta semana
+              </b>
+            </div>
+            {prs.map((p) => (
+              <button key={p.id} className="row nob li" onClick={() => setExOpen(EX_BY_ID[p.id])}>
+                <Thumb ex={EX_BY_ID[p.id]} size={36} />
+                <div className="grow">
+                  <div className="li-t">{EX_BY_ID[p.id]?.name || p.id}</div>
+                  <div className="muted small">
+                    {fmtKg(p.w)} kg × {p.r} · {p.date.slice(8)}/{p.date.slice(5, 7)}
+                  </div>
+                </div>
+                <span className="delta up">+{fmtKg(Math.round((p.e - p.prev) * 10) / 10)} kg</span>
+              </button>
+            ))}
+          </div>
+        )
+      })()}
+
       <div className="sec-head">
         <h4>Últimos entrenos</h4>
         {recent.length > 0 && <span className="muted small">{doneSessions(data).length} en total</span>}
@@ -1909,6 +1950,7 @@ export default function Workout({ data, setData, view, setView, onStart, onStart
           <span className="tile2-s">Chat con el entrenador</span>
         </button>
       </div>
+      {exOpen && <ExerciseModal ex={exOpen} data={data} setData={setData} onClose={() => setExOpen(null)} />}
       {maker && <PlanMaker data={data} setData={setData} onClose={() => setMaker(false)} />}
       {chat && <CoachChat data={data} onClose={() => setChat(false)} />}
       {coach && <Coach data={data} setData={setData} onClose={() => setCoach(false)} />}

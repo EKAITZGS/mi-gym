@@ -161,84 +161,35 @@ export default function Home({ data, setData, onStart, go, onOpenStart, name }) 
         )
       })}
       {todays.length === 0 && (
-        <>
-          <button className="cta" onClick={onOpenStart}>
-            <Icon name="play" size={18} fill="currentColor" stroke={0} /> {data.active ? 'Continuar entrenamiento' : 'Comenzar entrenamiento'}
-          </button>
-          <div className="card rest">
-            <div className="rest-ic">
-              <Icon name="calendar" size={22} />
-            </div>
-            <div className="grow">
-              <b>{data.plan.length === 0 ? 'Aún no tienes rutina' : 'Hoy toca descanso'}</b>
-              <p className="muted small">
-                {data.plan.length === 0
-                  ? 'Créala en Rutinas o empieza un entreno libre.'
-                  : nextDay
-                    ? `Recuperar también es entrenar. Siguiente sesión: ${nextDay.d.name} (${nextDay.k === 1 ? 'mañana' : 'en ' + nextDay.k + ' días'}).`
-                    : 'Recuperar también es entrenar.'}
-              </p>
-              {data.plan.length === 0 && (
-                <button className="btn sm-btn" onClick={() => go('routines')}>
-                  Ir a Rutinas
-                </button>
-              )}
-            </div>
+        <div className="card rest">
+          <div className="rest-ic">
+            <Icon name="calendar" size={22} />
           </div>
-        </>
+          <div className="grow">
+            <b>{data.plan.length === 0 ? 'Aún no tienes rutina' : data.active ? 'Tienes un entreno a medias' : 'Hoy toca descanso'}</b>
+            <p className="muted small">
+              {data.plan.length === 0
+                ? 'Créala en Rutinas o empieza un entreno libre.'
+                : nextDay
+                  ? `Recuperar también es entrenar. Siguiente sesión: ${nextDay.d.name} (${nextDay.k === 1 ? 'mañana' : 'en ' + nextDay.k + ' días'}).`
+                  : 'Recuperar también es entrenar.'}
+            </p>
+            {data.plan.length === 0 ? (
+              <button className="btn sm-btn" onClick={() => go('routines')}>
+                Ir a Rutinas
+              </button>
+            ) : (
+              <button className="link small" style={{ paddingLeft: 0 }} onClick={onOpenStart}>
+                {data.active ? 'Continuar entrenamiento' : 'Entrenar hoy igualmente'}
+              </button>
+            )}
+          </div>
+        </div>
       )}
       {todays.length > 0 && nextDay && nextDay.k > 0 && (
         <p className="muted small" style={{ margin: '-6px 4px 12px' }}>
           Siguiente sesión: <b>{nextDay.d.name}</b> · {nextDay.k === 1 ? 'mañana' : `en ${nextDay.k} días`}
         </p>
-      )}
-
-      {hasAny && (
-        <div className="stats four">
-          <Stat v={done} unit={planned ? `/${planned}` : ''} label="entrenos" tone={done > 0 ? 'accent' : ''} />
-          <Stat v={wk.min ? fmtMin(wk.min) : '—'} label="tiempo" />
-          <Stat v={wk.vol ? miles(wk.vol) : '—'} unit={wk.vol ? 'kg' : ''} label="volumen" />
-          <Stat v={streak || '—'} unit={streak ? (streak === 1 ? 'sem' : 'sem') : ''} label="racha" />
-        </div>
-      )}
-
-      {lastSes && (
-        <button className="card last-ses" onClick={() => setDayOpen(lastSes.date)}>
-          <span className="ls-ic">
-            <Icon name="dumbbell" size={20} />
-          </span>
-          <span className="grow">
-            <div className="ls-t">Último entreno: {lastSes.dayName || 'Entreno'}</div>
-            <div className="ls-d">
-              {fmtDay(lastSes.date)} · {Object.keys(lastSes.entries || {}).length} ej. · {Object.values(lastSes.entries || {}).reduce((n, ss) => n + ss.length, 0)} series
-              {sessionVol(lastSes) ? ` · ${miles(sessionVol(lastSes))} kg` : ''}
-              {lastSes.min ? ` · ${lastSes.min} min` : ''}
-            </div>
-          </span>
-          <Icon name="right" size={16} className="muted" />
-        </button>
-      )}
-
-      {prs.length > 0 && (
-        <div className="card list-card">
-          <div className="sec-head nm">
-            <b>
-              <Icon name="trophy" size={16} className="inl gold" /> Récords esta semana
-            </b>
-          </div>
-          {prs.map((p) => (
-            <button key={p.id} className="row nob li" onClick={() => setExOpen(EX_BY_ID[p.id])}>
-              <Thumb ex={EX_BY_ID[p.id]} size={36} />
-              <div className="grow">
-                <div className="li-t">{EX_BY_ID[p.id]?.name || p.id}</div>
-                <div className="muted small">
-                  {fmtKg(p.w)} kg × {p.r} · {p.date.slice(8)}/{p.date.slice(5, 7)}
-                </div>
-              </div>
-              <span className="delta up">+{fmtKg(Math.round((p.e - p.prev) * 10) / 10)} kg</span>
-            </button>
-          ))}
-        </div>
       )}
 
       <SleepLine data={data} onOpen={() => go('progress')} />
