@@ -109,7 +109,7 @@ export function MuscleSets({ data }) {
   const indirect = Object.fromEntries(RANK_GROUPS.map((g) => [g, 0]))
   for (const s of data.sessions.filter((x) => x.date >= monday))
     for (const [exId, sets] of Object.entries(s.entries || {}))
-      for (const { g, main } of groupsOf(exId)) (main ? direct : indirect)[g] += sets.length
+      for (const { g, main } of groupsOf(exId)) (main ? direct : indirect)[g] += sets.filter((x) => !x.warm).length
   if (!Object.values(direct).some(Boolean)) return null
   return <MuscleBars direct={direct} indirect={indirect} title="Series por músculo" sub="esta semana · ideal 10–20" />
 }
@@ -146,9 +146,10 @@ function MuscleBars({ direct, indirect, title, sub, children }) {
         <b>{title}</b>
         <span className="muted small">{sub}</span>
       </div>
-      <div className="muted small" style={{ marginTop: 2 }}>
-        Las de músculos secundarios cuentan la mitad (el press banca suma a tríceps y hombro).
-      </div>
+      <details className="tech-d" style={{ margin: '0 0 6px' }}>
+        <summary>¿Cómo se calcula?</summary>
+        <p>Las series de músculos secundarios cuentan la mitad (el press banca suma a tríceps y hombro). 10-20 por músculo y semana es una referencia habitual, no una regla.</p>
+      </details>
       <div className="msets">
         {RANK_GROUPS.map((g) => {
           const n = count[g]

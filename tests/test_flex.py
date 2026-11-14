@@ -1,8 +1,9 @@
+import os
 import json
 from playwright.sync_api import sync_playwright
 errors=[]
 with sync_playwright() as p:
-    b=p.chromium.launch(executable_path='/usr/bin/google-chrome',args=['--no-sandbox'])
+    b=p.chromium.launch(executable_path=os.environ.get('CHROME') or None, args=['--no-sandbox'])
     pg=b.new_context(viewport={'width':390,'height':844},device_scale_factor=2,locale='es-ES').new_page()
     pg.on('pageerror',lambda e: errors.append(str(e)))
     pg.on('dialog', lambda d: d.accept())
@@ -23,9 +24,9 @@ with sync_playwright() as p:
     print('ejercicios sesión:', names)
     print('series ej1:', pg.locator('.card').nth(0).locator('.setrow:not(.drop)').count())
     pg.locator('.card').nth(1).locator('input.inp').nth(0).fill('15'); pg.locator('.card').nth(1).locator('input.inp').nth(1).fill('12')
-    pg.screenshot(path='/home/claude/shots/f1_session.png')
+    pg.screenshot(path='tests/shots/f1_session.png')
     pg.click('text=Terminar entreno'); pg.click('text=Saltar'); pg.wait_for_selector('text=Has cambiado ejercicios')
-    pg.screenshot(path='/home/claude/shots/f2_done.png')
+    pg.screenshot(path='tests/shots/f2_done.png')
     pg.click('text=Guardar cambios en el plan'); pg.click('text=Listo')
     d=json.loads(pg.evaluate("localStorage.getItem('migym.v1')"))
     print('plan pecho ahora:', [i['ex'] for i in d['plan'][0]['items']])

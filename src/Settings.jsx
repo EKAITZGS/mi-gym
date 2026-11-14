@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { DEFAULT, todayStr, num } from './store'
+import { todayStr, num } from './store'
+import { migrate, validBackup } from './migrate'
 import { getAi, setAi, DEFAULT_MODEL, cleanKey, testKey, serverAi } from './ai'
 import Coach from './Coach.jsx'
 import { PlanMaker } from './Workout'
@@ -10,6 +11,8 @@ import { MyTrainer, Students } from './Trainers'
 import { cloudReady, CLEAN } from './cloud'
 import { getPolar, connectPolar, syncPolar, disconnectPolar } from './polar'
 import { Modal } from './ui'
+import LegalModal from './Legal'
+import { deleteAccount } from './cloud'
 import { calcGoals, ACTIVITY } from './stats'
 
 // Calcula kcal y proteína; los datos que pide no se guardan, solo el resultado si lo aceptas
@@ -63,9 +66,11 @@ export function GoalCalc({ onApply, onClose, skipLabel }) {
   )
 }
 
-export default function Settings({ data, setData, cloud }) {
+export default function Settings({ data, setData, cloud, onBack }) {
   const [msg, setMsg] = useState('')
   const [calc, setCalc] = useState(false)
+  const [legal, setLegal] = useState(false)
+  const [delBusy, setDelBusy] = useState(false)
   // preferencia de este móvil (no va en la copia de seguridad)
   const [restPref, setRestPref] = useState(() => {
     try {
@@ -136,12 +141,13 @@ export default function Settings({ data, setData, cloud }) {
   const load = (text) => {
     try {
       const obj = JSON.parse(text)
-      const isObj = (v) => v && typeof v === 'object' && !Array.isArray(v)
-      if (!obj || !Array.isArray(obj.plan)) throw new Error('formato')
-      if (['sessions', 'myFoods', 'myExercises'].some((k) => k in obj && !Array.isArray(obj[k])) || ['food', 'goals'].some((k) => k in obj && !isObj(obj[k])))
-        throw new Error('formato')
+      if (!validBackup(obj)) throw new Error('formato')
       if (!confirm('Esto reemplaza todos los datos actuales por los de la copia. ¿Continuar?')) return
-      setData({ ...DEFAULT, ...obj })
+      // lo de ahora se guarda aparte por si la copia no era la buena
+      try {
+        localStorage.setItem('migym.v1.antes-importar', JSON.stringify(data))
+      } catch {}
+      setData(migrate(obj))
       setPaste('')
       flash('Copia restaurada')
     } catch {
@@ -176,6 +182,11 @@ export default function Settings({ data, setData, cloud }) {
 
   return (
     <div className="page">
+      {onBack && (
+        <button className="link" onClick={onBack}>
+          <Icon name="left" size={18} /> Perfil
+        </button>
+      )}
       <h1 className="title">Ajustes</h1>
 
       <h4>Entreno</h4>
@@ -376,11 +387,36 @@ export default function Settings({ data, setData, cloud }) {
         <button className="btn danger full" onClick={reset}>
           Borrar todos mis datos
         </button>
+        {cloud?.meta?.uid && (
+          <button
+            className="btn danger full"
+            disabled={delBusy}
+            onClick={async () => {
+              if (!confirm('¿Eliminar tu cuenta? Se borran tus datos de la nube, tu perfil, tus entrenadores o alumnos y el usuario. No se puede deshacer.')) return
+              if (!confirm('Última confirmación: ¿eliminar la cuenta definitivamente? Si quieres conservar tus datos, exporta antes una copia.')) return
+              setDelBusy(true)
+              try {
+                await deleteAccount()
+                location.reload()
+              } catch (e) {
+                setDelBusy(false)
+                alert(e.message)
+              }
+            }}
+          >
+            {delBusy ? 'Eliminando…' : 'Eliminar mi cuenta'}
+          </button>
+        )}
       </details>
+
+      <button className="link small" onClick={() => setLegal(true)}>
+        Privacidad y condiciones de uso
+      </button>
+      {legal && <LegalModal onClose={() => setLegal(false)} />}
 
       <div className="brand">
         <img src="./logo.svg" alt="" width="56" height="56" />
-        <b>Mi Gym</b>
+        <b>MI-GYM</b>
         <span className="muted small">Entrena · Come · Progresa</span>
       </div>
       <p className="muted small credits">

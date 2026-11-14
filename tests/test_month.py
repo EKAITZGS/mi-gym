@@ -1,7 +1,8 @@
+import os
 import json
 from playwright.sync_api import sync_playwright
 with sync_playwright() as p:
-    b=p.chromium.launch(executable_path='/usr/bin/google-chrome',args=['--no-sandbox'])
+    b=p.chromium.launch(executable_path=os.environ.get('CHROME') or None, args=['--no-sandbox'])
     pg=b.new_context(viewport={'width':390,'height':844},device_scale_factor=2).new_page(); errs=[]; pg.on('pageerror',lambda e:errs.append(str(e)))
     pg.clock.set_fixed_time('2026-11-20T12:00:00')
     pg.goto('http://127.0.0.1:4173/'); pg.wait_for_selector('.tabbar')
@@ -15,13 +16,13 @@ with sync_playwright() as p:
     pg.reload(); pg.wait_for_timeout(1200)
     pg.click('.month-link'); pg.wait_for_timeout(600)
     print(pg.locator('.sheet').inner_text().replace('\n',' | '))
-    pg.locator('.sheet').screenshot(path='/home/claude/shots/month.png')
+    pg.locator('.sheet').screenshot(path='tests/shots/month.png')
     pg.keyboard.press('Escape'); pg.locator('.sheet button[aria-label]').first.click() if pg.locator('.sheet').count() else None
     pg.reload(); pg.wait_for_timeout(800)
     pg.click('.tabbar button:has-text("Dieta")'); pg.wait_for_timeout(400)
     pg.click('button:has-text("Día tipo sugerido")'); pg.wait_for_timeout(600)
     print(pg.locator('.sheet').inner_text().replace('\n',' | '))
-    pg.locator('.sheet').screenshot(path='/home/claude/shots/dayplan.png')
+    pg.locator('.sheet').screenshot(path='tests/shots/dayplan.png')
     pg.click('.sheet button:has-text("Usar mañana")'); pg.wait_for_timeout(200)
     print('mañana:', len(json.loads(pg.evaluate("localStorage.getItem('migym.v1')"))['food'].get('2026-11-21',[])))
     print('ERR',errs)

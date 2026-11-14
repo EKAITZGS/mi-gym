@@ -95,6 +95,7 @@ export function muscleRanks(data) {
       const ex = EX_BY_ID[id]
       if (!ex) continue
       for (const st of sets) {
+        if (st.warm) continue
         const w = num(st.w)
         const r = num(st.r)
         if (r <= 0) continue

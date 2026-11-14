@@ -11,7 +11,7 @@ import { rateFood } from './rating'
 import { energy, targetFor, aimOf, aimLabel, kcalGoal, proteinGoal, kgWeek } from './energy'
 
 const r0 = (n) => Math.round(n)
-const r1 = (n) => Math.round(n * 10) / 10
+const r1 = (n) => String(Math.round(n * 10) / 10).replace('.', ',')
 const norm = (s) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 
 function dateLabel(s) {
@@ -435,6 +435,8 @@ function AddFood({ data, setData, date, meal, onClose }) {
               fastfood: food.fastfood,
               label: mode === 'u' ? `${num(amount)} ${food.unitName}` : undefined,
               pkgG: food.pkgG || (num(pkgIn) > 0 ? num(pkgIn) : undefined),
+              // de dónde sale el valor: etiqueta/escaneado (verificado), Open Food Facts, lista aproximada o alimento propio
+              src: isCode ? 'label' : String(food.id || '').startsWith('off-') ? 'off' : String(food.id || '').startsWith('f-') ? 'list' : 'own',
             })
           }}
         >
@@ -903,7 +905,7 @@ function EnergyCard({ data, setData, date }) {
   )
 }
 
-export default function Diet({ data, setData }) {
+export default function Diet({ data, setData, onBack }) {
   const [date, setDate] = useState(todayStr())
   const [adding, setAdding] = useState(null)
   const entries = data.food[date] || []
@@ -933,6 +935,11 @@ export default function Diet({ data, setData }) {
 
   return (
     <div className="page">
+      {onBack && (
+        <button className="link" onClick={onBack}>
+          <Icon name="left" size={18} /> Inicio
+        </button>
+      )}
       <div className="datenav">
         <button className="icon-btn" aria-label="Día anterior" onClick={() => setDate(addDays(date, -1))}>
           <Icon name="left" size={18} />
@@ -981,6 +988,11 @@ export default function Diet({ data, setData }) {
       </button>
       {dayPlan && <DayPlanModal data={data} setData={setData} onClose={() => setDayPlan(false)} />}
 
+      {entries.some((e) => e.ai || e.quick || e.src) && (
+        <p className="muted small src-note">
+          <span className="src-tag">≈</span> estimado · <span className="src-tag ok">✓</span> de etiqueta
+        </p>
+      )}
       {MEALS.map((m) => {
         const list = entries.filter((e) => e.meal === m)
         const yday = (data.food[addDays(date, -1)] || []).filter((e) => e.meal === m)
@@ -1004,6 +1016,7 @@ export default function Diet({ data, setData }) {
                     <div>{e.name}</div>
                     <div className="muted small">
                       {e.quick ? 'Rápido' : e.label || `${r0(e.grams)} g`} · {r0(mm.kcal)} kcal · {r1(mm.p)} g prot
+                      {e.ai || e.quick || e.src === 'list' ? <span className="src-tag" title="Valor estimado">≈</span> : e.src === 'label' || e.src === 'off' ? <span className="src-tag ok" title="De la etiqueta del producto">✓</span> : null}
                     </div>
                   </div>
                   <button className="icon-btn" onClick={() => remove(e.id)} aria-label="Quitar">

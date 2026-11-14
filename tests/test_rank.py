@@ -1,6 +1,7 @@
+import os
 from playwright.sync_api import sync_playwright
 with sync_playwright() as p:
-    b=p.chromium.launch(executable_path='/usr/bin/google-chrome',args=['--no-sandbox'])
+    b=p.chromium.launch(executable_path=os.environ.get('CHROME') or None, args=['--no-sandbox'])
     pg=b.new_context(viewport={'width':390,'height':844},device_scale_factor=2).new_page(); errs=[]; pg.on('pageerror',lambda e:errs.append(str(e)))
     pg.clock.set_fixed_time('2026-11-08T12:00:00')
     pg.goto('http://127.0.0.1:4173/'); pg.wait_for_selector('.tabbar')
@@ -17,10 +18,10 @@ with sync_playwright() as p:
         Pullups:[{w:'',r:'6'}]}}];
       localStorage.setItem('migym.v1',JSON.stringify(d))}""")
     pg.reload(); pg.wait_for_timeout(1500)
-    c=pg.locator('.rank-card'); c.scroll_into_view_if_needed(); pg.wait_for_timeout(400); c.screenshot(path='/home/claude/shots/rank_card.png')
+    c=pg.locator('.rank-card'); c.scroll_into_view_if_needed(); pg.wait_for_timeout(400); c.screenshot(path='tests/shots/rank_card.png')
     print(c.inner_text().replace('\n',' | '))
     c.click(); pg.wait_for_timeout(700)
     print(pg.locator('.sheet').inner_text().replace('\n',' | ')[:1500])
-    pg.locator('.sheet').screenshot(path='/home/claude/shots/rank_detail.png')
+    pg.locator('.sheet').screenshot(path='tests/shots/rank_detail.png')
     pg.locator('.sheet .icon-btn').first.click(); pg.wait_for_timeout(500); print('cerrado:', pg.locator('.sheet').count()==0)
     print('ERR',errs)

@@ -1,12 +1,21 @@
-import { useEffect, useId, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import Icon from './icons'
 
 export function Modal({ title, onClose, children }) {
+  const tid = useId()
+  const ref = useRef(null)
   useEffect(() => {
     document.body.style.overflow = 'hidden'
     document.body.classList.add('modal-open')
+    // accesibilidad: foco dentro de la ventana y Escape para cerrar
+    const prev = document.activeElement
+    ref.current?.focus({ preventScroll: true })
+    const onKey = (e) => e.key === 'Escape' && onClose?.()
+    document.addEventListener('keydown', onKey)
     return () => {
+      document.removeEventListener('keydown', onKey)
+      try { prev?.focus?.({ preventScroll: true }) } catch {}
       document.body.style.overflow = ''
       // otra ventana puede seguir abierta (se abren encadenadas)
       setTimeout(() => {
@@ -18,10 +27,10 @@ export function Modal({ title, onClose, children }) {
   // y la barra inferior quedaba por encima de la ventana.
   return createPortal(
     <div className="overlay" onClick={onClose}>
-      <div className="sheet" onClick={(e) => e.stopPropagation()}>
+      <div className="sheet" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby={tid} tabIndex={-1} ref={ref}>
         <div className="grabber" />
         <div className="sheet-head">
-          <h3>{title}</h3>
+          <h3 id={tid}>{title}</h3>
           <button className="icon-btn ghost" onClick={onClose} aria-label="Cerrar">
             <Icon name="x" size={18} />
           </button>

@@ -1,8 +1,9 @@
+import os
 import json
 from playwright.sync_api import sync_playwright
 errors=[]
 with sync_playwright() as p:
-    b=p.chromium.launch(executable_path='/usr/bin/google-chrome',args=['--no-sandbox'])
+    b=p.chromium.launch(executable_path=os.environ.get('CHROME') or None, args=['--no-sandbox'])
     pg=b.new_context(viewport={'width':390,'height':844},device_scale_factor=2,locale='es-ES').new_page()
     pg.on('pageerror',lambda e: errors.append(str(e)))
     pg.on('dialog', lambda d: d.accept())
@@ -20,14 +21,14 @@ with sync_playwright() as p:
             for i,(w,l,r) in enumerate(vals):
                 inp=c.locator('.setrow:not(.drop):not(.uni-head)').nth(i).locator('input')
                 inp.nth(0).fill(w); inp.nth(1).fill(l); inp.nth(2).fill(r)
-            pg.screenshot(path='/home/claude/shots/u1.png')
+            pg.screenshot(path='tests/shots/u1.png')
         else:
             print('uni recordado:', 'on' in c.locator('.uni-tg').get_attribute('class'))
             print('texto:', c.locator('.row').inner_text().replace('\n',' | '))
             ph=[c.locator('.setrow:not(.drop):not(.uni-head)').nth(0).locator('input').nth(k).get_attribute('placeholder') for k in range(3)]
             print('placeholders s1:', ph)
             c.locator('.chk').first.click()
-            pg.screenshot(path='/home/claude/shots/u2.png')
+            pg.screenshot(path='tests/shots/u2.png')
         pg.click('text=Terminar entreno'); pg.click('text=Saltar'); pg.click('text=Listo')
         d=json.loads(pg.evaluate("localStorage.getItem('migym.v1')"))
         print('guardado:', d['sessions'][-1]['entries'])

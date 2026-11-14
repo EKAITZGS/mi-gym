@@ -1,42 +1,41 @@
-# Mi Gym
+# MI-GYM
 
-App web (PWA) para planes de entreno, ejercicios con fotos y calorías/proteína.
-Sin servidor, sin cuentas: **los datos se guardan en el propio móvil** de cada persona.
+App web (PWA) de musculación: rutinas, entreno en curso, progresión de cargas, progreso por músculo, dieta y recuperación. Pensada para el iPhone (añadir a pantalla de inicio) y usable también en tablet y escritorio.
+
+Producción: https://ekaitzgs.github.io/mi-gym/ (rama `main` → GitHub Actions → GitHub Pages).
+Versión 2.0 en desarrollo en la rama `migym-2.0` (ver `AUDIT_MI_GYM_2_0.md`).
 
 ## Qué hace
-- **Plan automático paso a paso:** nivel, días que vas (los eliges tú), tiempo por entreno, reparto (cuerpo completo, torso/pierna, empuje/tirón/pierna, un grupo por día o el que quieras día a día), material disponible y músculo a priorizar. Cada ejercicio trae series, reps, RIR (reps en reserva) y descanso. Puedes cambiar un ejercicio o rehacer un día antes de guardar, o pulsar *Sorpréndeme*.
-- **Entreno en curso:** peso y reps por serie, "última vez" como referencia (nunca copia las reps), drop sets, ejercicios unilaterales (izq/der), notas por ejercicio y temporizador de descanso que no se pierde al cambiar de pestaña.
-- **Al terminar:** duración, series, kg movidos, récords, comparación con la última vez y un check-in (sensación, sueño, molestias) que ajusta los consejos.
-- **Progreso:** rangos por músculo, series por músculo a la semana, récords del último mes, ejercicios estancados, fuerza por ejercicio (1RM estimado) y cintura/peso como tendencia.
-- **Inicio:** entreno del día, racha de semanas, kg y tiempo de la semana, y revisión semanal con propuestas que solo se aplican si las aceptas.
-- **Entrenador por chat:** preguntas libres a la IA, que conoce tu plan, tus entrenos, molestias y sueño (orientativo).
-- **Biblioteca:** 873 ejercicios con fotos (fuerza, cardio, estiramientos, pliometría, halterofilia y strongman); cada uno se puede medir por peso y reps, tiempo, distancia o km y minutos,, claves de técnica, favoritos y ejercicios propios.
-- **Dieta:** calorías y proteína por comida, escáner de código de barras (Open Food Facts), foto del plato con IA (opcional, clave gratis de Groq) y calculadora de objetivos (kcal y proteína) que no guarda tu peso ni tu edad.
-- **Reloj Polar (opcional):** pasos, calorías, pulso de tus entrenos y **sueño** (horas, hora de acostarte, regularidad, fases si tu reloj las tiene) con análisis y consejos.
-- **Copia de seguridad** (exportar/importar JSON).
+- **Inicio**: saludo, entreno de hoy y siguiente sesión, botón **Comenzar entrenamiento** (continuar el que está a medias, el programado, otra rutina o uno libre), cifras de la semana (entrenos, tiempo, volumen, racha), último entreno, récords de la semana, sueño, recomendaciones, reloj y dieta de hoy.
+- **Entrenamiento**: semana con lo hecho (✓), rutina de hoy, últimos entrenos con detalle (series, RIR, pulso del reloj), entreno libre y chat con el entrenador.
+- **Entreno en curso**: peso de referencia de la última vez con las **repeticiones siempre vacías**, series de calentamiento (no cuentan en volumen ni récords), drop sets, unilateral izq/der, series por tiempo/distancia/cardio, notas, cronómetro, descanso con pausar / reanudar / omitir / ±15 s, sugerencia de subir o mantener peso, técnica y músculos de cada ejercicio, estado de guardado. Al terminar: duración, ejercicios, series, kg, récords comprobados contra el histórico, comparación con la última vez y check-in.
+- **Rutinas**: tus días (editor con borrador y guardar), **generador paso a paso** (objetivo hipertrofia / fuerza / recomposición / salud, nivel, días —también semanas desiguales—, tiempo, reparto por día, material, músculo a priorizar, molestias y ejercicios a evitar, favoritos con prioridad, «Sorpréndeme») con resumen editable y análisis de volumen efectivo, frecuencia, solapamiento, multiarticulares y duración; biblioteca de 873 ejercicios con fotos, búsqueda, filtros por grupo y material, orden y favoritos; mejorar la rutina con IA.
+- **Progreso**: cifras del mes y consistencia, objetivo (definir / recomposición / ganar músculo) con control de peso, cintura y fotos, rangos por músculo («Tu personaje»), **mapa muscular frontal y posterior** por semana / 4 semanas / mes (series directas e indirectas, frecuencia), récords y estancados, sueño, cuerpo e historial por ejercicio con lectura honesta del progreso (más peso, más reps, más volumen, estable, bajón o pocos datos).
+- **Perfil**: cuenta, reloj Polar, entrenador / alumnos, ajustes (objetivos, descanso, avisos, IA, copias de seguridad) y tu cuerpo.
+- **Dieta** (desde Inicio): calorías y macros por comida, escáner de código de barras (Open Food Facts), foto del plato con IA (opcional), balance con el reloj y «Dieta del día». Los valores marcan si son estimados (≈) o de etiqueta (✓).
+- **Reloj Polar** (opcional): entrenos con pulso y zonas, pasos y calorías, sueño y recarga nocturna.
+- **Cuentas y nube**: Supabase (email + contraseña). Los datos viven en el móvil y se guardan en la cuenta; se pueden exportar e importar en JSON. Entrenadores: solicitudes, mensajes y entrenos propuestos que el alumno acepta o rechaza.
 
-## Privacidad
-Todo se guarda solo en el móvil de cada persona (localStorage e IndexedDB). No hay cuentas ni servidor propio de datos. Las únicas salidas son las que usas tú: Groq (fotos/IA; sin clave propia pasa por el Worker con un límite diario), Open Food Facts (escáner) y Polar/avisos a través de un Worker de Cloudflare.
-
-## Publicarla gratis (GitHub Pages)
-1. Crea un repositorio en GitHub y sube todo este proyecto a la rama `main`.
-2. En el repo: **Settings → Pages → Source: GitHub Actions**.
-3. Al hacer push se publica sola (workflow incluido). La URL será `https://TU_USUARIO.github.io/NOMBRE_REPO/`.
-
-Otras opciones gratis: Cloudflare Pages o Netlify (comando `npm run build`, carpeta `dist`).
-
-## Instalarla en el iPhone
-Abre la URL en **Safari** → botón Compartir → **Añadir a pantalla de inicio**.
-Instalada así, iOS no borra los datos por inactividad. Haz copias de seguridad desde Ajustes de vez en cuando.
+## Datos y seguridad
+- Documento `migym.v1` en `localStorage` (versionado: `v`, migraciones aditivas en `src/migrate.js`; antes de migrar se guarda `migym.v1.pre-<v>`). Fotos de progreso en IndexedDB, solo en el móvil.
+- Nube: tabla `user_data` (un JSON por usuario) con RLS. Al sincronizar nunca se pierde un entreno: si hay cambios en los dos sitios, las sesiones se unen por id.
+- Secretos (Polar, Groq) solo en el Worker de Cloudflare. La clave *publishable* de Supabase es pública por diseño.
 
 ## Desarrollo
 ```
 npm install
-npm run dev      # servidor local
-npm run build    # genera dist/
-npm test         # pruebas de la lógica (generador, estadísticas)
+npm run dev                      # servidor local
+npm run build                    # genera dist/
+npm test                         # lógica: generador, estadísticas, migraciones, series, entrenador
+VITE_CLOUD=off npm run build && npx vite preview --port 4173   # app sin cuentas para pruebas de navegador
+CHROME=/ruta/a/chrome python3 tests/test_session2.py           # entreno activo (Playwright)
+CHROME=/ruta/a/chrome python3 tests/test_generator2.py         # generador
+CHROME=/ruta/a/chrome python3 tests/shots.py                   # capturas móvil y escritorio en tests/shots/
 ```
 
+## Despliegue y vuelta atrás
+- Publicar: merge a `main` → Actions construye y publica en Pages (~2 min). Base `./`, manifest `manifest-v4.webmanifest`.
+- Rollback: `git revert` del merge (o volver a la etiqueta anterior) y push a `main`. Las migraciones de datos son aditivas, así que una versión anterior sigue leyendo los datos; además queda la copia `migym.v1.pre-<v>` en el móvil.
+
 ## Créditos
-Fotos de ejercicios: [free-exercise-db](https://github.com/yuhonas/free-exercise-db) (dominio público).
-Productos de súper: [Open Food Facts](https://world.openfoodfacts.org). Los valores de la lista de alimentos son aproximados.
+Fotos de ejercicios: [free-exercise-db](https://github.com/yuhonas/free-exercise-db) (dominio público). Productos de súper: [Open Food Facts](https://world.openfoodfacts.org). Los valores de la lista de alimentos son aproximados.

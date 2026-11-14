@@ -1,6 +1,7 @@
+import os
 from playwright.sync_api import sync_playwright
 with sync_playwright() as p:
-    b=p.chromium.launch(executable_path='/usr/bin/google-chrome',args=['--no-sandbox'])
+    b=p.chromium.launch(executable_path=os.environ.get('CHROME') or None, args=['--no-sandbox'])
     pg=b.new_context(viewport={'width':390,'height':844},device_scale_factor=2).new_page(); errs=[]; pg.on('pageerror',lambda e:errs.append(str(e)))
     pg.clock.set_fixed_time('2026-11-08T12:00:00')
     pg.goto('http://127.0.0.1:4173/'); pg.wait_for_selector('.tabbar')
@@ -10,8 +11,8 @@ with sync_playwright() as p:
       localStorage.setItem('migym.v1',JSON.stringify(d))}""")
     pg.reload(); pg.wait_for_timeout(1500)
     ms=pg.locator('.card:has-text("Series por músculo")'); ms.scroll_into_view_if_needed(); print(ms.inner_text().replace('\n',' | '))
-    ms.screenshot(path='/home/claude/shots/msets2.png')
+    ms.screenshot(path='tests/shots/msets2.png')
     pg.click('.rank-card'); pg.wait_for_timeout(700)
     print(pg.locator('.sheet').inner_text().replace('\n',' | ')[:1300])
-    pg.locator('.sheet .mq').screenshot(path='/home/claude/shots/mq_sec.png')
+    pg.locator('.sheet .mq').screenshot(path='tests/shots/mq_sec.png')
     print('ERR',errs)

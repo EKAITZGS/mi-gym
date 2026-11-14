@@ -1,6 +1,7 @@
 import React from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App'
+import ErrorBoundary from './ErrorBoundary'
 import { editGuard } from './Workout'
 import './styles.css'
 import { registerSW } from 'virtual:pwa-register'
@@ -22,7 +23,9 @@ const updateSW = registerSW({
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <App />
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
   </React.StrictMode>
 )
 

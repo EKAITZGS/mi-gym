@@ -3,15 +3,17 @@ import { EXERCISES, EX_BY_ID, GROUPS } from './data/exercises'
 import { WEEKDAYS, addDays, uid, lastSets, prefillSets, exStats, suggestion, fmtKg, num, pad, TRACKS, trackOf, setFilled, setTxt, todayStr } from './store'
 import { Modal, Thumb, LineChart, ExPhoto } from './ui'
 import { techFor } from './data/technique'
-import { nightsOf } from './stats'
+import { nightsOf, progressRead, streakWeeks, weekTotals, recentPRs } from './stats'
 import Icon from './icons'
 import WeeklyReview, { CoachChat } from './Review'
-import { LEVELS, EQUIP, MINUTES, DAY_TYPES, SPLITS, DEFAULT_WEEKDAYS, splitFor, typesFor, pickFor, prescribe, buildDay, buildPlan, stripSlots } from './plans'
+import { LEVELS, EQUIP, MINUTES, DAY_TYPES, SPLITS, GOALS, DEFAULT_WEEKDAYS, splitFor, typesFor, pickFor, prescribe, buildDay, buildPlan, stripSlots, analyzePlan } from './plans'
 import Setup from './Setup'
 import { PlanVolume } from './Extras'
-import { FEELINGS, ZONES, adviceFor, painFor, needsDeload } from './coach'
+import { FEELINGS, ZONES, adviceFor, painFor, needsDeload, recentPains, zoneHits } from './coach'
+import { groupsOf } from './ranks'
 import Coach from './Coach.jsx'
-import { DayModal, doneSessions } from './DayDetail'
+import { DayModal, doneSessions, fmtDay } from './DayDetail'
+import { State, SyncPill, Badge, Stat, fmtMin, miles } from './ds'
 
 const ORDER = [1, 2, 3, 4, 5, 6, 0] // lunes primero
 
@@ -22,15 +24,19 @@ export function ExerciseModal({ ex, data, setData, onClose, onPick, pickLabel, o
     setData((d) => ({ ...d, favEx: fav ? (d.favEx || []).filter((x) => x !== ex.id) : [...(d.favEx || []), ex.id] }))
   const stats = useMemo(() => exStats(data.sessions, ex.id), [data.sessions, ex.id])
   const [metric, setMetric] = useState('e1rm')
+  const [allHist, setAllHist] = useState(false)
   const bestAll = stats.reduce((m, x) => (!m || x.best.e > m.e ? x.best : m), null)
+  const bestReps = stats.reduce((m, x) => (!m || x.best.r > m.r || (x.best.r === m.r && x.best.w > m.w) ? x.best : m), null)
+  const read = useMemo(() => progressRead(stats), [stats])
   const history = useMemo(() => {
     const out = []
-    for (let i = data.sessions.length - 1; i >= 0 && out.length < 5; i--) {
+    for (let i = data.sessions.length - 1; i >= 0 && out.length < (allHist ? 200 : 5); i--) {
       const sets = data.sessions[i].entries?.[ex.id]
       if (sets) out.push({ date: data.sessions[i].date, sets })
     }
     return out
-  }, [data.sessions, ex.id])
+  }, [data.sessions, ex.id, allHist])
+  const nHist = useMemo(() => data.sessions.filter((s) => s.entries?.[ex.id]).length, [data.sessions, ex.id])
   return (
     <Modal title={ex.name} onClose={onClose}>
       <ExPhoto ex={ex} />
@@ -69,6 +75,10 @@ export function ExerciseModal({ ex, data, setData, onClose, onPick, pickLabel, o
           <h4>Progreso</h4>
           <p className="muted small">
             Mejor serie: <b>{fmtKg(bestAll.w)} kg × {bestAll.r}</b> · 1RM estimado {fmtKg(Math.round(bestAll.e * 10) / 10)} kg
+            {bestReps && bestReps.r !== bestAll.r ? ` · más reps: ${bestReps.r} con ${fmtKg(bestReps.w)} kg` : ''}
+          </p>
+          <p className="prog-read">
+            <span className={'prog-kind ' + read.kind}>{{ weight: 'Progresas en peso', reps: 'Progresas en repeticiones', volume: 'Más volumen', flat: 'Estable', down: 'Por debajo', few: 'Pocos datos' }[read.kind]}.</span> {read.text}
           </p>
           <div className="chips">
             <button className={'chip' + (metric === 'e1rm' ? ' on' : '')} onClick={() => setMetric('e1rm')}>
@@ -83,8 +93,8 @@ export function ExerciseModal({ ex, data, setData, onClose, onPick, pickLabel, o
       )}
       <h4>Historial</h4>
       {history.length === 0 && <p className="muted">Aún no has registrado este ejercicio.</p>}
-      {history.map((h) => (
-        <div key={h.date} className="hist">
+      {history.map((h, hi) => (
+        <div key={h.date + hi} className="hist">
           <b>{h.date}</b>
           <div>
             {h.sets.map((s, i) => (
@@ -96,6 +106,11 @@ export function ExerciseModal({ ex, data, setData, onClose, onPick, pickLabel, o
           </div>
         </div>
       ))}
+      {!allHist && nHist > 5 && (
+        <button className="link small" onClick={() => setAllHist(true)}>
+          Ver las {nHist} sesiones
+        </button>
+      )}
     </Modal>
   )
 }
@@ -133,24 +148,44 @@ function CreateExercise({ onClose, onCreate }) {
   )
 }
 
-export function Library({ data, setData, onPick, onClose, inline, title, noCreate }) {
+export function Library({ data, setData, onPick, onClose, inline, title, noCreate, pickLabel }) {
   const [creating, setCreating] = useState(false)
   const [q, setQ] = useState('')
   const [group, setGroup] = useState('Todos')
   const [open, setOpen] = useState(null)
+  const [equipF, setEquipF] = useState('Todo')
+  const [sort, setSort] = useState('rel') // rel (favoritos y usados primero) | az | used
+  const [more, setMore] = useState(false)
   // se enseñan pocos ejercicios a la vez para que la lista vaya fluida; "Ver más" carga el resto
   const PAGE = 12
   const [limit, setLimit] = useState(PAGE)
-  useEffect(() => setLimit(PAGE), [q, group])
+  useEffect(() => setLimit(PAGE), [q, group, equipF, sort])
   const favs = data.favEx || []
+  // veces que has hecho cada ejercicio (para ordenar por uso)
+  const used = useMemo(() => {
+    const m = {}
+    for (const s of data.sessions || []) for (const id of Object.keys(s.entries || {})) m[id] = (m[id] || 0) + 1
+    return m
+  }, [data.sessions])
+  const EQ = ['Todo', 'Barra', 'Mancuernas', 'Máquina', 'Polea', 'Peso corporal', 'Otro']
   const list = EXERCISES.filter(
     (e) =>
-      (group === 'Todos' || (group === '★' ? favs.includes(e.id) : e.group === group)) && (!q || q.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').split(/\s+/).filter(Boolean).every((w) => searchText(e).includes(w)))
+      (group === 'Todos' || (group === '★' ? favs.includes(e.id) : e.group === group)) &&
+      (equipF === 'Todo' || e.equip === equipF || (equipF === 'Barra' && e.equip === 'Barra Z') || (equipF === 'Otro' && !['Barra', 'Barra Z', 'Mancuernas', 'Máquina', 'Polea', 'Peso corporal'].includes(e.equip))) &&
+      (!q || q.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').split(/\s+/).filter(Boolean).every((w) => searchText(e).includes(w)))
   )
-  list.sort((a, b) => favs.includes(b.id) - favs.includes(a.id))
+  const cmp = (a, b) => a.name.localeCompare(b.name, 'es')
+  if (sort === 'az') list.sort(cmp)
+  else if (sort === 'used') list.sort((a, b) => (used[b.id] || 0) - (used[a.id] || 0) || cmp(a, b))
+  else list.sort((a, b) => favs.includes(b.id) - favs.includes(a.id) || (used[b.id] ? 1 : 0) - (used[a.id] ? 1 : 0))
   const body = (
     <>
-      <input className="inp" placeholder="Buscar ejercicio…" value={q} onChange={(e) => setQ(e.target.value)} />
+      <div className="lib-search">
+        <input className="inp" placeholder="Buscar ejercicio…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Buscar ejercicio" />
+        <button className={'icon-btn' + (more || equipF !== 'Todo' || sort !== 'rel' ? ' on' : '')} onClick={() => setMore((v) => !v)} aria-label="Filtros y orden" aria-expanded={more}>
+          <Icon name="list" size={18} />
+        </button>
+      </div>
       <div className="chips">
         {['Todos', ...(favs.length ? ['★'] : []), ...GROUPS, 'Cardio', 'Estiramientos'].map((g) => (
           <button key={g} className={'chip' + (g === group ? ' on' : '')} onClick={() => setGroup(g)}>
@@ -158,6 +193,25 @@ export function Library({ data, setData, onPick, onClose, inline, title, noCreat
           </button>
         ))}
       </div>
+      {more && (
+        <div className="lib-filters">
+          <div className="chips wrap">
+            {EQ.map((e) => (
+              <button key={e} className={'chip sm' + (equipF === e ? ' on' : '')} onClick={() => setEquipF(e)}>
+                {e}
+              </button>
+            ))}
+          </div>
+          <div className="seg seg3">
+            {[['rel', 'Relevancia'], ['used', 'Más hechos'], ['az', 'A–Z']].map(([v, l]) => (
+              <button key={v} className={sort === v ? 'on' : ''} onClick={() => setSort(v)}>
+                {l}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      <p className="muted small" style={{ margin: '0 0 6px' }}>{list.length} {list.length === 1 ? 'ejercicio' : 'ejercicios'}</p>
       <div className="list">
         {list.slice(0, limit).map((e) => (
           <button key={e.id} className="row" onClick={() => setOpen(e)}>
@@ -168,7 +222,8 @@ export function Library({ data, setData, onPick, onClose, inline, title, noCreat
                 {e.name}
               </div>
               <div className="muted small">
-                {e.group} · {e.equip}
+                {e.main?.length ? e.main.join(', ') : e.group} · {e.equip}
+                {used[e.id] ? ` · ${used[e.id]}×` : ''}
               </div>
             </div>
             {onPick && <span className="plus"><Icon name="plus" size={18} /></span>}
@@ -202,6 +257,7 @@ export function Library({ data, setData, onPick, onClose, inline, title, noCreat
           setData={setData}
           onClose={() => setOpen(null)}
           onPick={onPick ? () => (onPick(open), setOpen(null)) : null}
+          pickLabel={pickLabel}
           onDelete={
             open.custom
               ? () => {
@@ -234,23 +290,36 @@ const restTxt = (s) => (s >= 60 ? `${Math.floor(s / 60)}:${pad(s % 60)}` : `${s}
 // Sustituye el plan con días fijos; conserva los días sin día fijo y no toca el historial
 export function Generator({ data, setData, onClose }) {
   const guess = data.sessions.length < 12 ? 'beginner' : data.sessions.length < 60 ? 'intermediate' : 'advanced'
-  const [step, setStep] = useState(0) // 0 nivel, 1 días, 2 reparto, 3 material, 4 resultado
-  const [level, setLevel] = useState(guess)
+  // preferencias permanentes del generador (nivel, objetivo, material, exclusiones) guardadas en data.prefs.gen
+  const pref = data.prefs?.gen || {}
+  const [step, setStep] = useState(0) // 0 nivel+objetivo, 1 días, 2 reparto, 3 material/preferencias, 4 resultado
+  const [level, setLevel] = useState(pref.level || guess)
+  const [goal, setGoal] = useState(pref.goal || 'hyper')
   const [wds, setWds] = useState(() => {
     const cur = [...new Set(data.plan.filter((d) => d.weekday != null).map((d) => d.weekday))]
-    return cur.length ? cur : DEFAULT_WEEKDAYS[LEVELS.find((l) => l.id === guess).days]
+    return cur.length ? cur : DEFAULT_WEEKDAYS[LEVELS.find((l) => l.id === pref.level || l.id === guess).days]
   })
-  const [n, setN] = useState(6)
+  const [n, setN] = useState(pref.n || 6)
   const [types, setTypes] = useState({}) // día de la semana -> tipo elegido a mano
-  const [equip, setEquip] = useState(EQUIP)
-  const [focus, setFocus] = useState(null)
+  const [equip, setEquip] = useState(pref.equip || EQUIP)
+  const [focus, setFocus] = useState(pref.focus || null)
+  const [exclude, setExclude] = useState(pref.exclude || []) // ids que no quiere
+  const [zones, setZones] = useState(pref.zones || []) // molestias/limitaciones elegidas
+  const [picker, setPicker] = useState(false)
   const [plan, setPlan] = useState(null)
   const lv = LEVELS.find((l) => l.id === level)
   const days = ORDER.filter((w) => wds.includes(w))
   const auto = typesFor(splitFor(days.length), days.length)
   const dayList = days.map((w, i) => ({ weekday: w, type: types[w] || auto[i] }))
-  const opts = { level, n, equip, focus }
+  const minutes = MINUTES.find((m) => m.n === n)?.min || 60
+  // molestias recientes del check-in: se evitan solas (y se enseñan)
+  const pains = [...new Set(recentPains(data.sessions).map((p) => p.zone))]
+  const allZones = [...new Set([...zones, ...pains])]
+  const zoneExclude = allZones.length ? EXERCISES.filter((x) => allZones.some((z) => zoneHits(z, x.id))).map((x) => x.id) : []
+  const prefer = data.favEx || []
+  const opts = { level, n, equip, focus, goal, exclude: [...exclude, ...zoneExclude], prefer }
   const usedIn = (p) => new Set(p.flatMap((d) => d.items.map((i) => i.ex)))
+  const analysis = plan ? analyzePlan(plan, { minutes }, groupsOf) : null
 
   const make = (list = dayList) => {
     setPlan(buildPlan({ days: list, ...opts }))
@@ -278,14 +347,21 @@ export function Generator({ data, setData, onClose }) {
               ...d,
               items: d.items.map((i) => {
                 if (i.id !== itemId) return i
-                const x = pickFor(i.slot, { equip, used, avoid: d.items.map((o) => o.ex) })
-                return x ? { ...i, ex: x.id, ...prescribe(x, level, focus) } : i
+                const x = pickFor(i.slot, { ...opts, used, avoid: d.items.map((o) => o.ex) })
+                return x ? { ...i, ex: x.id, ...prescribe(x, level, focus, goal) } : i
               }),
             },
       )
     })
+  const patchItem = (dayId, itemId, p) => setPlan((pl) => pl.map((d) => (d.id !== dayId ? d : { ...d, items: d.items.map((i) => (i.id === itemId ? { ...i, ...p } : i)) })))
+  const dropItem = (dayId, itemId) => setPlan((pl) => pl.map((d) => (d.id !== dayId ? d : { ...d, items: d.items.filter((i) => i.id !== itemId) })))
   const save = () => {
-    setData((d) => ({ ...d, plan: [...stripSlots(plan), ...d.plan.filter((x) => x.weekday == null)], setupDone: true }))
+    setData((d) => ({
+      ...d,
+      plan: [...stripSlots(plan), ...d.plan.filter((x) => x.weekday == null)],
+      setupDone: true,
+      prefs: { ...(d.prefs || {}), gen: { level, goal, n, equip, focus, exclude, zones } },
+    }))
     onClose(true)
   }
   const nav = (back, next, label = 'Siguiente', disabled = false) => (
@@ -302,7 +378,7 @@ export function Generator({ data, setData, onClose }) {
   )
 
   return (
-    <Modal title="Plan automático" onClose={() => onClose(false)}>
+    <Modal title="Generar rutina" onClose={() => onClose(false)}>
       <div className="steps">
         {[0, 1, 2, 3, 4].map((s) => (
           <span key={s} className={'stepdot' + (s === step ? ' on' : s < step ? ' done' : '')} />
@@ -311,7 +387,19 @@ export function Generator({ data, setData, onClose }) {
 
       {step === 0 && (
         <>
-          <h4 style={{ marginTop: 0 }}>¿Cuál es tu nivel?</h4>
+          <h4 style={{ marginTop: 0 }}>¿Qué buscas?</h4>
+          <div className="list">
+            {GOALS.map((g) => (
+              <button key={g.id} className={'row opt' + (goal === g.id ? ' on' : '')} onClick={() => setGoal(g.id)}>
+                <div className="grow">
+                  <b>{g.label}</b>
+                  <div className="muted small">{g.hint}</div>
+                </div>
+                {goal === g.id && <span className="plus"><Icon name="check" size={18} /></span>}
+              </button>
+            ))}
+          </div>
+          <h4>¿Cuál es tu nivel?</h4>
           <div className="list">
             {LEVELS.map((l) => (
               <button key={l.id} className={'row opt' + (level === l.id ? ' on' : '')} onClick={() => setLevel(l.id)}>
@@ -328,7 +416,7 @@ export function Generator({ data, setData, onClose }) {
           </div>
           {nav(null, () => setStep(1))}
           <button className="btn full" onClick={surprise} disabled={!days.length}>
-            <Icon name="sparkle" size={16} /> Sorpréndeme (sin más preguntas)
+            <Icon name="sparkle" size={16} /> Sorpréndeme, decide por mí
           </button>
         </>
       )}
@@ -344,7 +432,7 @@ export function Generator({ data, setData, onClose }) {
             ))}
           </div>
           <p className="muted small">
-            {days.length} {days.length === 1 ? 'día' : 'días'} a la semana · recomendado: {lv.range}
+            {days.length} {days.length === 1 ? 'día' : 'días'} a la semana · recomendado: {lv.range}. Puede ser una semana desigual (p. ej. lunes, martes y viernes).
           </p>
           {level === 'beginner' && days.length >= 5 && (
             <p className="toast warn small">Siendo principiante, más de 4 días suele ser demasiado: recuperarás peor.</p>
@@ -374,7 +462,7 @@ export function Generator({ data, setData, onClose }) {
               </button>
             ))}
           </div>
-          <p className="muted small">Toca un reparto o cambia cada día a tu gusto.</p>
+          <p className="muted small">Toca un reparto o decide tú qué toca cada día: nadie te obliga a dos días de pierna.</p>
           {dayList.map((d) => (
             <div key={d.weekday} className="sum-row">
               <b>{WEEKDAYS[d.weekday]}</b>
@@ -423,53 +511,118 @@ export function Generator({ data, setData, onClose }) {
             ))}
           </div>
           {focus && <p className="muted small">{focus}: una serie más en cada ejercicio.</p>}
-          {nav(2, () => make(), 'Crear plan')}
+          <h4>Molestias o limitaciones</h4>
+          <div className="chips wrap">
+            {ZONES.filter((z) => z.id !== 'Otra').map((z) => {
+              const on = zones.includes(z.id)
+              const auto = pains.includes(z.id)
+              return (
+                <button key={z.id} className={'chip sm' + (on || auto ? ' on' : '')} onClick={() => setZones((s) => (on ? s.filter((x) => x !== z.id) : [...s, z.id]))}>
+                  {z.id}
+                  {auto ? ' ·' : ''}
+                </button>
+              )
+            })}
+          </div>
+          <p className="muted small">
+            {pains.length ? `Por tus check-ins recientes evitaré lo que carga: ${pains.join(', ')}. ` : ''}
+            Se evitan los ejercicios que cargan esas zonas.
+          </p>
+          <h4>Ejercicios que no quieres</h4>
+          <div className="chips wrap">
+            {exclude.map((id) => (
+              <button key={id} className="chip sm on" onClick={() => setExclude((s) => s.filter((x) => x !== id))} aria-label={`Quitar exclusión de ${EX_BY_ID[id]?.name || id}`}>
+                {EX_BY_ID[id]?.name || id} ×
+              </button>
+            ))}
+            <button className="chip sm" onClick={() => setPicker(true)}>
+              + Añadir
+            </button>
+          </div>
+          {prefer.length > 0 && <p className="muted small">Tus {prefer.length} favoritos tienen prioridad al elegir.</p>}
+          {picker && <Library data={data} setData={setData} noCreate title="Ejercicio a evitar" pickLabel="Evitar este ejercicio" onPick={(x) => (setExclude((s) => (s.includes(x.id) ? s : [...s, x.id])), setPicker(false))} onClose={() => setPicker(false)} />}
+          {nav(2, () => make(), 'Crear rutina')}
         </>
       )}
 
       {step === 4 && plan && (
         <>
           <p className="muted small" style={{ marginTop: 0 }}>
-            Toca <Icon name="swap" size={13} className="inl" /> para cambiar un ejercicio o rehaz un día entero. RIR = reps que te
-            quedan en reserva al acabar la serie.
+            Revisa y ajusta antes de guardar: cambia ejercicios <Icon name="swap" size={13} className="inl" />, series (− / +), quita o rehaz un día. RIR = reps que te quedan en reserva.
           </p>
-          {plan.map((d) => (
-            <div key={d.id} className="card" style={{ padding: 12 }}>
-              <div className="sec-head nm">
-                <b>
-                  {WEEKDAYS[d.weekday]} · {d.name}
-                </b>
-                <button className="link small" onClick={() => regenDay(d.id)}>
-                  Rehacer día
-                </button>
-              </div>
-              {d.items.map((i) => {
-                const ex = EX_BY_ID[i.ex]
-                return (
-                  <div key={i.id} className="row nob">
-                    <Thumb ex={ex} size={40} />
-                    <div className="grow">
-                      <div>{ex?.name}</div>
-                      <div className="muted small">
-                        {i.sets}×{i.reps} · RIR {i.rir} · descanso {restTxt(i.rest)}
+          {plan.map((d) => {
+            const an = analysis?.days.find((x) => x.id === d.id)
+            return (
+              <div key={d.id} className="card" style={{ padding: 12 }}>
+                <div className="sec-head nm">
+                  <b>
+                    {WEEKDAYS[d.weekday]} · {d.name}
+                  </b>
+                  <span className="muted small">{an ? `~${an.minutes} min · ${an.sets} series` : ''}</span>
+                </div>
+                {d.items.map((i) => {
+                  const ex = EX_BY_ID[i.ex]
+                  return (
+                    <div key={i.id} className="row nob gen-item">
+                      <Thumb ex={ex} size={40} />
+                      <div className="grow">
+                        <div>{ex?.name}</div>
+                        <div className="muted small">
+                          {i.sets}×{i.reps} · RIR {i.rir} · descanso {restTxt(i.rest)}
+                        </div>
+                      </div>
+                      <div className="gen-ctl">
+                        <button className="icon-btn ghost" aria-label="Una serie menos" disabled={i.sets <= 1} onClick={() => patchItem(d.id, i.id, { sets: i.sets - 1 })}>−</button>
+                        <button className="icon-btn ghost" aria-label="Una serie más" disabled={i.sets >= 8} onClick={() => patchItem(d.id, i.id, { sets: i.sets + 1 })}>+</button>
+                        <button className="icon-btn ghost" aria-label={`Cambiar ${ex?.name}`} onClick={() => swap(d.id, i.id)}>
+                          <Icon name="swap" size={17} />
+                        </button>
+                        <button className="icon-btn ghost" aria-label={`Quitar ${ex?.name}`} onClick={() => dropItem(d.id, i.id)}>
+                          <Icon name="x" size={16} />
+                        </button>
                       </div>
                     </div>
-                    <button className="icon-btn" aria-label={`Cambiar ${ex?.name}`} onClick={() => swap(d.id, i.id)}>
-                      <Icon name="swap" size={18} />
-                    </button>
-                  </div>
-                )
-              })}
+                  )
+                })}
+                <button className="link small" onClick={() => regenDay(d.id)}>
+                  Rehacer este día
+                </button>
+              </div>
+            )
+          })}
+          {analysis && (
+            <div className="card">
+              <div className="sec-head nm">
+                <b>Análisis de la semana</b>
+                <span className="muted small">{analysis.total.sets} series · ~{analysis.total.minutes} min</span>
+              </div>
+              <div className="gen-freq">
+                {Object.entries(analysis.groups)
+                  .filter(([g]) => g !== 'Antebrazo')
+                  .map(([g, v]) => (
+                    <span key={g} className="badge">
+                      {g}: {v.eff} series · {v.freq}×/sem
+                    </span>
+                  ))}
+              </div>
+              <p className="muted small">Series efectivas = directas + la mitad de las que tocan el músculo de rebote (p. ej. el press suma a tríceps). Supuesto habitual: 10-20 por músculo y semana; no es una regla fija.</p>
+              {analysis.warnings.map((w, i) => (
+                <div key={'w' + i} className="advice yellow sm">{w}</div>
+              ))}
+              {analysis.notes.map((w, i) => (
+                <div key={'n' + i} className="advice sm" style={{ borderColor: 'var(--line)' }}>{w}</div>
+              ))}
+              {!analysis.warnings.length && !analysis.notes.length && <div className="advice green sm">Volumen, frecuencia y duración coherentes con tu objetivo.</div>}
             </div>
-          ))}
+          )}
           <PlanVolume days={plan} />
-          <p className="muted small">Sustituye tu plan actual. Tu historial de entrenos no se toca.</p>
+          <p className="muted small">Sustituye tus días con día fijo. Tu historial de entrenos no se toca.</p>
           <div className="wizard-nav">
             <button className="btn" onClick={() => setStep(3)}>
               <Icon name="left" size={16} /> Atrás
             </button>
-            <button className="btn primary" onClick={save}>
-              <Icon name="check" size={16} /> Guardar plan
+            <button className="btn primary" onClick={save} disabled={!plan.some((d) => d.items.length)}>
+              <Icon name="check" size={16} /> Guardar rutina
             </button>
           </div>
           <button className="link" onClick={() => make(plan.map((d) => ({ weekday: d.weekday, type: d.type })))}>
@@ -837,27 +990,72 @@ const restSecs = () => {
   }
 }
 // shortcut: sin sonido (iOS no deja sonar ni vibrar a una PWA sin toque), solo aviso visual; si hace falta, usar un aviso push
-function RestTimer({ end, onAdd, onClose }) {
+// rest = { end (ms), item, left? }: con `left` (segundos) está en pausa
+function RestTimer({ rest, onAdd, onPause, onClose }) {
   const [now, setNow] = useState(Date.now())
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 500)
     return () => clearInterval(t)
   }, [])
-  const left = Math.ceil((end - now) / 1000)
+  const paused = rest.left != null
+  const left = paused ? rest.left : Math.ceil((rest.end - now) / 1000)
   useEffect(() => {
+    if (paused) return
     if (left === 0) navigator.vibrate?.(300)
     if (left < -8) onClose()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [left])
+  }, [left, paused])
   return (
-    <div className={'restbar' + (left <= 0 ? ' go' : '')} role="timer">
+    <div className={'restbar' + (left <= 0 ? ' go' : '') + (paused ? ' paused' : '')} role="timer" aria-live="polite">
       <span className="rest-t">{left > 0 ? `${Math.floor(left / 60)}:${pad(left % 60)}` : '¡Siguiente serie!'}</span>
-      {left > 0 && <span className="muted small grow">descanso</span>}
-      {left > 0 && <button onClick={() => onAdd(-15)}>−15 s</button>}
-      {left > 0 && <button onClick={() => onAdd(15)}>+15 s</button>}
-      <button aria-label="Cerrar descanso" onClick={onClose}>
-        <Icon name="x" size={16} />
+      {left > 0 && <span className="muted small grow">{paused ? 'en pausa' : 'descanso'}</span>}
+      {left > 0 && <button onClick={() => onAdd(-15)} aria-label="Quitar 15 segundos">−15</button>}
+      {left > 0 && <button onClick={() => onAdd(15)} aria-label="Añadir 15 segundos">+15</button>}
+      {left > 0 && (
+        <button onClick={onPause} aria-label={paused ? 'Reanudar descanso' : 'Pausar descanso'}>
+          <Icon name={paused ? 'play' : 'pause'} size={15} fill={paused ? 'currentColor' : 'none'} stroke={paused ? 0 : 2.2} />
+        </button>
+      )}
+      <button aria-label={left > 0 ? 'Omitir descanso' : 'Cerrar'} onClick={onClose}>
+        <Icon name={left > 0 ? 'skip' : 'x'} size={16} />
       </button>
+    </div>
+  )
+}
+
+// Cabecera del entreno en curso: cronómetro, series hechas y estado de guardado
+function SesHead({ a, items, cloud, online }) {
+  const [, tick] = useState(0)
+  useEffect(() => {
+    const t = setInterval(() => tick((x) => x + 1), 30000)
+    return () => clearInterval(t)
+  }, [])
+  const mins = a.start ? Math.max(0, Math.round((Date.now() - a.start) / 60000)) : null
+  let total = 0, done = 0
+  for (const it of items) {
+    const sets = a.entries?.[it.ex] || []
+    for (const s of sets) {
+      if (s.warm) continue
+      total++
+      if (s.done || s.r || s.r2 || s.s || s.m || s.km || s.min) done++
+    }
+  }
+  return (
+    <div className="ses-head">
+      <div className="ses-stats">
+        <div>
+          <b>{mins != null ? fmtMin(mins) : '—'}</b>
+          <span>tiempo</span>
+        </div>
+        <div>
+          <b>
+            {done}
+            <small>/{total}</small>
+          </b>
+          <span>series</span>
+        </div>
+      </div>
+      <SyncPill cloud={cloud} online={online} />
     </div>
   )
 }
@@ -869,7 +1067,7 @@ const setsVol = (sets) =>
   sets.reduce((t, s) => t + num(s.w) * num(s.r) + (s.drops || []).reduce((q, x) => q + num(x.w) * num(x.r), 0), 0)
 const setsTxt = (sets) => sets.map(setTxt).join(', ')
 
-function Session({ data, setData, onExit }) {
+function Session({ data, setData, onExit, cloud, online }) {
   const a = data.active
   const day = a ? data.plan.find((d) => d.id === a.dayId) : null
   const items = a?.items || day?.items || []
@@ -900,8 +1098,15 @@ function Session({ data, setData, onExit }) {
       return {
         ...act,
         items: it?.rest ? its.map((i) => (i === it ? { ...i, rest: clampRest(i.rest + d) } : i)) : act.items,
-        rest: { ...act.rest, end: act.rest.end + d * 1000 },
+        rest: act.rest.left != null ? { ...act.rest, left: Math.max(1, act.rest.left + d) } : { ...act.rest, end: act.rest.end + d * 1000 },
       }
+    })
+  // pausar / reanudar: en pausa se guardan los segundos que quedan (sobrevive a cerrar la app)
+  const pauseRest = () =>
+    setActive((act) => {
+      if (!act.rest) return act
+      if (act.rest.left != null) return { ...act, rest: { end: Date.now() + act.rest.left * 1000, item: act.rest.item } }
+      return { ...act, rest: { ...act.rest, end: null, left: Math.max(1, Math.ceil((act.rest.end - Date.now()) / 1000)) } }
     })
   const uniOf = (it) => it.uni ?? !!data.uniEx?.[it.ex]
   const toggleUni = (it) => {
@@ -979,6 +1184,10 @@ function Session({ data, setData, onExit }) {
               </div>
             )}
             <div>
+              <b>{done.nEx}</b>
+              <span>{done.nEx === 1 ? 'ejercicio' : 'ejercicios'}</span>
+            </div>
+            <div>
               <b>{done.nSets}</b>
               <span>series</span>
             </div>
@@ -999,6 +1208,7 @@ function Session({ data, setData, onExit }) {
               ))}
             </>
           )}
+          {done.nWarm > 0 && <p className="muted small">{done.nWarm} {done.nWarm === 1 ? 'serie de calentamiento' : 'series de calentamiento'} (no cuentan en volumen ni récords).</p>}
           {done.prs.length > 0 ? (
             <>
               <h4>Récords nuevos</h4>
@@ -1085,7 +1295,7 @@ function Session({ data, setData, onExit }) {
         .map((s) => {
           const extra = Object.fromEntries(['s', 'm', 'km', 'min'].filter((k) => s[k]).map((k) => [k, s[k]]))
           const drops = s.drops.filter((x) => own(x) || x.r).map((x) => ({ w: x.w || '', r: x.r || '' }))
-          const base = { w: s.w || '', r: s.r || '', ...extra, drops }
+          const base = { w: s.w || '', r: s.r || '', ...extra, drops, ...(s.warm ? { warm: true } : {}) }
           if (!uni || !(s.r || s.r2)) return base
           // unilateral: cuenta el lado más flojo para progresar; se guardan los dos
           const l = num(s.r), rr = num(s.r2)
@@ -1117,9 +1327,11 @@ function Session({ data, setData, onExit }) {
     const mins = a.start ? Math.round((Date.now() - a.start) / 60000) : 0
     const min = mins > 0 && mins <= 240 ? mins : 0
     const vol = Math.round(Object.values(entries).reduce((t, ss) => t + setsVol(ss), 0))
-    const nSets = Object.values(entries).reduce((t, ss) => t + ss.length, 0)
+    const nSets = Object.values(entries).reduce((t, ss) => t + ss.filter((x) => !x.warm).length, 0)
+    const nWarm = Object.values(entries).reduce((t, ss) => t + ss.filter((x) => x.warm).length, 0)
+    const nEx = Object.keys(entries).length
     // sin ninguna serie no se guarda un entreno vacío (contaría como día entrenado)
-    if (!nSets) {
+    if (!nSets && !nWarm) {
       if (!confirm('No has apuntado ninguna serie, así que no se guarda nada. ¿Cerrar el entreno?')) return
       setData((d) => ({ ...d, active: null }))
       onExit()
@@ -1133,7 +1345,7 @@ function Session({ data, setData, onExit }) {
     const before = (day?.items || []).map((i) => i.ex).join('|')
     const after = items.map((i) => i.ex).join('|')
     const changed = items.length > 0 && (a.dayId === 'free' || (day && before !== after))
-    setDone({ prs, cmp, changed, items, dayId: a.dayId, name, sid, step: 'checkin', exs: Object.keys(entries), entries, min, vol, nSets })
+    setDone({ prs, cmp, changed, items, dayId: a.dayId, name, sid, step: 'checkin', exs: Object.keys(entries), entries, min, vol, nSets, nWarm, nEx })
   }
   const discard = () => {
     if (!confirm('¿Descartar este entreno sin guardar?')) return
@@ -1146,6 +1358,7 @@ function Session({ data, setData, onExit }) {
         <Icon name="left" size={18} /> Salir (se queda guardado)
       </button>
       <h1 className="title">{name}</h1>
+      <SesHead a={a} items={items} cloud={cloud} online={online} />
       {needsDeload(data.sessions) && (
         <div className="advice yellow">
           Tus últimos entrenos fueron muy duros. Hoy te propongo descarga: un 30% menos de peso y sin llegar al fallo.
@@ -1193,7 +1406,7 @@ function Session({ data, setData, onExit }) {
                 <Icon name="x" size={15} /> Quitar
               </button>
             </div>
-            <div className="row nob" onClick={() => ex && setDetail(ex)}>
+            <div className="row nob" onClick={() => ex && setDetail(ex)} role="button" tabIndex={0} aria-label={`Ficha de ${ex?.name || it.ex}`} onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && ex && (e.preventDefault(), setDetail(ex))}>
               <Thumb ex={ex} />
               <div className="grow">
                 <div>
@@ -1207,7 +1420,18 @@ function Session({ data, setData, onExit }) {
                 </div>
                 {last && (
                   <div className="muted small">
-                    Última vez: {last.sets.map(setTxt).join(', ')}
+                    Última vez ({last.date.slice(8)}/{last.date.slice(5, 7)}): {last.sets.map(setTxt).join(', ')}
+                  </div>
+                )}
+                {ex && (
+                  <div className="ex-badges">
+                    {ex.main.map((m) => (
+                      <Badge key={m} tone="accent">{m}</Badge>
+                    ))}
+                    {ex.sec.slice(0, 3).map((m) => (
+                      <Badge key={m}>{m}</Badge>
+                    ))}
+                    {ex.equip && <Badge>{ex.equip}</Badge>}
                   </div>
                 )}
                 {note && <div className="muted small">Nota anterior: {note}</div>}
@@ -1234,6 +1458,12 @@ function Session({ data, setData, onExit }) {
                 )}
               </div>
             </div>
+            {ex && !ex.custom && (
+              <details className="tech-d">
+                <summary>Técnica</summary>
+                <p>{techFor(ex)}</p>
+              </details>
+            )}
             <div className="track-row">
               <span className="muted small">Medir por</span>
               <select className="inp sm" aria-label="Cómo se mide" value={tr} onChange={(e) => setTrack(it, e.target.value)}>
@@ -1263,8 +1493,8 @@ function Session({ data, setData, onExit }) {
               const ph = phOf(i)
               return (
                 <div key={i}>
-                  <div className="setrow">
-                    <span className="setn">{i + 1}</span>
+                  <div className={'setrow' + (s.warm ? ' warm' : '')}>
+                    <span className="setn" title={s.warm ? 'Calentamiento' : undefined}>{s.warm ? 'C' : i + 1}</span>
                     <input
                       className="inp sm"
                       inputMode="decimal"
@@ -1357,11 +1587,16 @@ function Session({ data, setData, onExit }) {
                       className="link small"
                       onClick={() => patchSet(it.ex, i, (x) => ({ ...x, drops: [...x.drops, { w: '', r: '' }] }))}
                     >
-                      + drop (bajar peso)
+                      + drop
                     </button>
+                    {tr === 'reps' && (
+                      <button className={'link small' + (s.warm ? ' on-link' : '')} onClick={() => patchSet(it.ex, i, (x) => ({ ...x, warm: !x.warm }))}>
+                        {s.warm ? 'Calentamiento ✓' : 'Calentamiento'}
+                      </button>
+                    )}
                     {sets.length > 1 && (
-                      <button className="link small danger-link" onClick={() => removeSet(it.ex, i)}>
-                        Quitar serie
+                      <button className="link small danger-link" onClick={() => removeSet(it.ex, i)} aria-label="Quitar serie">
+                        Quitar
                       </button>
                     )}
                   </div>
@@ -1379,7 +1614,7 @@ function Session({ data, setData, onExit }) {
           </div>
         )
       })}
-      {rest && <RestTimer end={rest.end} onAdd={addRest} onClose={() => setRest(null)} />}
+      {rest && <RestTimer rest={rest} onAdd={addRest} onPause={pauseRest} onClose={() => setRest(null)} />}
       <button className="btn full" onClick={() => setPicker({ mode: 'add' })}>
         <Icon name="plus" size={18} /> Añadir ejercicio
       </button>
@@ -1404,19 +1639,20 @@ function Session({ data, setData, onExit }) {
 }
 
 /* ---------- Pantalla Entreno ---------- */
-export default function Workout({ data, setData, view, setView, onStart, onStartFree }) {
+export default function Workout({ data, setData, view, setView, onStart, onStartFree, mode = 'train', onOpenStart, goTab, cloud, online }) {
   const [maker, setMaker] = useState(false)
   const [chat, setChat] = useState(false)
   const [coach, setCoach] = useState(false)
   const [flash, setFlash] = useState(null)
   const [dayOpen, setDayOpen] = useState(null)
+  const [exOpen, setExOpen] = useState(null)
   useEffect(() => {
     if (!flash) return
     const t = setTimeout(() => setFlash(null), 2500)
     return () => clearTimeout(t)
   }, [flash])
 
-  if (view.name === 'session') return <Session data={data} setData={setData} onExit={() => setView({ name: 'list' })} />
+  if (view.name === 'session') return <Session data={data} setData={setData} cloud={cloud} online={online} onExit={() => setView({ name: 'list' })} />
   if (view.name === 'edit')
     return (
       <DayEditor
@@ -1450,17 +1686,124 @@ export default function Workout({ data, setData, view, setView, onStart, onStart
     setView({ name: 'edit', id: uid(), isNew: true })
   }
   const sorted = [...data.plan].sort((a, b) => ((a.weekday ?? 9) + 6) % 7 - ((b.weekday ?? 9) + 6) % 7)
+  const todays = byWeekday(today)
+  const recent = doneSessions(data).slice(-6).reverse()
+  const dayCard = (d) => {
+    const cover = EX_BY_ID[d.items[0]?.ex]
+    const groups = [...new Set(d.items.map((i) => EX_BY_ID[i.ex]?.group).filter(Boolean))]
+    const sets = d.items.reduce((n, i) => n + Number(i.sets || 0), 0)
+    return (
+      <div className={'daycard' + (d.weekday === today ? ' is-today' : '')} key={d.id}>
+        <div className={'daycover' + (cover?.imgs?.[0] ? '' : ' empty')}>
+          {cover?.imgs?.[0] ? (
+            <img src={cover.imgs[0]} alt="" loading="lazy" />
+          ) : (
+            <div className="cover-empty">
+              <Icon name="dumbbell" size={64} stroke={1.5} />
+            </div>
+          )}
+          <div className="daycover-shade" />
+          <div className="daycover-txt">
+            <span className="daypill">
+              {d.weekday != null ? WEEKDAYS[d.weekday] : 'Sin día'}
+              {d.weekday === today ? ' · Hoy' : ''}
+              {d.fromTrainer ? ' · de tu entrenador' : ''}
+            </span>
+            <h3>{d.name}</h3>
+            <span className="small">
+              {d.items.length
+                ? `${d.items.length} ejercicios · ${sets} series${groups.length ? ' · ' + groups.join(', ') : ''}`
+                : 'Sin ejercicios: añádelos al empezar o en editar'}
+            </span>
+          </div>
+        </div>
+        <div className="dayfoot">
+          <select
+            className="inp mini-sel"
+            value={d.weekday ?? ''}
+            onChange={(e) => setWeekday(d.id, e.target.value === '' ? null : Number(e.target.value))}
+            aria-label="Día de la semana"
+          >
+            <option value="">Sin día</option>
+            {ORDER.map((w) => (
+              <option key={w} value={w}>
+                {WEEKDAYS[w]}
+              </option>
+            ))}
+          </select>
+          <button className="icon-btn" onClick={() => setView({ name: 'edit', id: d.id })} aria-label="Editar">
+            <Icon name="edit" size={17} />
+          </button>
+          <button className="btn primary sm-btn" onClick={() => onStart(d.id)}>
+            <Icon name="play" size={14} fill="currentColor" stroke={0} />
+            {data.active?.dayId === d.id ? 'Seguir' : 'Empezar'}
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (mode === 'routines')
+    return (
+      <div className="page">
+        {flash && <div className="notice">{flash}</div>}
+        <div className="head">
+          <div>
+            <div className="eyebrow">Tu plan semanal</div>
+            <h1 className="title">Rutinas</h1>
+          </div>
+          <button className="icon-btn" onClick={() => setView({ name: 'library' })} aria-label="Biblioteca de ejercicios">
+            <Icon name="book" size={18} />
+          </button>
+        </div>
+        <div className="sec-head">
+          <h4>Mis días</h4>
+          <span className="muted small">{data.plan.length} {data.plan.length === 1 ? 'día' : 'días'}</span>
+        </div>
+        {data.plan.length === 0 && (
+          <State icon="calendar" title="Aún no tienes rutina" text="Genera un plan a tu medida o crea tus días uno a uno." action="Crear mi plan" onAction={() => setMaker(true)} />
+        )}
+        {sorted.map(dayCard)}
+        <PlanVolume days={data.plan.filter((d) => d.weekday != null)} />
+        <div className="sec-head">
+          <h4>Herramientas</h4>
+        </div>
+        <div className="tiles">
+          <button className="tile2 accent" onClick={() => setMaker(true)}>
+            <span className="tile2-ic"><Icon name="sparkle" size={18} /></span>
+            <span className="tile2-t">Generar plan</span>
+            <span className="tile2-s">Paso a paso o sorpréndeme</span>
+          </button>
+          <button className="tile2" onClick={addDay}>
+            <span className="tile2-ic"><Icon name="plus" size={18} /></span>
+            <span className="tile2-t">Nuevo día</span>
+            <span className="tile2-s">Crear uno vacío</span>
+          </button>
+          <button className="tile2" onClick={() => setView({ name: 'library' })}>
+            <span className="tile2-ic"><Icon name="book" size={18} /></span>
+            <span className="tile2-t">Biblioteca</span>
+            <span className="tile2-s">{EXERCISES.length} ejercicios</span>
+          </button>
+          <button className="tile2 accent" onClick={() => setCoach(true)}>
+            <span className="tile2-ic"><Icon name="sparkle" size={18} /></span>
+            <span className="tile2-t">Mejorar con IA</span>
+            <span className="tile2-s">Ajusta tu rutina</span>
+          </button>
+        </div>
+        {maker && <PlanMaker data={data} setData={setData} onClose={() => setMaker(false)} />}
+        {coach && <Coach data={data} setData={setData} onClose={() => setCoach(false)} />}
+      </div>
+    )
 
   return (
     <div className="page">
       {flash && <div className="notice">{flash}</div>}
       <div className="head">
         <div>
-          <div className="eyebrow">Tu rutina</div>
-          <h1 className="title">Entreno</h1>
+          <h1 className="title">Entrenamiento</h1>
         </div>
-        <button className="icon-btn" onClick={() => setView({ name: 'library' })} aria-label="Biblioteca">
-          <Icon name="book" size={18} />
+        <button className="btn sm-btn" onClick={() => setChat(true)}>
+          <Icon name="sparkle" size={16} /> Preguntar
         </button>
       </div>
 
@@ -1475,7 +1818,9 @@ export default function Workout({ data, setData, view, setView, onStart, onStart
         </button>
       )}
 
-      <WeeklyReview data={data} setData={setData} />
+      <button className="cta" onClick={onOpenStart}>
+        <Icon name="play" size={18} fill="currentColor" stroke={0} /> {data.active ? 'Continuar entrenamiento' : 'Comenzar entrenamiento'}
+      </button>
 
       <div className="week">
         {ORDER.map((w) => {
@@ -1494,103 +1839,81 @@ export default function Workout({ data, setData, view, setView, onStart, onStart
       {dayOpen && <DayModal data={data} date={dayOpen} onClose={() => setDayOpen(null)} />}
 
       <div className="sec-head">
-        <h4>Mis días</h4>
-        <span className="muted small">{data.plan.length} días</span>
+        <h4>Hoy</h4>
+        {todays.length > 0 && <span className="muted small">{WEEKDAYS[today]}</span>}
       </div>
-      {data.plan.length === 0 && (
-        <div className="empty-state">
-          <Icon name="calendar" size={28} />
-          <p>No tienes ningún día. Crea uno o genera un plan automático.</p>
+      {todays.length === 0 && (
+        <div className="card rest">
+          <div className="rest-ic">
+            <Icon name="calendar" size={22} />
+          </div>
+          <div className="grow">
+            <b>{data.plan.length === 0 ? 'Aún no tienes rutina' : 'Hoy toca descanso'}</b>
+            <p className="muted small">
+              {data.plan.length === 0 ? 'Créala en Rutinas o empieza un entreno libre.' : 'Si te apetece entrenar igual, elige otra rutina desde Comenzar.'}
+            </p>
+            {data.plan.length === 0 && (
+              <button className="btn sm-btn" onClick={() => goTab?.('routines')}>
+                Ir a Rutinas
+              </button>
+            )}
+          </div>
         </div>
       )}
-      {sorted.map((d) => {
-        const cover = EX_BY_ID[d.items[0]?.ex]
-        const groups = [...new Set(d.items.map((i) => EX_BY_ID[i.ex]?.group).filter(Boolean))]
-        const sets = d.items.reduce((n, i) => n + Number(i.sets || 0), 0)
-        return (
-          <div className={'daycard' + (d.weekday === today ? ' is-today' : '')} key={d.id}>
-            <div className={'daycover' + (cover?.imgs?.[0] ? '' : ' empty')}>
-              {cover?.imgs?.[0] ? (
-                <img src={cover.imgs[0]} alt="" loading="lazy" />
-              ) : (
-                <div className="cover-empty">
-                  <Icon name="dumbbell" size={64} stroke={1.5} />
-                </div>
-              )}
-              <div className="daycover-shade" />
-              <div className="daycover-txt">
-                <span className="daypill">{d.weekday != null ? WEEKDAYS[d.weekday] : 'Sin día'}{d.weekday === today ? ' · Hoy' : ''}</span>
-                <h3>{d.name}</h3>
-                <span className="small">
-                  {d.items.length
-                    ? `${d.items.length} ejercicios · ${sets} series${groups.length ? ' · ' + groups.join(', ') : ''}`
-                    : 'Sin ejercicios: añádelos al empezar o en editar'}
-                </span>
-              </div>
-            </div>
-            <div className="dayfoot">
-              <select
-                className="inp mini-sel"
-                value={d.weekday ?? ''}
-                onChange={(e) => setWeekday(d.id, e.target.value === '' ? null : Number(e.target.value))}
-                aria-label="Día de la semana"
-              >
-                <option value="">Sin día</option>
-                {ORDER.map((w) => (
-                  <option key={w} value={w}>
-                    {WEEKDAYS[w]}
-                  </option>
-                ))}
-              </select>
-              <button className="icon-btn" onClick={() => setView({ name: 'edit', id: d.id })} aria-label="Editar">
-                <Icon name="edit" size={17} />
-              </button>
-              <button className="btn primary sm-btn" onClick={() => onStart(d.id)}>
-                <Icon name="play" size={14} fill="currentColor" stroke={0} />
-                {data.active?.dayId === d.id ? 'Seguir' : 'Empezar'}
-              </button>
-            </div>
+      {todays.map((d) => (
+        <div className="card" key={d.id}>
+          <div className="sec-head nm">
+            <b>{d.name}</b>
+            <span className="muted small">{d.items.length} {d.items.length === 1 ? 'ejercicio' : 'ejercicios'}</span>
           </div>
-        )
-      })}
-
-      <PlanVolume days={data.plan.filter((d) => d.weekday != null)} />
+          {d.items.length === 0 && <p className="muted small">Sin ejercicios: los añades al empezar o en Rutinas.</p>}
+          {d.items.map((i) => {
+            const ex = EX_BY_ID[i.ex]
+            const last = lastSets(data.sessions, i.ex)
+            return (
+              <div className="row nob li" key={i.id}>
+                <Thumb ex={ex} size={38} />
+                <div className="grow">
+                  <div className="li-t">{ex?.name || i.ex}</div>
+                  <div className="muted small">
+                    {i.sets}×{i.reps}
+                    {i.rir != null ? ` · RIR ${i.rir}` : ''}
+                    {last ? ` · última vez ${last.sets.map(setTxt).join(', ')}` : ''}
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      ))}
 
       <div className="sec-head">
-        <h4>Herramientas</h4>
+        <h4>Últimos entrenos</h4>
       </div>
-      <div className="tiles">
-        <button className="tile2 accent" onClick={onStartFree}>
-          <span className="tile2-ic"><Icon name="play" size={18} fill="currentColor" stroke={0} /></span>
-          <span className="tile2-t">Entreno libre</span>
-          <span className="tile2-s">Sin plan, a tu aire</span>
-        </button>
-        <button className="tile2 accent" onClick={() => setCoach(true)}>
-          <span className="tile2-ic"><Icon name="sparkle" size={18} /></span>
-          <span className="tile2-t">Mejorar con IA</span>
-          <span className="tile2-s">Ajusta tu rutina</span>
-        </button>
-        <button className="tile2 accent" onClick={() => setChat(true)}>
-          <span className="tile2-ic"><Icon name="sparkle" size={18} /></span>
-          <span className="tile2-t">Preguntar</span>
-          <span className="tile2-s">Chat con el entrenador</span>
-        </button>
-        <button className="tile2" onClick={() => setMaker(true)}>
-          <span className="tile2-ic"><Icon name="calendar" size={18} /></span>
-          <span className="tile2-t">Mi plan</span>
-          <span className="tile2-s">Crear o cambiar</span>
-        </button>
-        <button className="tile2" onClick={addDay}>
-          <span className="tile2-ic"><Icon name="plus" size={18} /></span>
-          <span className="tile2-t">Nuevo día</span>
-          <span className="tile2-s">Crear uno vacío</span>
-        </button>
-        <button className="tile2" onClick={() => setView({ name: 'library' })}>
-          <span className="tile2-ic"><Icon name="book" size={18} /></span>
-          <span className="tile2-t">Ejercicios</span>
-          <span className="tile2-s">Fotos y progreso</span>
-        </button>
-      </div>
+      {recent.length === 0 && <State icon="dumbbell" title="Todavía no hay entrenos" text="Cuando termines uno, aquí verás series, kg y tu pulso del reloj." />}
+      {recent.length > 0 && (
+        <div className="card list-card">
+          {recent.map((s) => {
+            const nSets = Object.values(s.entries || {}).reduce((n, ss) => n + ss.length, 0)
+            return (
+              <button key={s.id} className="row nob li" onClick={() => setDayOpen(s.date)}>
+                <span className="ls-ic" style={{ width: 38, height: 38, borderRadius: 11, background: 'var(--card2)', color: 'var(--accent)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                  <Icon name="dumbbell" size={18} />
+                </span>
+                <div className="grow">
+                  <div className="li-t">{s.dayName || 'Entreno'}</div>
+                  <div className="muted small">
+                    {fmtDay(s.date)} · {Object.keys(s.entries || {}).length} {Object.keys(s.entries || {}).length === 1 ? 'ejercicio' : 'ejercicios'} · {nSets} series{s.min ? ` · ${s.min} min` : ''}
+                  </div>
+                </div>
+                <Icon name="right" size={16} className="muted" />
+              </button>
+            )
+          })}
+        </div>
+      )}
+
+      {exOpen && <ExerciseModal ex={exOpen} data={data} setData={setData} onClose={() => setExOpen(null)} />}
       {maker && <PlanMaker data={data} setData={setData} onClose={() => setMaker(false)} />}
       {chat && <CoachChat data={data} onClose={() => setChat(false)} />}
       {coach && <Coach data={data} setData={setData} onClose={() => setCoach(false)} />}

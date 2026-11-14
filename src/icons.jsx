@@ -31,6 +31,16 @@ const P = {
   swap: 'M7 4 3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7',
   calendar: 'M4 5h16v16H4zM4 9h16M8 3v4M16 3v4',
   heart: 'M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z',
+  list: 'M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01',
+  clock: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2',
+  pause: 'M8 5v14M16 5v14',
+  skip: 'M5 5l10 7-10 7zM19 5v14',
+  bolt: 'M13 2 4 14h7l-1 8 9-12h-7z',
+  moon: 'M21 13.5A8.5 8.5 0 1 1 10.5 3a7 7 0 0 0 10.5 10.5z',
+  offline: 'M2 2l20 20M8.5 16.5a5 5 0 0 1 7 0M5 13a10 10 0 0 1 4-2.6M12 20h.01M15.5 9.2A10 10 0 0 1 19 13M1.5 9a15 15 0 0 1 6-3.7M12 4a15 15 0 0 1 10.5 5',
+  cloud: 'M7 18a4.5 4.5 0 0 1-.6-9A6 6 0 0 1 18 8a4 4 0 0 1 0 8H7z',
+  scale: 'M12 3v18M5 7h14M5 7l-3 7a3 3 0 0 0 6 0zM19 7l-3 7a3 3 0 0 0 6 0z',
+  info: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 11v5M12 8h.01',
 }
 
 export default function Icon({ name, size = 20, stroke = 2, className = '', fill = 'none' }) {

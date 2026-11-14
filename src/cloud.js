@@ -3,11 +3,14 @@
 // de todo `migym.v1` por usuario y la mantiene al día. Las fotos de progreso se quedan solo en el móvil.
 import { useEffect, useRef, useState } from 'react'
 import { DEFAULT } from './store'
+import { migrate, mergeData } from './migrate'
 
 // Proyecto de Supabase. La clave "anon"/"publishable" es pública por diseño: lo que protege los datos son las
 // reglas RLS de supabase/schema.sql (cada usuario solo ve lo suyo).
-export const SB_URL = import.meta.env.VITE_SB_URL || 'https://fsantamxmriodlriantf.supabase.co'
-export const SB_KEY = import.meta.env.VITE_SB_KEY || 'sb_publishable_700NfTmDI4rbA3stzszyJg_ToevFG-m'
+// VITE_CLOUD=off → app sin cuentas (solo para pruebas locales/Playwright)
+const NO_CLOUD = import.meta.env.VITE_CLOUD === 'off'
+export const SB_URL = NO_CLOUD ? '' : import.meta.env.VITE_SB_URL || 'https://fsantamxmriodlriantf.supabase.co'
+export const SB_KEY = NO_CLOUD ? '' : import.meta.env.VITE_SB_KEY || 'sb_publishable_700NfTmDI4rbA3stzszyJg_ToevFG-m'
 export const cloudReady = () => !!(SB_URL && SB_KEY)
 
 let clientP = null
@@ -213,13 +216,15 @@ export async function connect(user, local, setData) {
   // misma cuenta que la última vez en este móvil: lo de la nube es lo bueno (se subió todo al cerrar sesión)
   if (last === user.id && !same(row.data, local)) {
     keepLocal()
-    setMeta({ ...base, synced: row.updated_at })
-    setData({ ...DEFAULT, ...row.data })
-    return { action: 'downloaded' }
+    // lo de la nube manda, pero un entreno hecho en este móvil sin subir no se pierde
+    const m = mergeData(row.data, local)
+    setMeta({ ...base, synced: row.updated_at, dirty: m.recovered > 0 })
+    setData(m.data)
+    return { action: 'downloaded', recovered: m.recovered }
   }
   if (other || !hasData(local)) {
     setMeta({ ...base, synced: row.updated_at })
-    setData({ ...DEFAULT, ...row.data })
+    setData(migrate(row.data))
     return { action: 'downloaded' }
   }
   if (same(row.data, local)) {
@@ -244,8 +249,10 @@ export async function resolve(choice, cloud, local, setData) {
   }
   if (choice === 'cloud') {
     keepLocal()
-    setMeta({ ...m, pending: false, dirty: false, synced: cloud.updated_at })
-    setData({ ...DEFAULT, ...cloud.data })
+    // elige la nube, pero los entrenos del móvil que allí no estén se conservan
+    const mg = mergeData(cloud.data, local)
+    setMeta({ ...m, pending: false, dirty: mg.recovered > 0, synced: cloud.updated_at })
+    setData(mg.data)
   } else {
     const at = await push(m.uid, local)
     setMeta({ ...m, pending: false, ask: false, dirty: false, synced: at })
@@ -315,14 +322,21 @@ export function useCloudSync(data, setData) {
       if (m.synced && row.updated_at <= m.synced) return m.dirty ? upload() : null
       if (m.dirty) {
         // cambios en los dos sitios: gana lo del móvil, pero lo de la nube se guarda aparte
+        // y sus entrenos que aquí falten se recuperan (nunca se pierde un entreno)
         try {
           localStorage.setItem('migym.v1.nube-anterior', JSON.stringify(row.data))
         } catch {}
+        const mg = mergeData(dataRef.current, row.data)
+        if (mg.recovered > 0) {
+          applying.current = true
+          setData(mg.data)
+          dataRef.current = mg.data
+        }
         return upload()
       }
       applying.current = true
       patchMeta({ synced: row.updated_at, dirty: false })
-      setData({ ...DEFAULT, ...row.data })
+      setData(migrate(row.data))
     } catch (e) {
       setState((s) => ({ ...s, error: e.message }))
     }
@@ -430,7 +444,29 @@ export async function requestTrainer(trainerId) {
 export const removeLink = (id) => q((c) => c.from('coach_links').delete().eq('id', id))
 export const answerLink = (id, ok) => q((c) => c.from('coach_links').update({ status: ok ? 'accepted' : 'rejected', updated_at: new Date().toISOString() }).eq('id', id))
 export const profilesOf = (ids) => (ids.length ? q((c) => c.from('profiles').select('id, name').in('id', ids)) : Promise.resolve([]))
-export const studentData = (uid) => q((c) => c.from('user_data').select('data, updated_at').eq('user_id', uid).maybeSingle())
+// Datos del alumno: con 05-privacidad.sql el servidor devuelve solo plan, entrenos, cuerpo y pulso (student_data);
+// si esa función aún no existe, se lee la fila entera (como antes) y la app enseña solo lo mismo.
+export async function studentData(uid) {
+  const c = await sb()
+  const r = await c.rpc('student_data', { uid })
+  if (!r.error) return Array.isArray(r.data) ? r.data[0] || null : r.data
+  if (!/function|does not exist|schema cache/i.test(r.error.message)) throw new Error(es(r.error))
+  return q((c2) => c2.from('user_data').select('data, updated_at').eq('user_id', uid).maybeSingle())
+}
+
+// Eliminar la cuenta entera (datos, perfil, relaciones y usuario). Necesita 05-privacidad.sql en Supabase.
+export async function deleteAccount() {
+  const c = await sb()
+  const { error } = await c.rpc('delete_my_account')
+  if (error) {
+    if (/function|does not exist|schema cache/i.test(error.message)) throw new Error('Falta activar el borrado de cuenta en Supabase (05-privacidad.sql).')
+    throw new Error(es(error))
+  }
+  try {
+    for (const k of ['migym.v1', 'migym.cloud', 'migym.lastUid', 'migym.push', 'migym.polar']) localStorage.removeItem(k)
+  } catch {}
+  await signOut()
+}
 
 // ---- Mensajes y entrenos del entrenador (supabase/04-mensajes.sql) ----
 const need04 = (e) => (/coach_messages|coach_workouts|in_link|does not exist/i.test(e.message) ? new Error('Falta activar mensajes y entrenos en Supabase (04-mensajes.sql).') : e)
