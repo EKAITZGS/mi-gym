@@ -2177,3 +2177,17 @@ button.wday:active { transform: scale(0.96); }
 .gen-ctl { display: flex; gap: 2px; flex-shrink: 0; }
 .gen-ctl .icon-btn.ghost { min-width: 32px; height: 34px; font-weight: 800; }
 .gen-freq { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; }
+/* ---- Mapa muscular ---- */
+.mm-wrap { max-width: 420px; margin: 6px auto 4px; }
+.mm-legend { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; font-size: 11.5px; color: var(--muted); margin: 4px 0 8px; }
+.mm-legend i, .mm-row i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; vertical-align: -1px; margin-right: 4px; }
+.mm-list { display: flex; flex-direction: column; }
+.mm-row { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-top: 1px solid var(--line); font-size: 14px; }
+.mm-row b { font-family: var(--font-head); font-size: 16px; min-width: 24px; text-align: right; }
+.prog-read { font-size: 13px; color: var(--text2); margin: 4px 0 8px; }
+.prog-kind { font-weight: 700; }
+.prog-kind.weight, .prog-kind.reps, .prog-kind.volume { color: var(--accent); }
+.prog-kind.down { color: var(--amber); }
+.prog-kind.flat, .prog-kind.few { color: var(--muted); }
+/* botones de acción de Tu cuerpo: que quepan tres en un móvil */
+.body-card .btns .btn, .btns .btn { white-space: normal; line-height: 1.15; font-size: 13.5px; padding-left: 8px; padding-right: 8px; }

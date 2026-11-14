@@ -3,7 +3,7 @@ import { EXERCISES, EX_BY_ID, GROUPS } from './data/exercises'
 import { WEEKDAYS, addDays, uid, lastSets, prefillSets, exStats, suggestion, fmtKg, num, pad, TRACKS, trackOf, setFilled, setTxt, todayStr } from './store'
 import { Modal, Thumb, LineChart, ExPhoto } from './ui'
 import { techFor } from './data/technique'
-import { nightsOf } from './stats'
+import { nightsOf, progressRead } from './stats'
 import Icon from './icons'
 import WeeklyReview, { CoachChat } from './Review'
 import { LEVELS, EQUIP, MINUTES, DAY_TYPES, SPLITS, GOALS, DEFAULT_WEEKDAYS, splitFor, typesFor, pickFor, prescribe, buildDay, buildPlan, stripSlots, analyzePlan } from './plans'
@@ -24,15 +24,19 @@ export function ExerciseModal({ ex, data, setData, onClose, onPick, pickLabel, o
     setData((d) => ({ ...d, favEx: fav ? (d.favEx || []).filter((x) => x !== ex.id) : [...(d.favEx || []), ex.id] }))
   const stats = useMemo(() => exStats(data.sessions, ex.id), [data.sessions, ex.id])
   const [metric, setMetric] = useState('e1rm')
+  const [allHist, setAllHist] = useState(false)
   const bestAll = stats.reduce((m, x) => (!m || x.best.e > m.e ? x.best : m), null)
+  const bestReps = stats.reduce((m, x) => (!m || x.best.r > m.r || (x.best.r === m.r && x.best.w > m.w) ? x.best : m), null)
+  const read = useMemo(() => progressRead(stats), [stats])
   const history = useMemo(() => {
     const out = []
-    for (let i = data.sessions.length - 1; i >= 0 && out.length < 5; i--) {
+    for (let i = data.sessions.length - 1; i >= 0 && out.length < (allHist ? 200 : 5); i--) {
       const sets = data.sessions[i].entries?.[ex.id]
       if (sets) out.push({ date: data.sessions[i].date, sets })
     }
     return out
-  }, [data.sessions, ex.id])
+  }, [data.sessions, ex.id, allHist])
+  const nHist = useMemo(() => data.sessions.filter((s) => s.entries?.[ex.id]).length, [data.sessions, ex.id])
   return (
     <Modal title={ex.name} onClose={onClose}>
       <ExPhoto ex={ex} />
@@ -71,6 +75,10 @@ export function ExerciseModal({ ex, data, setData, onClose, onPick, pickLabel, o
           <h4>Progreso</h4>
           <p className="muted small">
             Mejor serie: <b>{fmtKg(bestAll.w)} kg × {bestAll.r}</b> · 1RM estimado {fmtKg(Math.round(bestAll.e * 10) / 10)} kg
+            {bestReps && bestReps.r !== bestAll.r ? ` · más reps: ${bestReps.r} con ${fmtKg(bestReps.w)} kg` : ''}
+          </p>
+          <p className="prog-read">
+            <span className={'prog-kind ' + read.kind}>{{ weight: 'Progresas en peso', reps: 'Progresas en repeticiones', volume: 'Más volumen', flat: 'Estable', down: 'Por debajo', few: 'Pocos datos' }[read.kind]}.</span> {read.text}
           </p>
           <div className="chips">
             <button className={'chip' + (metric === 'e1rm' ? ' on' : '')} onClick={() => setMetric('e1rm')}>
@@ -85,8 +93,8 @@ export function ExerciseModal({ ex, data, setData, onClose, onPick, pickLabel, o
       )}
       <h4>Historial</h4>
       {history.length === 0 && <p className="muted">Aún no has registrado este ejercicio.</p>}
-      {history.map((h) => (
-        <div key={h.date} className="hist">
+      {history.map((h, hi) => (
+        <div key={h.date + hi} className="hist">
           <b>{h.date}</b>
           <div>
             {h.sets.map((s, i) => (
@@ -98,6 +106,11 @@ export function ExerciseModal({ ex, data, setData, onClose, onPick, pickLabel, o
           </div>
         </div>
       ))}
+      {!allHist && nHist > 5 && (
+        <button className="link small" onClick={() => setAllHist(true)}>
+          Ver las {nHist} sesiones
+        </button>
+      )}
     </Modal>
   )
 }

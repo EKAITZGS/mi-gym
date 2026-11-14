@@ -90,3 +90,30 @@ import { parseNights } from '../src/polar.js'
   assert.equal(nightsOf({ polar: { sleep: { a: 1 } } }).a, 1) // sin correcciones, igual
   console.log('sleep ok')
 }
+
+// 2.0: periodos, consistencia, carga por músculo y lectura del progreso
+import { periodStats, consistency, muscleLoad, progressRead } from '../src/stats.js'
+import { groupsOf } from '../src/ranks.js'
+import { exStats } from '../src/store.js'
+{
+  const B = 'Barbell_Bench_Press_-_Medium_Grip'
+  const S2 = (date, w, r, extra = {}) => ({ date, min: 40, entries: { [B]: [{ w: String(w), r: String(r), drops: [] }, { w: String(w), r: String(r), drops: [] }] }, ...extra })
+  const ses = [S2('2026-11-02', 60, 8), S2('2026-11-04', 60, 8), S2('2026-11-06', 60, 9), S2('2026-11-09', 62.5, 8)]
+  const p = periodStats(ses, '2026-11-01', '2026-11-30')
+  assert.deepEqual(p, { n: 4, days: 4, min: 160, vol: 4000, sets: 8 })
+  assert.equal(periodStats(ses, '2026-11-05').n, 2)
+  assert.deepEqual(consistency(ses, 4, new Date('2026-11-11T10:00')), { hit: 2, weeks: 4 })
+  const load = muscleLoad(ses, '2026-11-01', groupsOf)
+  assert.equal(load.Pecho.direct, 8)
+  assert.equal(load.Pecho.freq, 4)
+  assert.ok(load['Tríceps'].indirect === 8 && load['Tríceps'].eff === 4)
+  // calentamiento no cuenta
+  assert.equal(muscleLoad([{ date: '2026-11-02', entries: { [B]: [{ w: '40', r: '10', warm: true }] } }], '2026-11-01', groupsOf).Pecho, undefined)
+  // lectura: más peso con reps comparables
+  assert.equal(progressRead(exStats(ses, B)).kind, 'weight')
+  assert.equal(progressRead(exStats(ses.slice(0, 3), B)).kind, 'reps')
+  assert.equal(progressRead(exStats(ses.slice(0, 2), B)).kind, 'few')
+  assert.equal(progressRead(exStats([S2('2026-11-02', 60, 8), S2('2026-11-04', 60, 8), S2('2026-11-06', 60, 8)], B)).kind, 'flat')
+  assert.equal(progressRead(exStats([S2('2026-11-02', 60, 8), S2('2026-11-04', 60, 8), S2('2026-11-06', 55, 7)], B)).kind, 'down')
+  console.log('stats 2.0 ok')
+}

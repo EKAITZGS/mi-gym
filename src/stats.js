@@ -176,3 +176,62 @@ export function nightsOf(data) {
   }
   return out
 }
+
+/* ---------- 2.0: periodos, carga por músculo y lectura del progreso ---------- */
+// Totales de un periodo [from, to] (fechas AAAA-MM-DD, ambas incluidas)
+export function periodStats(sessions, from, to = '9999') {
+  const ws = sessions.filter((s) => s.date >= from && s.date <= to)
+  const sets = ws.reduce((t, s) => t + Object.values(s.entries || {}).reduce((q, l) => q + workSets(l).length, 0), 0)
+  return { n: ws.length, days: new Set(ws.map((s) => s.date)).size, min: ws.reduce((t, s) => t + (s.min || 0), 0), vol: Math.round(ws.reduce((t, s) => t + sessionVol(s), 0)), sets }
+}
+
+// Semanas con al menos un entreno de las últimas `weeks` (consistencia)
+export function consistency(sessions, weeks = 8, now = new Date()) {
+  const w0 = monday(now)
+  let hit = 0
+  for (let k = 0; k < weeks; k++) {
+    const a = new Date(w0)
+    a.setDate(a.getDate() - 7 * k)
+    const b = new Date(a)
+    b.setDate(b.getDate() + 6)
+    const fa = fmtDate(a), fb = fmtDate(b)
+    if (sessions.some((s) => s.date >= fa && s.date <= fb)) hit++
+  }
+  return { hit, weeks }
+}
+
+// Series directas e indirectas por grupo en un periodo, y en cuántos días distintos se tocó cada grupo.
+// groupsOf(id) → [{ g, main }] (el de ranks.js). Efectivas = directas + ½ indirectas (se explica en la UI).
+export function muscleLoad(sessions, from, groupsOf, to = '9999') {
+  const out = {}
+  for (const s of sessions) {
+    if (s.date < from || s.date > to) continue
+    for (const [id, sets] of Object.entries(s.entries || {})) {
+      const n = workSets(sets).filter((x) => num(x.r) > 0 || x.s || x.m).length
+      if (!n) continue
+      for (const { g, main } of groupsOf(id)) {
+        const o = (out[g] ??= { direct: 0, indirect: 0, days: new Set() })
+        o[main ? 'direct' : 'indirect'] += n
+        o.days.add(s.date)
+      }
+    }
+  }
+  return Object.fromEntries(Object.entries(out).map(([g, o]) => [g, { direct: o.direct, indirect: o.indirect, eff: Math.round(o.direct + o.indirect / 2), freq: o.days.size }]))
+}
+
+// Lectura honesta de la evolución de un ejercicio a partir de exStats(): no todo cambio es progreso.
+// → { kind: 'weight' | 'reps' | 'volume' | 'flat' | 'down' | 'few', text }
+export function progressRead(st) {
+  if (!st || st.length < 3) return { kind: 'few', text: st?.length ? 'Pocos datos aún: con 3 o más entrenos se puede valorar.' : 'Sin datos.' }
+  const last = st[st.length - 1]
+  const prev = st.slice(-4, -1) // hasta 3 anteriores
+  const bestPrev = prev.reduce((m, x) => (x.best.e > m.best.e ? x : m), prev[0])
+  const volPrev = prev.reduce((t, x) => t + x.vol, 0) / prev.length
+  const dE = last.best.e / bestPrev.best.e - 1
+  const sameW = Math.abs(last.best.w - bestPrev.best.w) < 0.01
+  if (dE >= 0.01 && last.best.w > bestPrev.best.w && last.best.r >= bestPrev.best.r - 1) return { kind: 'weight', text: `Más peso con repeticiones comparables (${last.best.w} kg × ${last.best.r} frente a ${bestPrev.best.w} × ${bestPrev.best.r}).` }
+  if (sameW && last.best.r > bestPrev.best.r) return { kind: 'reps', text: `Mismo peso y más repeticiones (${last.best.r} frente a ${bestPrev.best.r} con ${last.best.w} kg).` }
+  if (volPrev > 0 && last.vol / volPrev - 1 >= 0.1) return { kind: 'volume', text: `Más volumen total (${Math.round(last.vol)} kg frente a ~${Math.round(volPrev)} de media en los anteriores).` }
+  if (dE <= -0.05) return { kind: 'down', text: `Por debajo de tu mejor marca reciente (${Math.round(Math.abs(dE) * 100)} % menos de 1RM estimado). Puede ser fatiga, sueño o técnica: no saques conclusiones de un día.` }
+  return { kind: 'flat', text: 'Variación normal: ni mejora clara ni bajada. Si pasa 3-4 sesiones así, prueba otro rango de reps o una descarga.' }
+}
