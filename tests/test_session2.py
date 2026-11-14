@@ -25,6 +25,8 @@ with sync_playwright() as p:
     page.evaluate("s => localStorage.setItem('migym.v1', JSON.stringify(s))", seed)
     page.reload()
     page.wait_for_selector('.tabbar')
+    # día sin rutina programada: en Inicio no hay botón grande; se empieza desde Entrenamiento
+    page.click('.tabbar button:has-text("Entrenamiento")')
     page.click('.cta')
     page.click('.start-opt:has-text("Pecho")')
     page.wait_for_selector('text=Terminar entreno')
