@@ -52,7 +52,7 @@ function Proposal({ p, data, onDecide }) {
 const IDEAS = ['¿Qué ceno hoy para llegar a la proteína?', 'Me duele un poco el hombro, ¿qué cambio en mi plan?', '¿Cómo salgo de un estancamiento en press banca?']
 
 // Chat con el entrenador (IA). La conversación no se guarda: al cerrar se borra.
-export function CoachChat({ data, onClose }) {
+export function CoachChat({ data, onClose, initial }) {
   const [msgs, setMsgs] = useState([])
   const [q, setQ] = useState('')
   const [busy, setBusy] = useState(false)
@@ -60,6 +60,11 @@ export function CoachChat({ data, onClose }) {
   useEffect(() => {
     end.current?.scrollIntoView({ block: 'end' })
   }, [msgs, busy])
+  // pregunta que se manda sola al abrir (p. ej. el análisis del objetivo en Progreso)
+  useEffect(() => {
+    if (initial) send(initial)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const send = async (text) => {
     const t = (text || q).trim().slice(0, 500)
     if (!t || busy) return

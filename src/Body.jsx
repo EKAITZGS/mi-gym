@@ -21,7 +21,7 @@ function Photo({ id, className, onClick }) {
   return src ? <img src={src} alt="" className={className} onClick={onClick} /> : <div className={className + ' ph-empty'} />
 }
 
-function WaistModal({ data, setData, onClose }) {
+export function WaistModal({ data, setData, onClose }) {
   const waist = data.body?.waist || []
   const last = waist[waist.length - 1]
   const [cm, setCm] = useState(last ? String(last.cm).replace('.', ',') : '')
@@ -75,7 +75,7 @@ const trend = (list) => list.map((_, i) => {
   return { date: list[i].date, v: Math.round((s.reduce((a, e) => a + e.kg, 0) / s.length) * 10) / 10 }
 })
 
-function WeightModal({ data, setData, onClose }) {
+export function WeightModal({ data, setData, onClose }) {
   const weights = data.body?.weight || []
   const [kg, setKg] = useState('')
   const [show, setShow] = useState(false)
@@ -124,8 +124,10 @@ function WeightModal({ data, setData, onClose }) {
   )
 }
 
-function PhotosModal({ data, setData, onClose }) {
+const poseOf = (p) => p.pose || 'frontal'
+export function PhotosModal({ data, setData, onClose, pose: pose0 = 'frontal' }) {
   const photos = data.body?.photos || []
+  const [pose, setPose] = useState(pose0)
   const fileRef = useRef()
   const galRef = useRef()
   const [busy, setBusy] = useState(false)
@@ -143,7 +145,7 @@ function PhotosModal({ data, setData, onClose }) {
         const id = uid()
         await savePhoto(id, url)
         const taken = f.lastModified ? fmtDate(new Date(f.lastModified)) : todayStr()
-        added.push({ id, date: taken < todayStr() ? taken : todayStr() })
+        added.push({ id, date: taken < todayStr() ? taken : todayStr(), pose })
       } catch {}
     }
     if (added.length < files.length) alert('Alguna foto no se pudo guardar.')
@@ -159,38 +161,47 @@ function PhotosModal({ data, setData, onClose }) {
     setData((x) => ({ ...x, body: { ...x.body, photos: (x.body?.photos || []).filter((y) => y.id !== p.id) } }))
     setView(null)
   }
-  const first = photos[0]
-  const last = photos[photos.length - 1]
+  const pairs = ['frontal', 'lateral']
+    .map((k) => ({ k, list: photos.filter((p) => poseOf(p) === k) }))
+    .filter((x) => x.list.length >= 2)
   return (
     <Modal title="Fotos de progreso" onClose={onClose}>
       <p className="muted small">
-        Una al mes: misma luz, mismo sitio, de frente y de perfil. Se guardan solo en este móvil y no salen en ningún sitio.
+        Cada 2 semanas: misma luz, mismo sitio y misma hora, una de frente y otra de perfil. Se guardan solo en este móvil.
       </p>
+      <div className="seg">
+        <button className={pose === 'frontal' ? 'on' : ''} onClick={() => setPose('frontal')}>
+          Frontal
+        </button>
+        <button className={pose === 'lateral' ? 'on' : ''} onClick={() => setPose('lateral')}>
+          Lateral
+        </button>
+      </div>
       <input type="file" accept="image/*" capture="user" ref={fileRef} onChange={add} hidden />
       <input type="file" accept="image/*" multiple ref={galRef} onChange={add} hidden />
       <div className="btns">
         <button className="btn primary" disabled={busy} onClick={() => fileRef.current?.click()}>
-          <Icon name="camera" size={16} /> {busy ? 'Guardando…' : 'Hacer foto'}
+          <Icon name="camera" size={16} /> {busy ? 'Guardando…' : `Foto ${pose}`}
         </button>
         <button className="btn" disabled={busy} onClick={() => galRef.current?.click()}>
           <Icon name="plus" size={16} /> De la galería
         </button>
       </div>
-      {photos.length >= 2 && (
-        <>
-          <h4>Antes y ahora</h4>
+      {pairs.map(({ k, list }) => (
+        <div key={k}>
+          <h4>Antes y ahora · {k}</h4>
           <div className="ph-compare">
             <figure>
-              <Photo id={first.id} className="ph-img" />
-              <figcaption>{fmtD(first.date)}</figcaption>
+              <Photo id={list[0].id} className="ph-img" />
+              <figcaption>{fmtD(list[0].date)}</figcaption>
             </figure>
             <figure>
-              <Photo id={last.id} className="ph-img" />
-              <figcaption>{fmtD(last.date)}</figcaption>
+              <Photo id={list[list.length - 1].id} className="ph-img" />
+              <figcaption>{fmtD(list[list.length - 1].date)}</figcaption>
             </figure>
           </div>
-        </>
-      )}
+        </div>
+      ))}
       {photos.length > 0 && (
         <>
           <h4>Todas</h4>
@@ -198,7 +209,9 @@ function PhotosModal({ data, setData, onClose }) {
             {[...photos].reverse().map((p) => (
               <figure key={p.id}>
                 <Photo id={p.id} className="ph-img sm" onClick={() => setView(p)} />
-                <figcaption>{fmtD(p.date)}</figcaption>
+                <figcaption>
+                  {fmtD(p.date)} · {poseOf(p) === 'lateral' ? 'lat.' : 'front.'}
+                </figcaption>
               </figure>
             ))}
           </div>

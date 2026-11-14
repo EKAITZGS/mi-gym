@@ -10,6 +10,7 @@ import RankCard from './Rank'
 import { MuscleSets } from './Extras'
 import { recentPRs, stalled } from './stats'
 import SleepCard from './Sleep'
+import AimCard from './AimCard'
 
 // Récords del último mes y ejercicios que llevan 3 entrenos sin mejorar
 function Highlights({ data, onOpen }) {
@@ -83,6 +84,7 @@ export default function Progress({ data, setData }) {
   return (
     <div className="page">
       <h1 className="title">Progreso</h1>
+      <AimCard data={data} setData={setData} />
       <RankCard data={data} />
       <MuscleSets data={data} />
       <Highlights data={data} onOpen={setOpen} />
