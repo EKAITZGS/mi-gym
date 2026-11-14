@@ -122,14 +122,17 @@ export const TRACKS = {
 }
 export const trackOf = (it, ex) => (TRACKS[it?.track] ? it.track : TRACKS[ex?.track] ? ex.track : 'reps')
 export const setFilled = (s) => !!(s.w || s.r || s.s || s.m || s.km || s.min)
+// series de trabajo: las marcadas como calentamiento (`warm`) no cuentan en 1RM, récords, volumen ni sugerencias
+export const workSets = (sets = []) => sets.filter((s) => !s?.warm)
 export const setTxt = (s) =>
-  s.km || s.min
+  (s.warm ? 'c·' : '') +
+  (s.km || s.min
     ? `${s.km || '?'} km · ${s.min || '?'} min`
     : s.m
       ? `${s.w ? s.w + ' kg · ' : ''}${s.m} m`
       : s.s
         ? `${s.w ? s.w + ' kg · ' : ''}${s.s} s`
-        : `${s.w || '?'}×${s.rl || s.rr ? `${s.rl || '?'}/${s.rr || '?'}` : s.r || '?'}`
+        : `${s.w || '?'}×${s.rl || s.rr ? `${s.rl || '?'}/${s.rr || '?'}` : s.r || '?'}`)
 
 export function lastSets(sessions, exId) {
   for (let i = sessions.length - 1; i >= 0; i--) {
@@ -142,7 +145,7 @@ export function lastSets(sessions, exId) {
 // series nuevas con el PESO de la última vez ya puesto (las reps empiezan vacías, nunca se copian).
 // `pw` recuerda el peso precargado: si no se hacen reps ni se marca, la serie no se guarda.
 export function prefillSets(sessions, exId, n, drop, from = 0) {
-  const last = lastSets(sessions, exId)?.sets || []
+  const last = workSets(lastSets(sessions, exId)?.sets || [])
   return Array.from({ length: n }, (_, k) => {
     const b = last[from + k] || last[last.length - 1] || {}
     const w = b.w || ''
@@ -195,7 +198,7 @@ export function exStats(sessions, exId) {
     if (!sets) continue
     let best = null
     let vol = 0
-    for (const st of sets) {
+    for (const st of workSets(sets)) {
       const w = num(st.w)
       const r = num(st.r)
       if (w > 0 && r > 0) {
@@ -219,7 +222,7 @@ export function exStats(sessions, exId) {
 export function lastSession(sessions, exId) {
   for (let i = sessions.length - 1; i >= 0; i--) {
     const sets = sessions[i].entries?.[exId]
-    if (sets && sets.some((x) => num(x.w) > 0 && num(x.r) > 0)) return sessions[i]
+    if (sets && sets.some((x) => !x.warm && num(x.w) > 0 && num(x.r) > 0)) return sessions[i]
   }
   return null
 }
@@ -230,7 +233,7 @@ export function suggestion(sessions, exId, repsTarget, setsPlanned, equip) {
   if (!ses) return null
   const m = String(repsTarget || '').trim().match(/^(\d+)(?:\s*-\s*(\d+))?$/)
   const rir = ses.checkin?.rir?.[exId]
-  const sets = ses.entries[exId].filter((x) => num(x.w) > 0 && num(x.r) > 0)
+  const sets = ses.entries[exId].filter((x) => !x.warm && num(x.w) > 0 && num(x.r) > 0)
   if (!sets.length) return null
   const from = Math.min(...sets.map((x) => num(x.w)))
   // Salto de peso: en polea/máquina el escalón de la pila; en pesos libres nunca más de ~12 % (7 kg → 8 kg, no 9,5)

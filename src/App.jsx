@@ -227,7 +227,7 @@ export default function App() {
       <main className="main">
         {tab === 'home' && <Home data={data} setData={setData} onStart={start} go={goTab} onOpenStart={openStart} name={cloud.meta?.name} />}
         {(tab === 'train' || tab === 'routines') && (
-          <Workout data={data} setData={setData} view={view} setView={setView} onStart={start} onStartFree={startFree} mode={tab} onOpenStart={openStart} goTab={goTab} />
+          <Workout data={data} setData={setData} view={view} setView={setView} onStart={start} onStartFree={startFree} mode={tab} onOpenStart={openStart} goTab={goTab} cloud={cloud} online={online} />
         )}
         {tab === 'diet' && <Diet data={data} setData={setData} onBack={() => goTab('home')} />}
         {tab === 'progress' && <Progress data={data} setData={setData} go={goTab} />}

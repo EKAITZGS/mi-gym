@@ -1,4 +1,4 @@
-import { exStats, fmtDate, num } from './store'
+import { exStats, fmtDate, num, workSets } from './store'
 
 const monday = (d) => {
   const x = new Date(d)
@@ -11,7 +11,7 @@ const ids = (sessions) => [...new Set(sessions.flatMap((s) => Object.keys(s.entr
 // kg × reps de todas las series (y drops) de un entreno
 export const sessionVol = (s) =>
   Object.values(s.entries || {}).reduce(
-    (t, sets) => t + sets.reduce((q, x) => q + num(x.w) * num(x.r) + (x.drops || []).reduce((k, d) => k + num(d.w) * num(d.r), 0), 0),
+    (t, sets) => t + workSets(sets).reduce((q, x) => q + num(x.w) * num(x.r) + (x.drops || []).reduce((k, d) => k + num(d.w) * num(d.r), 0), 0),
     0,
   )
 

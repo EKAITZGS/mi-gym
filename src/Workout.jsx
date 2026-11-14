@@ -12,7 +12,7 @@ import { PlanVolume } from './Extras'
 import { FEELINGS, ZONES, adviceFor, painFor, needsDeload } from './coach'
 import Coach from './Coach.jsx'
 import { DayModal, doneSessions, fmtDay } from './DayDetail'
-import { State } from './ds'
+import { State, SyncPill, Badge, fmtMin } from './ds'
 
 const ORDER = [1, 2, 3, 4, 5, 6, 0] // lunes primero
 
@@ -838,27 +838,77 @@ const restSecs = () => {
   }
 }
 // shortcut: sin sonido (iOS no deja sonar ni vibrar a una PWA sin toque), solo aviso visual; si hace falta, usar un aviso push
-function RestTimer({ end, onAdd, onClose }) {
+// rest = { end (ms), item, left? }: con `left` (segundos) está en pausa
+function RestTimer({ rest, onAdd, onPause, onClose }) {
   const [now, setNow] = useState(Date.now())
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 500)
     return () => clearInterval(t)
   }, [])
-  const left = Math.ceil((end - now) / 1000)
+  const paused = rest.left != null
+  const left = paused ? rest.left : Math.ceil((rest.end - now) / 1000)
   useEffect(() => {
+    if (paused) return
     if (left === 0) navigator.vibrate?.(300)
     if (left < -8) onClose()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [left])
+  }, [left, paused])
   return (
-    <div className={'restbar' + (left <= 0 ? ' go' : '')} role="timer">
+    <div className={'restbar' + (left <= 0 ? ' go' : '') + (paused ? ' paused' : '')} role="timer" aria-live="polite">
       <span className="rest-t">{left > 0 ? `${Math.floor(left / 60)}:${pad(left % 60)}` : '¡Siguiente serie!'}</span>
-      {left > 0 && <span className="muted small grow">descanso</span>}
-      {left > 0 && <button onClick={() => onAdd(-15)}>−15 s</button>}
-      {left > 0 && <button onClick={() => onAdd(15)}>+15 s</button>}
-      <button aria-label="Cerrar descanso" onClick={onClose}>
-        <Icon name="x" size={16} />
+      {left > 0 && <span className="muted small grow">{paused ? 'en pausa' : 'descanso'}</span>}
+      {left > 0 && <button onClick={() => onAdd(-15)} aria-label="Quitar 15 segundos">−15</button>}
+      {left > 0 && <button onClick={() => onAdd(15)} aria-label="Añadir 15 segundos">+15</button>}
+      {left > 0 && (
+        <button onClick={onPause} aria-label={paused ? 'Reanudar descanso' : 'Pausar descanso'}>
+          <Icon name={paused ? 'play' : 'pause'} size={15} fill={paused ? 'currentColor' : 'none'} stroke={paused ? 0 : 2.2} />
+        </button>
+      )}
+      <button aria-label={left > 0 ? 'Omitir descanso' : 'Cerrar'} onClick={onClose}>
+        <Icon name={left > 0 ? 'skip' : 'x'} size={16} />
       </button>
+    </div>
+  )
+}
+
+// Cabecera del entreno en curso: cronómetro, series hechas y estado de guardado
+function SesHead({ a, items, cloud, online }) {
+  const [, tick] = useState(0)
+  useEffect(() => {
+    const t = setInterval(() => tick((x) => x + 1), 30000)
+    return () => clearInterval(t)
+  }, [])
+  const mins = a.start ? Math.max(0, Math.round((Date.now() - a.start) / 60000)) : null
+  let total = 0, done = 0, kg = 0
+  for (const it of items) {
+    const sets = a.entries?.[it.ex] || []
+    for (const s of sets) {
+      if (s.warm) continue
+      total++
+      if (s.done || s.r || s.r2 || s.s || s.m || s.km || s.min) done++
+      kg += num(s.w) * num(s.r) + (s.drops || []).reduce((q, x) => q + num(x.w) * num(x.r), 0)
+    }
+  }
+  return (
+    <div className="ses-head">
+      <div className="ses-stats">
+        <div>
+          <b>{mins != null ? fmtMin(mins) : '—'}</b>
+          <span>tiempo</span>
+        </div>
+        <div>
+          <b>
+            {done}
+            <small>/{total}</small>
+          </b>
+          <span>series</span>
+        </div>
+        <div>
+          <b>{kg ? Math.round(kg).toLocaleString('es-ES') : '0'}</b>
+          <span>kg</span>
+        </div>
+      </div>
+      <SyncPill cloud={cloud} online={online} />
     </div>
   )
 }
@@ -870,7 +920,7 @@ const setsVol = (sets) =>
   sets.reduce((t, s) => t + num(s.w) * num(s.r) + (s.drops || []).reduce((q, x) => q + num(x.w) * num(x.r), 0), 0)
 const setsTxt = (sets) => sets.map(setTxt).join(', ')
 
-function Session({ data, setData, onExit }) {
+function Session({ data, setData, onExit, cloud, online }) {
   const a = data.active
   const day = a ? data.plan.find((d) => d.id === a.dayId) : null
   const items = a?.items || day?.items || []
@@ -901,8 +951,15 @@ function Session({ data, setData, onExit }) {
       return {
         ...act,
         items: it?.rest ? its.map((i) => (i === it ? { ...i, rest: clampRest(i.rest + d) } : i)) : act.items,
-        rest: { ...act.rest, end: act.rest.end + d * 1000 },
+        rest: act.rest.left != null ? { ...act.rest, left: Math.max(1, act.rest.left + d) } : { ...act.rest, end: act.rest.end + d * 1000 },
       }
+    })
+  // pausar / reanudar: en pausa se guardan los segundos que quedan (sobrevive a cerrar la app)
+  const pauseRest = () =>
+    setActive((act) => {
+      if (!act.rest) return act
+      if (act.rest.left != null) return { ...act, rest: { end: Date.now() + act.rest.left * 1000, item: act.rest.item } }
+      return { ...act, rest: { ...act.rest, end: null, left: Math.max(1, Math.ceil((act.rest.end - Date.now()) / 1000)) } }
     })
   const uniOf = (it) => it.uni ?? !!data.uniEx?.[it.ex]
   const toggleUni = (it) => {
@@ -980,6 +1037,10 @@ function Session({ data, setData, onExit }) {
               </div>
             )}
             <div>
+              <b>{done.nEx}</b>
+              <span>{done.nEx === 1 ? 'ejercicio' : 'ejercicios'}</span>
+            </div>
+            <div>
               <b>{done.nSets}</b>
               <span>series</span>
             </div>
@@ -1000,6 +1061,7 @@ function Session({ data, setData, onExit }) {
               ))}
             </>
           )}
+          {done.nWarm > 0 && <p className="muted small">{done.nWarm} {done.nWarm === 1 ? 'serie de calentamiento' : 'series de calentamiento'} (no cuentan en volumen ni récords).</p>}
           {done.prs.length > 0 ? (
             <>
               <h4>Récords nuevos</h4>
@@ -1086,7 +1148,7 @@ function Session({ data, setData, onExit }) {
         .map((s) => {
           const extra = Object.fromEntries(['s', 'm', 'km', 'min'].filter((k) => s[k]).map((k) => [k, s[k]]))
           const drops = s.drops.filter((x) => own(x) || x.r).map((x) => ({ w: x.w || '', r: x.r || '' }))
-          const base = { w: s.w || '', r: s.r || '', ...extra, drops }
+          const base = { w: s.w || '', r: s.r || '', ...extra, drops, ...(s.warm ? { warm: true } : {}) }
           if (!uni || !(s.r || s.r2)) return base
           // unilateral: cuenta el lado más flojo para progresar; se guardan los dos
           const l = num(s.r), rr = num(s.r2)
@@ -1118,9 +1180,11 @@ function Session({ data, setData, onExit }) {
     const mins = a.start ? Math.round((Date.now() - a.start) / 60000) : 0
     const min = mins > 0 && mins <= 240 ? mins : 0
     const vol = Math.round(Object.values(entries).reduce((t, ss) => t + setsVol(ss), 0))
-    const nSets = Object.values(entries).reduce((t, ss) => t + ss.length, 0)
+    const nSets = Object.values(entries).reduce((t, ss) => t + ss.filter((x) => !x.warm).length, 0)
+    const nWarm = Object.values(entries).reduce((t, ss) => t + ss.filter((x) => x.warm).length, 0)
+    const nEx = Object.keys(entries).length
     // sin ninguna serie no se guarda un entreno vacío (contaría como día entrenado)
-    if (!nSets) {
+    if (!nSets && !nWarm) {
       if (!confirm('No has apuntado ninguna serie, así que no se guarda nada. ¿Cerrar el entreno?')) return
       setData((d) => ({ ...d, active: null }))
       onExit()
@@ -1134,7 +1198,7 @@ function Session({ data, setData, onExit }) {
     const before = (day?.items || []).map((i) => i.ex).join('|')
     const after = items.map((i) => i.ex).join('|')
     const changed = items.length > 0 && (a.dayId === 'free' || (day && before !== after))
-    setDone({ prs, cmp, changed, items, dayId: a.dayId, name, sid, step: 'checkin', exs: Object.keys(entries), entries, min, vol, nSets })
+    setDone({ prs, cmp, changed, items, dayId: a.dayId, name, sid, step: 'checkin', exs: Object.keys(entries), entries, min, vol, nSets, nWarm, nEx })
   }
   const discard = () => {
     if (!confirm('¿Descartar este entreno sin guardar?')) return
@@ -1147,6 +1211,7 @@ function Session({ data, setData, onExit }) {
         <Icon name="left" size={18} /> Salir (se queda guardado)
       </button>
       <h1 className="title">{name}</h1>
+      <SesHead a={a} items={items} cloud={cloud} online={online} />
       {needsDeload(data.sessions) && (
         <div className="advice yellow">
           Tus últimos entrenos fueron muy duros. Hoy te propongo descarga: un 30% menos de peso y sin llegar al fallo.
@@ -1208,7 +1273,18 @@ function Session({ data, setData, onExit }) {
                 </div>
                 {last && (
                   <div className="muted small">
-                    Última vez: {last.sets.map(setTxt).join(', ')}
+                    Última vez ({last.date.slice(8)}/{last.date.slice(5, 7)}): {last.sets.map(setTxt).join(', ')}
+                  </div>
+                )}
+                {ex && (
+                  <div className="ex-badges">
+                    {ex.main.map((m) => (
+                      <Badge key={m} tone="accent">{m}</Badge>
+                    ))}
+                    {ex.sec.slice(0, 3).map((m) => (
+                      <Badge key={m}>{m}</Badge>
+                    ))}
+                    {ex.equip && <Badge>{ex.equip}</Badge>}
                   </div>
                 )}
                 {note && <div className="muted small">Nota anterior: {note}</div>}
@@ -1235,6 +1311,12 @@ function Session({ data, setData, onExit }) {
                 )}
               </div>
             </div>
+            {ex && !ex.custom && (
+              <details className="tech-d">
+                <summary>Técnica</summary>
+                <p>{techFor(ex)}</p>
+              </details>
+            )}
             <div className="track-row">
               <span className="muted small">Medir por</span>
               <select className="inp sm" aria-label="Cómo se mide" value={tr} onChange={(e) => setTrack(it, e.target.value)}>
@@ -1264,8 +1346,8 @@ function Session({ data, setData, onExit }) {
               const ph = phOf(i)
               return (
                 <div key={i}>
-                  <div className="setrow">
-                    <span className="setn">{i + 1}</span>
+                  <div className={'setrow' + (s.warm ? ' warm' : '')}>
+                    <span className="setn" title={s.warm ? 'Calentamiento' : undefined}>{s.warm ? 'C' : i + 1}</span>
                     <input
                       className="inp sm"
                       inputMode="decimal"
@@ -1358,11 +1440,16 @@ function Session({ data, setData, onExit }) {
                       className="link small"
                       onClick={() => patchSet(it.ex, i, (x) => ({ ...x, drops: [...x.drops, { w: '', r: '' }] }))}
                     >
-                      + drop (bajar peso)
+                      + drop
                     </button>
+                    {tr === 'reps' && (
+                      <button className={'link small' + (s.warm ? ' on-link' : '')} onClick={() => patchSet(it.ex, i, (x) => ({ ...x, warm: !x.warm }))}>
+                        {s.warm ? 'Calentamiento ✓' : 'Calentamiento'}
+                      </button>
+                    )}
                     {sets.length > 1 && (
-                      <button className="link small danger-link" onClick={() => removeSet(it.ex, i)}>
-                        Quitar serie
+                      <button className="link small danger-link" onClick={() => removeSet(it.ex, i)} aria-label="Quitar serie">
+                        Quitar
                       </button>
                     )}
                   </div>
@@ -1380,7 +1467,7 @@ function Session({ data, setData, onExit }) {
           </div>
         )
       })}
-      {rest && <RestTimer end={rest.end} onAdd={addRest} onClose={() => setRest(null)} />}
+      {rest && <RestTimer rest={rest} onAdd={addRest} onPause={pauseRest} onClose={() => setRest(null)} />}
       <button className="btn full" onClick={() => setPicker({ mode: 'add' })}>
         <Icon name="plus" size={18} /> Añadir ejercicio
       </button>
@@ -1405,7 +1492,7 @@ function Session({ data, setData, onExit }) {
 }
 
 /* ---------- Pantalla Entreno ---------- */
-export default function Workout({ data, setData, view, setView, onStart, onStartFree, mode = 'train', onOpenStart, goTab }) {
+export default function Workout({ data, setData, view, setView, onStart, onStartFree, mode = 'train', onOpenStart, goTab, cloud, online }) {
   const [maker, setMaker] = useState(false)
   const [chat, setChat] = useState(false)
   const [coach, setCoach] = useState(false)
@@ -1417,7 +1504,7 @@ export default function Workout({ data, setData, view, setView, onStart, onStart
     return () => clearTimeout(t)
   }, [flash])
 
-  if (view.name === 'session') return <Session data={data} setData={setData} onExit={() => setView({ name: 'list' })} />
+  if (view.name === 'session') return <Session data={data} setData={setData} cloud={cloud} online={online} onExit={() => setView({ name: 'list' })} />
   if (view.name === 'edit')
     return (
       <DayEditor
