@@ -1828,20 +1828,6 @@ export default function Workout({ data, setData, view, setView, onStart, onStart
         <Icon name="play" size={18} fill="currentColor" stroke={0} /> {data.active ? 'Continuar entrenamiento' : 'Comenzar entrenamiento'}
       </button>
 
-      {data.sessions.length > 0 && (() => {
-        const wk = weekTotals(data.sessions)
-        const streak = streakWeeks(data.sessions)
-        const planned = data.plan.filter((d) => d.weekday != null).length
-        return (
-          <div className="stats four">
-            <Stat v={wk.n} unit={planned ? `/${planned}` : ''} label="entrenos esta semana" tone={wk.n > 0 ? 'accent' : ''} />
-            <Stat v={wk.min ? fmtMin(wk.min) : '—'} label="tiempo" />
-            <Stat v={wk.vol ? miles(wk.vol) : '—'} unit={wk.vol ? 'kg' : ''} label="volumen" />
-            <Stat v={streak || '—'} unit={streak ? 'sem' : ''} label="racha" />
-          </div>
-        )
-      })()}
-
       <div className="week">
         {ORDER.map((w) => {
           const ds = byWeekday(w)

@@ -95,19 +95,6 @@ export default function Progress({ data, setData }) {
   return (
     <div className="page">
       <h1 className="title">Progreso</h1>
-      {data.sessions.length > 0 && (
-        <div className="stats four">
-          <Stat v={head.month.n} label="entrenos este mes" tone="accent" />
-          <Stat v={head.month.min ? fmtMin(head.month.min) : '—'} label="tiempo este mes" />
-          <Stat v={head.week.vol ? miles(head.week.vol) : '—'} unit={head.week.vol ? 'kg' : ''} label="volumen semana" />
-          <Stat v={`${head.cons.hit}/${head.cons.weeks}`} label="semanas activas" />
-        </div>
-      )}
-      {data.sessions.length > 0 && (
-        <p className="muted small" style={{ margin: '-4px 4px 12px' }}>
-          En total: {head.all.n} entrenos · {head.all.sets} series de trabajo{head.all.min ? ` · ${fmtMin(head.all.min)}` : ''}{head.all.vol ? ` · ${miles(head.all.vol)} kg` : ''}.
-        </p>
-      )}
       <AimCard data={data} setData={setData} />
       <RankCard data={data} />
       <MuscleMap data={data} />
