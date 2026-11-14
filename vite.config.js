@@ -35,8 +35,7 @@ export default defineConfig({
         ],
         navigateFallback: 'index.html',
         // nunca responder con la página a peticiones de iconos/manifest (iOS los pide al añadir a inicio)
-        // /beta/ es una versión de prueba con su propio service worker: la app principal no debe responder por ella
-        navigateFallbackDenylist: [/\.(png|jpg|jpeg|webp|svg|ico|webmanifest|json)$/i, /icono\.html$/, /\/beta\//],
+        navigateFallbackDenylist: [/\.(png|jpg|jpeg|webp|svg|ico|webmanifest|json)$/i, /icono\.html$/],
         cleanupOutdatedCaches: true,
         clientsClaim: true,
         skipWaiting: true,
