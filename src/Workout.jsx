@@ -1800,7 +1800,6 @@ export default function Workout({ data, setData, view, setView, onStart, onStart
       {flash && <div className="notice">{flash}</div>}
       <div className="head">
         <div>
-          <div className="eyebrow">{new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}</div>
           <h1 className="title">Entrenamiento</h1>
         </div>
         <button className="icon-btn" onClick={() => setChat(true)} aria-label="Preguntar al entrenador">
@@ -1861,7 +1860,32 @@ export default function Workout({ data, setData, view, setView, onStart, onStart
           </div>
         </div>
       )}
-      {todays.map(dayCard)}
+      {todays.map((d) => (
+        <div className="card" key={d.id}>
+          <div className="sec-head nm">
+            <b>{d.name}</b>
+            <span className="muted small">{d.items.length} {d.items.length === 1 ? 'ejercicio' : 'ejercicios'}</span>
+          </div>
+          {d.items.length === 0 && <p className="muted small">Sin ejercicios: los añades al empezar o en Rutinas.</p>}
+          {d.items.map((i) => {
+            const ex = EX_BY_ID[i.ex]
+            const last = lastSets(data.sessions, i.ex)
+            return (
+              <div className="row nob li" key={i.id}>
+                <Thumb ex={ex} size={38} />
+                <div className="grow">
+                  <div className="li-t">{ex?.name || i.ex}</div>
+                  <div className="muted small">
+                    {i.sets}×{i.reps}
+                    {i.rir != null ? ` · RIR ${i.rir}` : ''}
+                    {last ? ` · última vez ${last.sets.map(setTxt).join(', ')}` : ''}
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      ))}
 
       <div className="sec-head">
         <h4>Últimos entrenos</h4>
@@ -1890,18 +1914,6 @@ export default function Workout({ data, setData, view, setView, onStart, onStart
         </div>
       )}
 
-      <div className="tiles">
-        <button className="tile2 accent" onClick={onStartFree}>
-          <span className="tile2-ic"><Icon name="bolt" size={18} /></span>
-          <span className="tile2-t">Entreno libre</span>
-          <span className="tile2-s">Sin plan, a tu aire</span>
-        </button>
-        <button className="tile2" onClick={() => setChat(true)}>
-          <span className="tile2-ic"><Icon name="sparkle" size={18} /></span>
-          <span className="tile2-t">Preguntar</span>
-          <span className="tile2-s">Chat con el entrenador</span>
-        </button>
-      </div>
       {exOpen && <ExerciseModal ex={exOpen} data={data} setData={setData} onClose={() => setExOpen(null)} />}
       {maker && <PlanMaker data={data} setData={setData} onClose={() => setMaker(false)} />}
       {chat && <CoachChat data={data} onClose={() => setChat(false)} />}
