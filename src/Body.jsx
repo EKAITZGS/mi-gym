@@ -270,10 +270,13 @@ export default function BodyCard({ data, setData }) {
   const wLast = wtAll[wtAll.length - 1]
   // solo medias completas (3 pesajes): comparar un pesaje suelto con una media daba cambios falsos
   const wt = wtAll.slice(2)
-  const wDiff = wt.length >= 2 ? Math.round((wLast.v - wt[0].v) * 10) / 10 : null
+  // la ficha enseña el último pesaje (lo pidió así); la media queda debajo de la gráfica
+  const kLast = weights[weights.length - 1]
+  const kFirst = weights[0]
+  const wDiff = kLast && kFirst && kLast.date !== kFirst.date ? Math.round((kLast.kg - kFirst.kg) * 10) / 10 : null
   const dueK = weights.length > 0 && daysSince(weights[weights.length - 1].date) >= 7
   const [metric, setMetric] = useState(null)
-  const m = metric || (waist.length < 2 && wt.length >= 2 ? 'weight' : 'waist')
+  const m = metric || (waist.length < 2 && weights.length >= 2 ? 'weight' : 'waist')
   const read = bodyRead(waist, wt)
   const tile = (key, label, color, val, unit, d, since) => (
     <button className={'body-tile' + (m === key ? ' on' : '')} style={{ '--c': color }} onClick={() => setMetric(key)}>
@@ -285,7 +288,7 @@ export default function BodyCard({ data, setData }) {
       </div>
       <div className={'bt-d ' + (d == null ? 'flat' : d < 0 ? 'up' : d > 0 ? 'down' : 'flat')}>
         {d == null ? (
-          val == null ? 'Sin medidas' : key !== 'weight' ? 'Primera medida' : weights.length < 3 ? `Pesajes: ${weights.length} de 3` : 'Primera media'
+          val == null ? 'Sin medidas' : key !== 'weight' ? 'Primera medida' : 'Primer pesaje'
         ) : (
           <>
             <b>
@@ -302,9 +305,9 @@ export default function BodyCard({ data, setData }) {
     <div className="card body-card">
       <div className="sec-head nm">
         <b>Tu cuerpo</b>
-        <span className="muted small">cintura y tendencia</span>
+        <span className="muted small">cintura y peso</span>
       </div>
-      {!last && !wLast ? (
+      {!last && !kLast ? (
         <p className="muted small" style={{ margin: '4px 0 10px' }}>
           Mide tu cintura una vez por semana: si baja, estás perdiendo grasa aunque la báscula no se mueva.
         </p>
@@ -312,7 +315,7 @@ export default function BodyCard({ data, setData }) {
         <>
           <div className="body-tiles">
             {tile('waist', 'Cintura', 'var(--accent)', last?.cm, 'cm', diff, first?.date)}
-            {tile('weight', 'Peso (media)', 'var(--blue)', wLast?.v, 'kg', wDiff, wt[0]?.date)}
+            {tile('weight', kLast ? `Peso · ${fmtD(kLast.date)}` : 'Peso', 'var(--blue)', kLast?.kg, 'kg', wDiff, kFirst?.date)}
           </div>
           {m === 'waist' ? (
             <TrendChart
@@ -324,18 +327,21 @@ export default function BodyCard({ data, setData }) {
               empty="Mide la cintura otra semana y aquí verás cómo baja."
             />
           ) : (
-            <TrendChart
-              key="weight"
-              points={wt.map((w) => ({ label: w.date, v: w.v }))}
-              unit="kg"
-              color="var(--blue)"
-              good="down"
-              empty={
-                weights.length < 3
-                  ? `La tendencia sale con 3 pesajes (llevas ${weights.length}). Uno por semana basta.`
-                  : 'Con el próximo pesaje verás cómo va la tendencia.'
-              }
-            />
+            <>
+              <TrendChart
+                key="weight"
+                points={weights.map((w) => ({ label: w.date, v: w.kg }))}
+                unit="kg"
+                color="var(--blue)"
+                good="down"
+                empty="Con el próximo pesaje verás la gráfica. Uno por semana basta."
+              />
+              {weights.length >= 3 && (
+                <p className="muted small" style={{ margin: '2px 0 0' }}>
+                  Media de los 3 últimos pesajes: <b>{fmtKg(wLast.v)} kg</b>
+                </p>
+              )}
+            </>
           )}
           {read && (
             <div className="body-read">

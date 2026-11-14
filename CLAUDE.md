@@ -1,7 +1,7 @@
 # Mi Gym — contexto para Claude Code
 
 App personal (PWA) de gimnasio y dieta de Ekaitz para su iPhone. Español en toda la interfaz y las respuestas.
-El peso se muestra solo como tendencia (media de los últimos 3 pesajes), nunca pesos sueltos; el usuario se pesa como mucho 1 vez por semana. Datos en `body.weight` = [{date, kg}]. Objetivos de kcal/proteína en `goals`. Reloj Polar.
+El usuario se pesa como mucho 1 vez por semana. En "Tu cuerpo" (`Body.jsx`) la ficha y la gráfica del peso enseñan los pesajes reales (el último arriba, lo pidió él); la media de los 3 últimos sale debajo y es la que usan los análisis (`bodyRead`, energía, objetivo). Datos en `body.weight` = [{date, kg}]. Objetivos de kcal/proteína en `goals`. Reloj Polar.
 Prefiere respuestas cortas, directas y sinceras. Las propuestas del coach nunca se aplican solas: él acepta o rechaza.
 
 ## Stack
