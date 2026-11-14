@@ -24,7 +24,7 @@ export default function LegalModal({ onClose, tab: tab0 = 'privacy' }) {
           <h4>Dónde están</h4>
           <ul>
             <li><b>En tu móvil</b> siempre (almacenamiento local). Las fotos de progreso solo están en tu móvil: nunca se suben.</li>
-            <li><b>En tu cuenta</b> (Supabase, servidores en la Unión Europea): una copia de tus datos (sin fotos) para no perderlos y poder usar otro dispositivo. Solo tú puedes leerla, salvo lo que autorices a un entrenador.</li>
+            <li><b>En tu cuenta</b> (Supabase): una copia de tus datos (sin fotos) para no perderlos y poder usar otro dispositivo. Solo tú puedes leerla, salvo lo que autorices a un entrenador.</li>
           </ul>
           <h4>Quién puede verlos</h4>
           <p>Nadie, salvo que aceptes a un entrenador dentro de la app: entonces ve tu rutina, tus entrenos, tu peso y cintura y el pulso de tus entrenos del reloj. No ve tu dieta, tu sueño ni tus fotos. Puedes dejar al entrenador cuando quieras y deja de ver todo.</p>
