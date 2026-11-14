@@ -1,3 +1,4 @@
+import os
 import json
 from playwright.sync_api import sync_playwright
 W='https://mi-gym-polar.ekaitzmartinezm.workers.dev'
@@ -12,7 +13,7 @@ Object.defineProperty(navigator,'serviceWorker',{get:()=>({ready:Promise.resolve
 """
 calls=[]
 with sync_playwright() as p:
-    b=p.chromium.launch(executable_path='/usr/bin/google-chrome',args=['--no-sandbox'])
+    b=p.chromium.launch(executable_path=os.environ.get('CHROME') or None, args=['--no-sandbox'])
     ctx=b.new_context(viewport={'width':390,'height':844},device_scale_factor=2); ctx.add_init_script(INIT)
     pg=ctx.new_page(); errs=[]; pg.on('pageerror',lambda e:errs.append(str(e)))
     def h(r):
@@ -31,7 +32,7 @@ with sync_playwright() as p:
     print('llamadas:', [c[0] for c in calls])
     sync=[c for c in calls if c[0]=='/push/sync'][0][1]
     for it in sync['items'][:6]: print('  ', it['k'], json.dumps(it['title'],ensure_ascii=False))
-    card.scroll_into_view_if_needed(); pg.wait_for_timeout(300); card.screenshot(path='/home/claude/shots/push.png')
+    card.scroll_into_view_if_needed(); pg.wait_for_timeout(300); card.screenshot(path='tests/shots/push.png')
     n=len(calls)
     pg.locator('.push-opt input[type=checkbox]').nth(1).uncheck(); pg.wait_for_timeout(3800)
     last=[c for c in calls[n:] if c[0]=='/push/sync']

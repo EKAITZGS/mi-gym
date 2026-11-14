@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { DEFAULT, todayStr, num } from './store'
+import { todayStr, num } from './store'
+import { migrate, validBackup } from './migrate'
 import { getAi, setAi, DEFAULT_MODEL, cleanKey, testKey, serverAi } from './ai'
 import Coach from './Coach.jsx'
 import { PlanMaker } from './Workout'
@@ -136,12 +137,13 @@ export default function Settings({ data, setData, cloud }) {
   const load = (text) => {
     try {
       const obj = JSON.parse(text)
-      const isObj = (v) => v && typeof v === 'object' && !Array.isArray(v)
-      if (!obj || !Array.isArray(obj.plan)) throw new Error('formato')
-      if (['sessions', 'myFoods', 'myExercises'].some((k) => k in obj && !Array.isArray(obj[k])) || ['food', 'goals'].some((k) => k in obj && !isObj(obj[k])))
-        throw new Error('formato')
+      if (!validBackup(obj)) throw new Error('formato')
       if (!confirm('Esto reemplaza todos los datos actuales por los de la copia. ¿Continuar?')) return
-      setData({ ...DEFAULT, ...obj })
+      // lo de ahora se guarda aparte por si la copia no era la buena
+      try {
+        localStorage.setItem('migym.v1.antes-importar', JSON.stringify(data))
+      } catch {}
+      setData(migrate(obj))
       setPaste('')
       flash('Copia restaurada')
     } catch {

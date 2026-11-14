@@ -1,9 +1,10 @@
+import os
 import json
 from playwright.sync_api import sync_playwright
 W='https://mi-gym-polar.ekaitzmartinezm.workers.dev'
 ex=[{"id":111,"start_time":"2026-11-06T17:05:00","duration":"PT1H12M","calories":480,"heart_rate":{"average":126,"maximum":168},"sport":"STRENGTH_TRAINING"}]
 with sync_playwright() as p:
-    b=p.chromium.launch(); pg=b.new_page(viewport={'width':390,'height':844})
+    b=p.chromium.launch(executable_path=os.environ.get('CHROME') or None, ); pg=b.new_page(viewport={'width':390,'height':844})
     errs=[]; pg.on('pageerror',lambda e:errs.append(str(e)))
     pg.route(W+'/exercise?*',lambda r:r.fulfill(status=200,content_type='application/json',headers={'Access-Control-Allow-Origin':'*'},body='{}'))
     pg.route(W+'/exercises*',lambda r:r.fulfill(status=200,content_type='application/json',headers={'Access-Control-Allow-Origin':'*'},body=json.dumps(ex)))

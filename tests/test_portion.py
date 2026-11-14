@@ -1,7 +1,8 @@
+import os
 import json
 from playwright.sync_api import sync_playwright
 with sync_playwright() as p:
-    b=p.chromium.launch(executable_path='/usr/bin/google-chrome',args=['--no-sandbox'])
+    b=p.chromium.launch(executable_path=os.environ.get('CHROME') or None, args=['--no-sandbox'])
     ctx=b.new_context(viewport={'width':390,'height':844},device_scale_factor=2,permissions=[]); pg=ctx.new_page(); errs=[]; pg.on('pageerror',lambda e:errs.append(str(e)))
     sent={}
     def groq(route):
@@ -17,12 +18,12 @@ with sync_playwright() as p:
     # FOTO
     pg.click('.tabbar button:has-text("Dieta")'); pg.click('button[aria-label="Añadir a Merienda"]')
     with pg.expect_file_chooser() as fc: pg.click('.qa:has-text("Foto")')
-    fc.value.set_files('/home/claude/shots/barcode.jpg'); pg.wait_for_selector('text=¿Cuánto te has comido?')
+    fc.value.set_files('tests/shots/barcode.jpg'); pg.wait_for_selector('text=¿Cuánto te has comido?')
     pg.fill('.sheet input.inp','me comí 40 g de pipas y la lata entera'); pg.click('.sheet button:has-text("Analizar")')
     pg.wait_for_selector('text=Lo que te has comido'); pg.wait_for_timeout(300)
     print('porción en prompt:', 'PORCIÓN: me comí 40 g' in sent['prompt'])
     print(pg.locator('.sheet').inner_text().replace('\n',' | ')[:400])
-    pg.locator('.sheet').screenshot(path='/home/claude/shots/ai_review.png')
+    pg.locator('.sheet').screenshot(path='tests/shots/ai_review.png')
     pg.locator('.ai-row input').nth(0).fill('50'); pg.wait_for_timeout(100)
     print('tras 50 g:', pg.locator('.ai-item').nth(0).inner_text().replace('\n',' '))
     pg.locator('.ai-item input[type=checkbox]').nth(1).uncheck()
@@ -33,5 +34,5 @@ with sync_playwright() as p:
     pg.fill('input[placeholder="8410000000000"]','8410199011111'); pg.click('button:has-text("Buscar")'); pg.wait_for_selector('text=¿Cuánto del paquete?')
     print(pg.locator('.pkg-box').inner_text().replace('\n',' | '))
     pg.click('.pkg-box .chip:has-text("La mitad")'); pg.wait_for_timeout(100); print('cantidad:', pg.locator('.qty input').input_value(), '|', pg.locator('.sum').inner_text())
-    pg.locator('.sheet').screenshot(path='/home/claude/shots/pkg.png')
+    pg.locator('.sheet').screenshot(path='tests/shots/pkg.png')
     print('ERR',errs)

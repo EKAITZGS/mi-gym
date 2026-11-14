@@ -1,6 +1,7 @@
+import os
 from playwright.sync_api import sync_playwright
 with sync_playwright() as p:
-    b=p.chromium.launch(executable_path='/usr/bin/google-chrome',args=['--no-sandbox'])
+    b=p.chromium.launch(executable_path=os.environ.get('CHROME') or None, args=['--no-sandbox'])
     pg=b.new_context(viewport={'width':390,'height':844},device_scale_factor=2).new_page(); errs=[]; pg.on('pageerror',lambda e:errs.append(str(e)))
     imgs=[]; pg.on('request', lambda r: imgs.append(r.url) if '/ex/' in r.url else None)
     pg.goto('http://127.0.0.1:4173/'); pg.wait_for_selector('.tabbar')
@@ -18,5 +19,5 @@ with sync_playwright() as p:
     print('antebrazo:', [x.inner_text().split('\n')[0] for x in pg.locator('.sheet .list .row').all()])
     pg.fill('.sheet input[placeholder="Buscar ejercicio…"]','press inclinado'); pg.click('.sheet .chip:has-text("Todos")'); pg.wait_for_timeout(200)
     pg.locator('.sheet .list .row:has-text("Smith")').first.click(); pg.wait_for_timeout(500)
-    pg.locator('.sheet').last.screenshot(path='/home/claude/shots/smith.png')
+    pg.locator('.sheet').last.screenshot(path='tests/shots/smith.png')
     print('ERR',errs)

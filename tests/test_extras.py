@@ -1,7 +1,8 @@
+import os
 import json
 from playwright.sync_api import sync_playwright
 with sync_playwright() as p:
-    b=p.chromium.launch(executable_path='/usr/bin/google-chrome',args=['--no-sandbox'])
+    b=p.chromium.launch(executable_path=os.environ.get('CHROME') or None, args=['--no-sandbox'])
     ctx=b.new_context(viewport={'width':390,'height':844},device_scale_factor=2); pg=ctx.new_page(); errs=[]; pg.on('pageerror',lambda e:errs.append(str(e)))
     dl=[]; pg.on('dialog',lambda d:(dl.append(d.message), d.accept('Desayuno de siempre') if d.type=='prompt' else d.accept()))
     pg.clock.set_fixed_time('2026-11-06T20:30:00')
@@ -17,7 +18,7 @@ with sync_playwright() as p:
     pg.reload(); pg.wait_for_timeout(1500)
     t=pg.locator('body').inner_text()
     for k in ['Te faltan','pasos hoy','Series por músculo','Tu cuerpo','Toca medir']: print(k, k in t)
-    pg.screenshot(path='/home/claude/shots/x_home1.png', full_page=True)
+    pg.screenshot(path='tests/shots/x_home1.png', full_page=True)
     # proteína: añadir primera sugerencia
     before=pg.evaluate("JSON.parse(localStorage.getItem('migym.v1')).food['2026-11-06'].length")
     pg.locator('.prot-tip button:has-text("Añadir")').first.click(); pg.wait_for_timeout(200)
@@ -30,7 +31,7 @@ with sync_playwright() as p:
     pg.click('.body-card button:has-text("foto")'); pg.set_input_files('.sheet input[type=file][capture]','/tmp/foto.jpg'); pg.wait_for_timeout(1500)
     pg.set_input_files('.sheet input[type=file][multiple]',['/tmp/foto.jpg','/tmp/foto.jpg']); pg.wait_for_timeout(2000)
     print('fotos:', pg.locator('.sheet .ph-grid img').count(), 'comparar:', pg.locator('.ph-compare img').count())
-    pg.locator('.sheet').screenshot(path='/home/claude/shots/x_photos.png')
+    pg.locator('.sheet').screenshot(path='tests/shots/x_photos.png')
     pg.click('.sheet .icon-btn >> nth=0') if False else pg.keyboard.press('Escape'); pg.wait_for_timeout(300)
     pg.reload(); pg.wait_for_timeout(1200)
     # Dieta
@@ -42,5 +43,5 @@ with sync_playwright() as p:
     t=pg.locator('body').inner_text(); print('mañana chips:', 'Repetir de ayer' in t, 'Desayuno de siempre' in t)
     pg.locator('.meal-quick .chip:has-text("Repetir de ayer")').first.click(); pg.wait_for_timeout(200)
     print('copiado mañana:', pg.evaluate("(JSON.parse(localStorage.getItem('migym.v1')).food['2026-11-07']||[]).map(e=>e.meal+':'+e.name)"))
-    pg.screenshot(path='/home/claude/shots/x_diet.png', full_page=True)
+    pg.screenshot(path='tests/shots/x_diet.png', full_page=True)
     print('ERR', errs)

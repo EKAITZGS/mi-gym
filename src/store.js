@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { migrate, needsMigration, backupBeforeMigrate } from './migrate'
 
 const KEY = 'migym.v1'
 
@@ -80,14 +81,19 @@ export function useStore() {
     let s = null
     try {
       s = localStorage.getItem(KEY)
-      if (s) return { ...DEFAULT, ...JSON.parse(s) }
+      if (s) {
+        const raw = JSON.parse(s)
+        // documento versionado: antes de subir de versión se guarda una copia (una vez)
+        if (needsMigration(raw)) backupBeforeMigrate(s, Number(raw?.v) || 1)
+        return migrate(raw)
+      }
     } catch {
       // Dato corrupto: copia de seguridad antes de que el efecto de abajo lo pise con DEFAULT
       try {
         if (s) localStorage.setItem(KEY + '.bak', s)
       } catch {}
     }
-    return DEFAULT
+    return migrate(DEFAULT)
   })
   useEffect(() => {
     try {
