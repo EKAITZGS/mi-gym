@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="apple-touch-icon" sizes="180x180" href="https://ekaitzgs.github.io/mi-gym/apple-touch-icon.png?v=5" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0b0b0b" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Mi Gym" />
+    <link rel="icon" type="image/png" href="./favicon.png?v=5" />
+    <link rel="apple-touch-icon-precomposed" href="https://ekaitzgs.github.io/mi-gym/apple-touch-icon-precomposed.png?v=5" />
+    <title>Mi Gym</title>
+    <script>window.__t0 = performance.now()</script>
+    <script type="module" crossorigin src="./assets/index-BnhgzA8I.js"></script>
+    <link rel="modulepreload" crossorigin href="./assets/exercises-C1Oq8lSt.js">
+    <link rel="stylesheet" crossorigin href="./assets/index-Dk_Uzmvz.css">
+  <link rel="manifest" href="./manifest-v4.webmanifest"></head>
+  <body>
+    <div id="splash" aria-hidden="true">
+      <svg class="sp-logo" viewBox="0 0 512 384" width="132" height="99">
+        <path d="M48 344 V64 L256 224 V328 L144 242 V344 Z" fill="#F5F5F5"/>
+        <path class="sp-r" d="M256 224 L464 64 V344 H368 V242 L256 328 Z" fill="#A3FF12"/>
+      </svg>
+      <div class="sp-name">Mi Gym</div>
+      <div class="sp-sub">Entrena · Come · Progresa</div>
+    </div>
+    <style>
+      #splash { position: fixed; inset: 0; z-index: 2000; background: #0b0b0b;
+        display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+        font-family: 'Montserrat', system-ui, -apple-system, 'Segoe UI', sans-serif; transition: opacity .4s ease, transform .4s ease; }
+      #splash.out { opacity: 0; transform: scale(1.06); pointer-events: none; }
+      .sp-name { color: #f5f5f5; font-size: 30px; font-weight: 800; letter-spacing: -0.03em; }
+      .sp-sub { color: #9ca3af; font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+      @media (prefers-reduced-motion: no-preference) {
+        .sp-logo { animation: spUp .45s ease both; }
+        .sp-r { animation: spUp .45s .15s ease both; }
+        .sp-name { animation: spUp .5s .35s ease both; }
+        .sp-sub { animation: spUp .5s .5s ease both; }
+        @keyframes spUp { from { transform: translateY(10px); opacity: 0; } }
+      }
+    </style>
+    <div id="root"></div>
+  </body>
+</html>
