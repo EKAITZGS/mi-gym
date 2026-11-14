@@ -1411,7 +1411,7 @@ function Session({ data, setData, onExit, cloud, online }) {
                 <Icon name="x" size={15} /> Quitar
               </button>
             </div>
-            <div className="row nob" onClick={() => ex && setDetail(ex)}>
+            <div className="row nob" onClick={() => ex && setDetail(ex)} role="button" tabIndex={0} aria-label={`Ficha de ${ex?.name || it.ex}`} onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && ex && (e.preventDefault(), setDetail(ex))}>
               <Thumb ex={ex} />
               <div className="grow">
                 <div>

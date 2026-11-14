@@ -2201,3 +2201,4 @@ button.wday:active { transform: scale(0.96); }
 .src-tag { display: inline-block; margin-left: 6px; font-weight: 800; color: var(--muted); }
 .src-tag.ok { color: var(--accent); }
 .src-note { margin: -4px 4px 10px; }
+.sheet:focus { outline: none; box-shadow: none; }

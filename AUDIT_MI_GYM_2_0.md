@@ -139,3 +139,38 @@ sleepFix: { date: {start,end} }, pushPrefs: {...}, setupDone: bool
 - Que el Worker desplegado es `cloudflare/worker.js` actual (`v7`) con `GROQ_KEY` y KV `PUSH` configurados.
 - Comportamiento de push en iOS (requiere instalación en pantalla de inicio).
 - Icono del iPhone.
+
+---
+
+## 10. Estado de la ejecución (rama `migym-2.0`)
+
+| Fase | Estado | Commit |
+|---|---|---|
+| 0 Auditoría | ✅ | `115ed3d` |
+| 1 Datos: migraciones v2, copia previa, fusión de entrenos, import validado, modo sin nube para pruebas | ✅ | `93a4775` |
+| 2-3 Sistema de diseño, 5 pestañas, escritorio, Inicio con CTA, hoja de inicio, aviso sin conexión | ✅ | `d0519b7` |
+| 4 Entreno activo (cronómetro, descanso con pausa/omitir, badges/técnica, calentamientos, estado de guardado) | ✅ | `8ae2853` |
+| 5 Generador conversacional (objetivo, limitaciones, exclusiones, favoritos, resumen editable, análisis) | ✅ | `9db5ea8` |
+| 6 Progreso (cifras, mapa muscular frente/espalda, historial y lectura del progreso) | ✅ | `dd0eb9a` |
+| 7-8 Biblioteca, dieta (≈/✓), sueño (medido/subjetivo), entrenador IA con hechos exactos, chunk de ejercicios | ✅ | `4daff5b` |
+| 9 Accesibilidad (zoom, diálogo, teclado, estados), rendimiento, documentación | ✅ | este commit |
+
+### Pruebas ejecutadas
+- `npm test`: 10 suites en verde (plans, plans 2.0, stats, stats 2.0, coach facts, rest tips, sleep, aim, migrate, sets).
+- Navegador (Chromium, 390×844 y 1280×860): `tests/test_session2.py` (regla de reps vacías, descanso con pausa/omitir, calentamiento, récord comprobado, guardado sin `active`), `tests/test_generator2.py` (objetivo fuerza, zona a evitar, ejercicio excluido, series ±, guardado con `prefs.gen`), `tests/shots.py` (todas las pestañas + hoja de inicio + sesión). En verde. Los dos errores de consola que aparecen en la nube son `ERR_TUNNEL_CONNECTION_FAILED` al Worker (sin salida a internet en el entorno de pruebas), no fallos de la app.
+- **No probado con credenciales reales** (pendiente en el iPhone): Supabase (login, sincronía en dos móviles, fusión real), Polar, push, IA del Worker.
+
+### Lo que no cambia (y no hace falta configurar nada)
+- Supabase, Cloudflare Worker, Polar, push, esquema SQL: **sin cambios**. No hay variables ni secretos nuevos.
+- Forma de los datos: solo campos aditivos (`v: 2`, `prefs.gen`, `set.warm`, `active.rest.left`, `food[].src`). Una versión anterior de la app sigue leyendo estos datos.
+
+### Riesgos conocidos
+- Cambio de navegación: lo que antes estaba en la pestaña Entreno ahora se reparte entre Entrenamiento y Rutinas; Dieta se abre desde Inicio. Es lo que pide el prompt maestro; si en el uso real molesta, se puede devolver Dieta a la barra en 1 línea (`TABS` en App.jsx).
+- `mergeData` une entrenos por id al resolver conflictos: nunca borra un entreno, pero tampoco propaga un borrado (hoy la app no permite borrar entrenos, así que no aplica).
+- R3 de la auditoría (el entrenador puede leer todo el `user_data` del alumno vía API) sigue pendiente: requiere SQL en Supabase y tu aprobación. Propuesta: vista/función que exponga solo `plan`, `sessions`, `body` y `polar.exercises`.
+- Tests Playwright antiguos (`tests/test_*.py` salvo los nuevos) siguen escritos para la UI anterior.
+
+### Despliegue propuesto
+1. Probar la rama en el iPhone (p. ej. `npm run build` y servir `dist/`, o un despliegue de prueba) con tu cuenta real.
+2. Si todo bien: merge `migym-2.0` → `main` (Actions publica). Antes, exportar una copia desde Perfil → Ajustes.
+3. Rollback: `git revert -m 1 <merge>` y push a `main`; los datos no necesitan deshacerse (migraciones aditivas y copia `migym.v1.pre-2` en el móvil).

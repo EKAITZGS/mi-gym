@@ -202,7 +202,7 @@ export default function App() {
         <AuthGate data={data} setData={setData} cloud={cloud} />
         {cloud.recovery && <NewPassword onDone={cloud.doneRecovery} />}
         {notice && (
-          <div className="notice" onClick={() => setNotice(null)}>
+          <div className="notice" role="status" onClick={() => setNotice(null)}>
             {notice}
           </div>
         )}
@@ -240,7 +240,7 @@ export default function App() {
         </div>
       )}
       {notice && (
-        <div className="notice" onClick={() => setNotice(null)}>
+        <div className="notice" role="status" onClick={() => setNotice(null)}>
           {notice}
         </div>
       )}
