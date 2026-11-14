@@ -2191,3 +2191,13 @@ button.wday:active { transform: scale(0.96); }
 .prog-kind.flat, .prog-kind.few { color: var(--muted); }
 /* botones de acción de Tu cuerpo: que quepan tres en un móvil */
 .body-card .btns .btn, .btns .btn { white-space: normal; line-height: 1.15; font-size: 13.5px; padding-left: 8px; padding-right: 8px; }
+
+/* ---- Biblioteca 2.0 ---- */
+.lib-search { display: flex; gap: 8px; align-items: center; }
+.lib-search .inp { margin: 0; flex: 1; }
+.lib-search .icon-btn.on { color: var(--accent); border-color: var(--accent); }
+.lib-filters { margin: 8px 0 4px; }
+/* ---- Dieta: fuente del valor ---- */
+.src-tag { display: inline-block; margin-left: 6px; font-weight: 800; color: var(--muted); }
+.src-tag.ok { color: var(--accent); }
+.src-note { margin: -4px 4px 10px; }

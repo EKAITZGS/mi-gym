@@ -117,3 +117,21 @@ import { exStats } from '../src/store.js'
   assert.equal(progressRead(exStats([S2('2026-11-02', 60, 8), S2('2026-11-04', 60, 8), S2('2026-11-06', 55, 7)], B)).kind, 'down')
   console.log('stats 2.0 ok')
 }
+
+// entrenador IA: hechos exactos con periodo
+import { coachFacts } from '../src/coach.js'
+{
+  const B = 'Barbell_Bench_Press_-_Medium_Grip'
+  const S3 = (date, w) => ({ date, dayName: 'Pecho', min: 45, entries: { [B]: [{ w: String(w), r: '8', drops: [] }, { w: String(w), r: '8', drops: [] }] } })
+  const now = new Date('2026-11-12T10:00') // jueves
+  const facts = coachFacts({ sessions: [S3('2026-11-03', 60), S3('2026-11-05', 60), S3('2026-11-10', 62.5)], body: { weight: [{ date: '2026-11-08', kg: 80 }] } }, now)
+  assert.equal(facts.esta_semana.desde, '2026-11-09')
+  assert.equal(facts.esta_semana.entrenos, 1)
+  assert.equal(facts.semana_pasada.entrenos, 2)
+  assert.equal(facts.semana_pasada.hasta, '2026-11-08')
+  assert.match(facts.esta_semana.series_por_musculo.Pecho, /^2 efectivas/)
+  assert.equal(facts.esta_semana.sesiones[0].ejercicios[0], 'Press banca con barra 2 series (mejor 62.5×8)')
+  assert.equal(facts.evolucion_por_ejercicio[0].sesiones, 3)
+  assert.equal(facts.pesajes[0], '2026-11-08: 80 kg')
+  console.log('coach facts ok')
+}

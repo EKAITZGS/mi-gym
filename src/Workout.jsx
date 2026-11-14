@@ -153,19 +153,39 @@ export function Library({ data, setData, onPick, onClose, inline, title, noCreat
   const [q, setQ] = useState('')
   const [group, setGroup] = useState('Todos')
   const [open, setOpen] = useState(null)
+  const [equipF, setEquipF] = useState('Todo')
+  const [sort, setSort] = useState('rel') // rel (favoritos y usados primero) | az | used
+  const [more, setMore] = useState(false)
   // se enseñan pocos ejercicios a la vez para que la lista vaya fluida; "Ver más" carga el resto
   const PAGE = 12
   const [limit, setLimit] = useState(PAGE)
-  useEffect(() => setLimit(PAGE), [q, group])
+  useEffect(() => setLimit(PAGE), [q, group, equipF, sort])
   const favs = data.favEx || []
+  // veces que has hecho cada ejercicio (para ordenar por uso)
+  const used = useMemo(() => {
+    const m = {}
+    for (const s of data.sessions || []) for (const id of Object.keys(s.entries || {})) m[id] = (m[id] || 0) + 1
+    return m
+  }, [data.sessions])
+  const EQ = ['Todo', 'Barra', 'Mancuernas', 'Máquina', 'Polea', 'Peso corporal', 'Otro']
   const list = EXERCISES.filter(
     (e) =>
-      (group === 'Todos' || (group === '★' ? favs.includes(e.id) : e.group === group)) && (!q || q.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').split(/\s+/).filter(Boolean).every((w) => searchText(e).includes(w)))
+      (group === 'Todos' || (group === '★' ? favs.includes(e.id) : e.group === group)) &&
+      (equipF === 'Todo' || e.equip === equipF || (equipF === 'Barra' && e.equip === 'Barra Z') || (equipF === 'Otro' && !['Barra', 'Barra Z', 'Mancuernas', 'Máquina', 'Polea', 'Peso corporal'].includes(e.equip))) &&
+      (!q || q.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').split(/\s+/).filter(Boolean).every((w) => searchText(e).includes(w)))
   )
-  list.sort((a, b) => favs.includes(b.id) - favs.includes(a.id))
+  const cmp = (a, b) => a.name.localeCompare(b.name, 'es')
+  if (sort === 'az') list.sort(cmp)
+  else if (sort === 'used') list.sort((a, b) => (used[b.id] || 0) - (used[a.id] || 0) || cmp(a, b))
+  else list.sort((a, b) => favs.includes(b.id) - favs.includes(a.id) || (used[b.id] ? 1 : 0) - (used[a.id] ? 1 : 0))
   const body = (
     <>
-      <input className="inp" placeholder="Buscar ejercicio…" value={q} onChange={(e) => setQ(e.target.value)} />
+      <div className="lib-search">
+        <input className="inp" placeholder="Buscar ejercicio…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Buscar ejercicio" />
+        <button className={'icon-btn' + (more || equipF !== 'Todo' || sort !== 'rel' ? ' on' : '')} onClick={() => setMore((v) => !v)} aria-label="Filtros y orden" aria-expanded={more}>
+          <Icon name="list" size={18} />
+        </button>
+      </div>
       <div className="chips">
         {['Todos', ...(favs.length ? ['★'] : []), ...GROUPS, 'Cardio', 'Estiramientos'].map((g) => (
           <button key={g} className={'chip' + (g === group ? ' on' : '')} onClick={() => setGroup(g)}>
@@ -173,6 +193,25 @@ export function Library({ data, setData, onPick, onClose, inline, title, noCreat
           </button>
         ))}
       </div>
+      {more && (
+        <div className="lib-filters">
+          <div className="chips wrap">
+            {EQ.map((e) => (
+              <button key={e} className={'chip sm' + (equipF === e ? ' on' : '')} onClick={() => setEquipF(e)}>
+                {e}
+              </button>
+            ))}
+          </div>
+          <div className="seg seg3">
+            {[['rel', 'Relevancia'], ['used', 'Más hechos'], ['az', 'A–Z']].map(([v, l]) => (
+              <button key={v} className={sort === v ? 'on' : ''} onClick={() => setSort(v)}>
+                {l}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      <p className="muted small" style={{ margin: '0 0 6px' }}>{list.length} {list.length === 1 ? 'ejercicio' : 'ejercicios'}</p>
       <div className="list">
         {list.slice(0, limit).map((e) => (
           <button key={e.id} className="row" onClick={() => setOpen(e)}>
@@ -183,7 +222,8 @@ export function Library({ data, setData, onPick, onClose, inline, title, noCreat
                 {e.name}
               </div>
               <div className="muted small">
-                {e.group} · {e.equip}
+                {e.main?.length ? e.main.join(', ') : e.group} · {e.equip}
+                {used[e.id] ? ` · ${used[e.id]}×` : ''}
               </div>
             </div>
             {onPick && <span className="plus"><Icon name="plus" size={18} /></span>}

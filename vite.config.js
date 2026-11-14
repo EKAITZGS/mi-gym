@@ -5,6 +5,15 @@ import { VitePWA } from 'vite-plugin-pwa'
 // base './' => funciona en GitHub Pages (subruta /repo/) y en cualquier hosting estático
 export default defineConfig({
   base: './',
+  build: {
+    chunkSizeWarningLimit: 900,
+    rollupOptions: {
+      output: {
+        // la biblioteca de ejercicios (≈180 kB gz) va en su propio fichero: se cachea aparte y no cambia con cada versión de la app
+        manualChunks: (id) => (id.includes('/src/data/exercises.js') ? 'exercises' : undefined),
+      },
+    },
+  },
   plugins: [
     react(),
     VitePWA({

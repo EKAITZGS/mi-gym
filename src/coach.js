@@ -1,7 +1,9 @@
 import { EXERCISES, EX_BY_ID } from './data/exercises'
 import { hasAi, groqChat } from './ai'
-import { uid, todayStr, addDays, suggestion, fmtKg, setTxt } from './store'
-import { nightsOf } from './stats'
+import { uid, todayStr, addDays, suggestion, fmtKg, setTxt, fmtDate } from './store'
+import { nightsOf, muscleLoad, recentPRs, stalled, periodStats, streakWeeks, progressRead } from './stats'
+import { groupsOf } from './ranks'
+import { exStats } from './store'
 
 // Resumen del reloj Polar de los últimos 7 días (para la revisión y para la IA)
 export function polarWeek(data) {
@@ -136,6 +138,49 @@ function summarize(data) {
 }
 
 // Chat libre con el entrenador. El Worker solo acepta pocos mensajes, así que la conversación va resumida en uno.
+// Hechos con cifras exactas y su periodo, para que el entrenador no tenga que "inferir" nada
+export function coachFacts(data, now = new Date()) {
+  const ses = data.sessions || []
+  const d = new Date(now)
+  const mon = new Date(d); mon.setDate(d.getDate() - ((d.getDay() + 6) % 7))
+  const monPrev = new Date(mon); monPrev.setDate(mon.getDate() - 7)
+  const sunPrev = new Date(mon); sunPrev.setDate(mon.getDate() - 1)
+  const f = (x) => fmtDate(x)
+  const week = (from, to) => {
+    const p = periodStats(ses, from, to)
+    const list = ses.filter((s) => s.date >= from && s.date <= to).map((s) => ({
+      fecha: s.date,
+      dia: s.dayName,
+      min: s.min,
+      ejercicios: Object.entries(s.entries || {}).map(([id, sets]) => {
+        const best = exStats([s], id)[0]?.best
+        return `${(EX_BY_ID[id]?.name || id).replace(/ \(.*\)/, '')} ${sets.filter((x) => !x.warm).length} series${best ? ` (mejor ${best.w}×${best.r})` : ''}`
+      }),
+    }))
+    const load = muscleLoad(ses, from, groupsOf, to)
+    return { desde: from, hasta: to, entrenos: p.n, series: p.sets, minutos: p.min, kg_movidos: p.vol, series_por_musculo: Object.fromEntries(Object.entries(load).map(([g, v]) => [g, `${v.eff} efectivas (${v.direct} directas, ${v.indirect} indirectas) en ${v.freq} días`])), sesiones: list }
+  }
+  const ids = [...new Set(ses.slice(-12).flatMap((s) => Object.keys(s.entries || {})))].slice(0, 12)
+  const evol = ids.map((id) => {
+    const st = exStats(ses, id)
+    if (!st.length) return null
+    const r = progressRead(st)
+    return { ejercicio: EX_BY_ID[id]?.name || id, sesiones: st.length, ultimo: `${st[st.length - 1].best.w}×${st[st.length - 1].best.r} (${st[st.length - 1].date})`, mejor_1rm: Math.round(Math.max(...st.map((x) => x.best.e))), lectura: r.text }
+  }).filter(Boolean)
+  const w = (data.body?.weight || []).slice(-4)
+  return {
+    hoy: f(d),
+    esta_semana: week(f(mon), f(d)),
+    semana_pasada: week(f(monPrev), f(sunPrev)),
+    racha_semanas: streakWeeks(ses, d),
+    records_30_dias: recentPRs(ses, 30, d).slice(0, 8).map((p) => `${EX_BY_ID[p.id]?.name || p.id}: ${p.w}×${p.r} el ${p.date}`),
+    estancados: stalled(ses, d).map((x) => EX_BY_ID[x.id]?.name || x.id),
+    evolucion_por_ejercicio: evol,
+    pesajes: w.length ? w.map((x) => `${x.date}: ${x.kg} kg`) : undefined,
+    total_entrenos_registrados: ses.length,
+  }
+}
+
 export async function askCoach(data, history, question) {
   if (!hasAi()) throw new Error('NO_KEY')
   const { plan, last } = summarize(data)
@@ -143,13 +188,15 @@ export async function askCoach(data, history, question) {
   const ctx = {
     objetivos: data.goals,
     plan,
+    datos_exactos: coachFacts(data),
     ultimos_entrenos: last,
     reloj_semana: polarWeek(data),
     sueno_ultimas_noches: nights.length ? nights : undefined,
   }
   const prev = history.slice(-8).map((m) => `${m.role === 'user' ? 'Usuario' : 'Entrenador'}: ${m.text}`).join('\n')
   const system = `Eres el entrenador personal y nutricionista de la app Mi Gym. Respondes en español de España, cercano y directo, en 2-6 frases o una lista corta.
-Usa los datos del usuario cuando sirvan; no inventes datos que no tengas. Si preguntan por dolor fuerte, lesión, mareos o algo médico, da una pauta prudente y recomienda ir a un profesional sanitario; no diagnostiques.
+Usa los datos del usuario cuando sirvan; no inventes datos que no tengas. Cuando des cifras (entrenos, series, kilos, récords), di de qué periodo son (p. ej. "esta semana, desde el lunes ${ctx.datos_exactos.esta_semana.desde}") y de dónde salen. Si no hay datos suficientes para responder, dilo claramente en vez de estimar.
+Nunca cambies tú la rutina, los objetivos ni los datos: solo propón; el usuario decide y lo aplica él en la app. Si preguntan por dolor fuerte, lesión, mareos o algo médico, da una pauta prudente y recomienda ir a un profesional sanitario; no diagnostiques.
 Datos del usuario: ${JSON.stringify(ctx)}`
   const user = `${prev ? `Conversación hasta ahora:\n${prev}\n\n` : ''}Pregunta: ${question}`
   const txt = await groqChat({

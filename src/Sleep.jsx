@@ -35,8 +35,21 @@ export default function SleepCard({ data, setData }) {
         <b>
           <Icon name="calendar" size={16} className="inl" /> Sueño
         </b>
-        <span className="muted small">últimas 7 noches</span>
+        <span className="muted small">últimas 7 noches · medido por el reloj</span>
       </div>
+      {(() => {
+        // sensación subjetiva de los check-ins de los últimos 7 días (lo que tú marcaste, no el reloj)
+        const since = new Date(); since.setDate(since.getDate() - 7)
+        const f = `${since.getFullYear()}-${String(since.getMonth() + 1).padStart(2, '0')}-${String(since.getDate()).padStart(2, '0')}`
+        const marks = (data.sessions || []).filter((s) => s.date >= f && s.checkin?.sleep).map((s) => s.checkin.sleep)
+        if (!marks.length) return null
+        const c = [1, 2, 3].map((v) => marks.filter((m) => m === v).length)
+        return (
+          <p className="muted small" style={{ margin: '0 0 8px' }}>
+            Tu sensación (check-in): {[c[2] && `bien ×${c[2]}`, c[1] && `normal ×${c[1]}`, c[0] && `mal ×${c[0]}`].filter(Boolean).join(' · ')}.
+          </p>
+        )
+      })()}
       {a.last && (
         <div className="sleep-last">
           <b className="tile-num">{hm(a.last.len)}</b>
