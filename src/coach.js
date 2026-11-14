@@ -40,7 +40,7 @@ export const ZONES = [
   { id: 'Otra', groups: [] },
 ]
 
-const zoneHits = (zone, exId) => {
+export const zoneHits = (zone, exId) => {
   const z = ZONES.find((x) => x.id === zone)
   const ex = EX_BY_ID[exId]
   if (!z || !ex) return false

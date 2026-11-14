@@ -2171,3 +2171,9 @@ button.wday:active { transform: scale(0.96); }
 .setrow.warm .inp { opacity: 0.85; }
 .set-links .on-link { color: var(--accent); }
 .restbar.paused .rest-t { opacity: 0.65; }
+
+/* ---- Generador 2.0 ---- */
+.gen-item { align-items: center; }
+.gen-ctl { display: flex; gap: 2px; flex-shrink: 0; }
+.gen-ctl .icon-btn.ghost { min-width: 32px; height: 34px; font-weight: 800; }
+.gen-freq { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; }
