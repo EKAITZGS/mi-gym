@@ -12,6 +12,11 @@ export default function AimCard({ data, setData }) {
   const ctrl = checkStatus(data, data.body?.photos || [])
   const [modal, setModal] = useState(null) // 'weight' | 'waist' | 'frontal' | 'lateral'
   const [chat, setChat] = useState(false)
+  const [openItem, setOpenItem] = useState(null)
+  const todo = p.items.filter((i) => i.tone === 'yellow')
+  const good = p.items.filter((i) => i.tone === 'green')
+  // los "pésate" y "apunta lo que comes" ya los recuerda el Control; aquí solo las claves del objetivo
+  const tips = p.items.filter((i) => i.tone === 'info' && i.title.startsWith('Clave'))
   const info = AIMS.find((a) => a.id === aim)
   const setAim = (id) => setData((d) => ({ ...d, goals: { ...d.goals, aim: id } }))
   const g = data.goals || {}
@@ -52,7 +57,7 @@ export default function AimCard({ data, setData }) {
         ))}
       </div>
       <p className="muted small" style={{ margin: '4px 0 10px' }}>
-        Peso y cintura 1 vez por semana; fotos cada 2 semanas. Juntos te dicen si pierdes grasa o músculo: la báscula sola engaña.
+        Peso y cintura cada semana, fotos cada 2.
       </p>
 
       <div className="sleep-stats">
@@ -70,12 +75,33 @@ export default function AimCard({ data, setData }) {
         </div>
       </div>
 
-      {p.items.map((it, i) => (
-        <div key={i} className={'advice sm ' + (it.tone === 'info' ? '' : it.tone)}>
-          <b>{it.title}</b>
-          <div>{it.text}</div>
-        </div>
-      ))}
+      {todo.length > 0 && (
+        <>
+          <h4 style={{ margin: '10px 0 6px' }}>Qué ajustar</h4>
+          {todo.map((it, i) => (
+            <button key={i} className="aim-todo" onClick={() => setOpenItem(openItem === i ? null : i)}>
+              <span className="grow">{it.title}</span>
+              {it.act && <b className="aim-act">{it.act}</b>}
+              {openItem === i && <span className="muted small aim-more">{it.text}</span>}
+            </button>
+          ))}
+        </>
+      )}
+      {good.length > 0 && (
+        <p className="aim-good">
+          <Icon name="check" size={14} /> Va bien: {good.map((it) => it.short || it.title).join(' · ')}
+        </p>
+      )}
+      {tips.length > 0 && (
+        <details className="aim-tips">
+          <summary className="muted small">Consejos para {info.label.toLowerCase()}</summary>
+          {tips.map((it, i) => (
+            <p key={i} className="small">
+              <b>{it.title}.</b> {it.text}
+            </p>
+          ))}
+        </details>
+      )}
 
       {(newKcal || newProt) && (
         <div className="aim-prop">

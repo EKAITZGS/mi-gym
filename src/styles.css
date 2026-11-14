@@ -2021,3 +2021,10 @@ body.modal-open .savebar { display: none; }
 .aim .advice { margin: 6px 0; }
 .aim .advice b { display: block; margin-bottom: 2px; }
 .aim-prop { background: var(--card2); border-radius: 12px; padding: 10px 12px; margin: 8px 0; }
+
+.aim-todo { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; width: 100%; text-align: left; font: inherit; color: var(--text); background: rgba(255, 181, 71, 0.08); border: 1px solid rgba(255, 181, 71, 0.35); border-radius: 12px; padding: 10px 12px; margin: 0 0 6px; }
+.aim-act { color: var(--amber); font-size: 13px; white-space: nowrap; }
+.aim-more { flex-basis: 100%; }
+.aim-good { color: var(--accent); font-size: 14px; margin: 8px 0; line-height: 1.4; }
+.aim-tips { margin: 4px 0 8px; }
+.aim-tips summary { cursor: pointer; }
