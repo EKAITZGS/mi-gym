@@ -2202,3 +2202,8 @@ button.wday:active { transform: scale(0.96); }
 .src-tag.ok { color: var(--accent); }
 .src-note { margin: -4px 4px 10px; }
 .sheet:focus { outline: none; box-shadow: none; }
+
+/* acabado: selects del editor sin cortar texto */
+.fields select.inp.sm { min-width: 128px; }
+.aim-todo .grow { flex-basis: 100%; }
+.aim-act { margin-top: -2px; }

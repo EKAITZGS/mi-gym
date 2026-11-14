@@ -11,7 +11,7 @@ import { rateFood } from './rating'
 import { energy, targetFor, aimOf, aimLabel, kcalGoal, proteinGoal, kgWeek } from './energy'
 
 const r0 = (n) => Math.round(n)
-const r1 = (n) => Math.round(n * 10) / 10
+const r1 = (n) => String(Math.round(n * 10) / 10).replace('.', ',')
 const norm = (s) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 
 function dateLabel(s) {
@@ -990,7 +990,7 @@ export default function Diet({ data, setData, onBack }) {
 
       {entries.some((e) => e.ai || e.quick || e.src) && (
         <p className="muted small src-note">
-          <span className="src-tag">≈</span> estimado (lista aproximada, foto IA o entrada rápida) · <span className="src-tag ok">✓</span> de la etiqueta o del escáner
+          <span className="src-tag">≈</span> estimado · <span className="src-tag ok">✓</span> de etiqueta
         </p>
       )}
       {MEALS.map((m) => {

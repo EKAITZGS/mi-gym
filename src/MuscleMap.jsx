@@ -67,9 +67,10 @@ export default function MuscleMap({ data }) {
           ))}
         </div>
       )}
-      <p className="muted small">
-        Método: series de trabajo (sin calentamientos) con repeticiones apuntadas. Las que tocan un músculo de rebote (el press suma a tríceps y hombro) cuentan la mitad y se enseñan aparte; «×» = días distintos. Referencia habitual: 10-20 efectivas por músculo y semana, pero depende de ti.
-      </p>
+      <details className="tech-d">
+        <summary>¿Cómo se calcula?</summary>
+        <p>Series de trabajo (sin calentamientos) con repeticiones apuntadas. Las que tocan un músculo de rebote (el press suma a tríceps y hombro) cuentan la mitad y se enseñan aparte; «×» = días distintos. Referencia habitual: 10-20 efectivas por músculo y semana, pero depende de ti.</p>
+      </details>
     </div>
   )
 }

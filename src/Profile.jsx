@@ -8,7 +8,6 @@ import { MyTrainer, Students } from './Trainers'
 import { getPolar, syncPolar, connectPolar } from './polar'
 import { cloudReady } from './cloud'
 import Settings from './Settings'
-import BodyCard from './Body'
 import { SyncPill } from './ds'
 
 const ago = (iso) => {
@@ -103,7 +102,6 @@ export default function Profile({ data, setData, cloud, inbox, onInbox, online }
         {hasAccount && <Row icon="logout" title="Cerrar sesión" danger onClick={() => logout(cloud)} />}
       </div>
 
-      <BodyCard data={data} setData={setData} />
 
       {sub === 'profile' && <ProfileModal email={m.email} onClose={() => setSub(null)} />}
       {sub === 'coach' && (

@@ -387,7 +387,7 @@ export default function Settings({ data, setData, cloud, onBack }) {
 
       <div className="brand">
         <img src="./logo.svg" alt="" width="56" height="56" />
-        <b>Mi Gym</b>
+        <b>MI-GYM</b>
         <span className="muted small">Entrena · Come · Progresa</span>
       </div>
       <p className="muted small credits">

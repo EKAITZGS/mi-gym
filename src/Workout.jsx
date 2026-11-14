@@ -1802,8 +1802,8 @@ export default function Workout({ data, setData, view, setView, onStart, onStart
         <div>
           <h1 className="title">Entrenamiento</h1>
         </div>
-        <button className="icon-btn" onClick={() => setChat(true)} aria-label="Preguntar al entrenador">
-          <Icon name="sparkle" size={18} />
+        <button className="btn sm-btn" onClick={() => setChat(true)}>
+          <Icon name="sparkle" size={16} /> Preguntar
         </button>
       </div>
 
@@ -1895,7 +1895,6 @@ export default function Workout({ data, setData, view, setView, onStart, onStart
         <div className="card list-card">
           {recent.map((s) => {
             const nSets = Object.values(s.entries || {}).reduce((n, ss) => n + ss.length, 0)
-            const vol = Math.round(Object.values(s.entries || {}).reduce((t, ss) => t + setsVol(ss), 0))
             return (
               <button key={s.id} className="row nob li" onClick={() => setDayOpen(s.date)}>
                 <span className="ls-ic" style={{ width: 38, height: 38, borderRadius: 11, background: 'var(--card2)', color: 'var(--accent)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
@@ -1904,7 +1903,7 @@ export default function Workout({ data, setData, view, setView, onStart, onStart
                 <div className="grow">
                   <div className="li-t">{s.dayName || 'Entreno'}</div>
                   <div className="muted small">
-                    {fmtDay(s.date)} · {Object.keys(s.entries || {}).length} ej. · {nSets} series{vol ? ` · ${vol.toLocaleString('es-ES')} kg` : ''}{s.min ? ` · ${s.min} min` : ''}
+                    {fmtDay(s.date)} · {Object.keys(s.entries || {}).length} {Object.keys(s.entries || {}).length === 1 ? 'ejercicio' : 'ejercicios'} · {nSets} series{s.min ? ` · ${s.min} min` : ''}
                   </div>
                 </div>
                 <Icon name="right" size={16} className="muted" />

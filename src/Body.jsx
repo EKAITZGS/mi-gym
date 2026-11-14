@@ -352,13 +352,13 @@ export default function BodyCard({ data, setData }) {
       )}
       <div className="btns">
         <button className={'btn' + (dueW ? ' primary' : '')} onClick={() => setModal('waist')}>
-          <Icon name="edit" size={15} /> {dueW ? 'Toca medir' : 'Cintura'}
+          <Icon name="edit" size={15} /> {dueW ? 'Cintura ·' : 'Cintura'}
         </button>
         <button className={'btn' + (dueK ? ' primary' : '')} onClick={() => setModal('weight')}>
-          <Icon name="edit" size={15} /> {dueK ? 'Toca pesarte' : 'Peso'}
+          <Icon name="edit" size={15} /> {dueK ? 'Peso ·' : 'Peso'}
         </button>
         <button className={'btn' + (dueP ? ' primary' : '')} onClick={() => setModal('photos')}>
-          <Icon name="camera" size={15} /> {dueP ? 'Toca foto' : `Fotos (${photos.length})`}
+          <Icon name="camera" size={15} /> {dueP ? 'Foto ·' : 'Fotos'}
         </button>
       </div>
       {modal === 'waist' && <WaistModal data={data} setData={setData} onClose={() => setModal(null)} />}

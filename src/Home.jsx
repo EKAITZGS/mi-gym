@@ -6,7 +6,6 @@ import Icon from './icons'
 import { polarExercisesOn, getPolar, connectPolar } from './polar'
 import WeeklyReview from './Review'
 import PolarSession from './PolarSession'
-import { ProteinTip } from './Extras'
 import { PlanMaker, ExerciseModal } from './Workout'
 import { GoalCalc } from './Settings'
 import { streakWeeks, weekTotals, recentPRs, sessionVol } from './stats'
@@ -265,7 +264,6 @@ export default function Home({ data, setData, onStart, go, onOpenStart, name }) 
         </span>
         <Icon name="right" size={16} className="muted" />
       </button>
-      <ProteinTip data={data} setData={setData} />
 
       <div className="card">
         <div className="sec-head nm">

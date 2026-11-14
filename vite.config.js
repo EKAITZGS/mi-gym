@@ -43,8 +43,8 @@ export default defineConfig({
         importScripts: ['push-sw.js?v=2'],
       },
       manifest: {
-        name: 'Mi Gym',
-        short_name: 'Mi Gym',
+        name: 'MI-GYM',
+        short_name: 'MI-GYM',
         description: 'Entrenos, ejercicios y calorías',
         lang: 'es',
         start_url: './',

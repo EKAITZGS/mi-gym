@@ -304,7 +304,7 @@ export function AuthGate({ data, setData, cloud }) {
     <div className="gate">
       <div className="gate-in">
         <img src="./app-icon-192.png" alt="" className="gate-logo" />
-        <h1 className="gate-t">Mi Gym</h1>
+        <h1 className="gate-t">MI-GYM</h1>
         <p className="muted gate-s">Entrena, come y mira cómo progresas.</p>
         <AccountCard data={data} setData={setData} cloud={cloud} />
       </div>
