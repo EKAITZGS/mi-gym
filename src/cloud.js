@@ -486,21 +486,84 @@ export const sendWorkout = (linkId, day, note) => q4((c) => c.from('coach_workou
 export const answerWorkout = (id, ok) => q4((c) => c.from('coach_workouts').update({ status: ok ? 'accepted' : 'rejected', answered_at: new Date().toISOString() }).eq('id', id))
 export const deleteWorkout = (id) => q4((c) => c.from('coach_workouts').delete().eq('id', id))
 
+// ---- Aviso al entrenador cuando el alumno termina un entreno ----
+// Va como un mensaje marcado (sin tablas nuevas). Se guarda en cola por si en el gimnasio no hay cobertura.
+export const TRAIN_TAG = '⟦entreno⟧ '
+export const isTrainMsg = (b) => typeof b === 'string' && b.startsWith(TRAIN_TAG)
+export const trainTxt = (b) => String(b || '').slice(TRAIN_TAG.length)
+const NQ = 'migym.notify'
+const readQ = () => {
+  try {
+    return JSON.parse(localStorage.getItem(NQ) || '[]')
+  } catch {
+    return []
+  }
+}
+export function queueTrainerNote(text) {
+  const uid = uidNow()
+  if (!uid) return
+  try {
+    localStorage.setItem(NQ, JSON.stringify([...readQ(), { uid, text, at: Date.now() }].slice(-5)))
+  } catch {}
+  flushTrainerNotes().catch(() => {})
+}
+let flushing = false
+export async function flushTrainerNotes() {
+  const uid = uidNow()
+  // solo los de esta cuenta y de los últimos 2 días
+  const list = readQ().filter((n) => n.uid === uid && Date.now() - n.at < 2 * 864e5)
+  if (!uid || flushing || !list.length) return
+  flushing = true
+  try {
+    const c = await sb()
+    const { data: links, error } = await c.from('coach_links').select('id').eq('user_id', uid).eq('status', 'accepted')
+    if (error) throw error
+    for (const l of links || [])
+      for (const n of list) {
+        const r = await c.from('coach_messages').insert({ link_id: l.id, sender_id: uid, body: (TRAIN_TAG + n.text).slice(0, 2000) })
+        if (r.error) throw r.error
+      }
+    localStorage.removeItem(NQ)
+  } finally {
+    flushing = false
+  }
+}
+// El entrenador ha visto la ficha: los avisos de entreno de ese alumno quedan leídos (los mensajes normales no)
+export const markTrainRead = (linkId) =>
+  q4((c) =>
+    c
+      .from('coach_messages')
+      .update({ read_at: new Date().toISOString() })
+      .eq('link_id', linkId)
+      .neq('sender_id', uidNow())
+      .is('read_at', null)
+      .like('body', TRAIN_TAG.trim() + '%')
+  )
+
 // Lo pendiente para avisar: mensajes sin leer, entrenos por responder (alumno) y solicitudes (entrenador)
 export async function inbox() {
   const uid = uidNow()
   if (!uid) return null
   const c = await sb()
+  flushTrainerNotes().catch(() => {})
   const [msgs, wks, links] = await Promise.all([
-    c.from('coach_messages').select('id, link_id').neq('sender_id', uid).is('read_at', null),
+    c.from('coach_messages').select('id, link_id, body, created_at').neq('sender_id', uid).is('read_at', null).order('created_at'),
     c.from('coach_workouts').select('id, link_id, day').eq('status', 'pending'),
     c.from('coach_links').select('id, user_id, trainer_id, status'),
   ])
   const L = links.data || []
   const mineAsUser = new Set(L.filter((l) => l.user_id === uid).map((l) => l.id))
+  const unread = msgs.data || []
+  const chat = unread.filter((m) => !isTrainMsg(m.body))
+  const trained = unread.filter((m) => isTrainMsg(m.body))
+  const byLink = (l) => l.reduce((a, m) => ((a[m.link_id] = (a[m.link_id] || 0) + 1), a), {})
   return {
-    messages: (msgs.data || []).length,
-    msgByLink: (msgs.data || []).reduce((a, m) => ((a[m.link_id] = (a[m.link_id] || 0) + 1), a), {}),
+    messages: chat.length,
+    msgByLink: byLink(chat),
+    // entrenos nuevos de alumnos (avisos automáticos)
+    trained: trained.length,
+    trainedByLink: byLink(trained),
+    trainedTxt: trained.length ? trainTxt(trained[trained.length - 1].body) : '',
     workouts: (wks.data || []).filter((w) => mineAsUser.has(w.link_id)).length,
     // nombres de los días de los que el entrenador propone cambios
     changes: (wks.data || []).filter((w) => mineAsUser.has(w.link_id) && w.day?.baseId).map((w) => w.day.baseName || 'tu día'),

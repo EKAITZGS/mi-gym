@@ -1,6 +1,6 @@
 // Entrenadores y alumnos: el usuario pide entrenar a un entrenador; si acepta, el entrenador ve sus entrenos y progreso
 import { useEffect, useState } from 'react'
-import { listTrainers, myLinks, requestTrainer, removeLink, answerLink, profilesOf, studentData } from './cloud'
+import { listTrainers, myLinks, requestTrainer, removeLink, answerLink, profilesOf, studentData, markTrainRead } from './cloud'
 import { Modal } from './ui'
 import { Chat, WorkoutBuilder, SentWorkouts, TrainerWorkouts } from './CoachTools'
 import Icon from './icons'
@@ -54,7 +54,7 @@ export function MyTrainer({ uid, data, setData, inbox, onInbox }) {
       {mine ? (
         <>
           <p className="small" style={{ marginTop: 0 }}>
-            Tu entrenador es <b>{trainers.find((t) => t.id === mine.trainer_id)?.name || 'tu entrenador'}</b>: ve tus entrenos y tu progreso.
+            Tu entrenador es <b>{trainers.find((t) => t.id === mine.trainer_id)?.name || 'tu entrenador'}</b>: ve tus entrenos y tu progreso, y le llega un aviso cada vez que terminas un entreno.
           </p>
           <button className="btn full" onClick={() => setChat(true)}>
             <Icon name="book" size={15} /> Mensajes{inbox?.msgByLink?.[mine.id] ? ` (${inbox.msgByLink[mine.id]} nuevos)` : ''}
@@ -168,11 +168,20 @@ export function Students({ uid, data, setData, inbox, onInbox }) {
       <div className="tr-h">Tus alumnos ({accepted.length})</div>
       {!accepted.length && <p className="muted small">Cuando aceptes a alguien, aparecerá aquí y podrás ver sus entrenos.</p>}
       {accepted.map((l) => (
-        <button className="row nob li tr-row" key={l.id} onClick={() => setOpen(l)}>
+        <button
+          className="row nob li tr-row"
+          key={l.id}
+          onClick={() => {
+            setOpen(l)
+            // al abrir su ficha, sus avisos de entreno nuevo quedan vistos
+            if (inbox?.trainedByLink?.[l.id]) markTrainRead(l.id).then(() => onInbox?.()).catch(() => {})
+          }}
+        >
           <span className="tr-av">{l.name.slice(0, 1).toUpperCase()}</span>
           <div className="grow">
             <div className="li-t">{l.name}</div>
             <div className="muted small">
+              {inbox?.trainedByLink?.[l.id] ? <b className="up">{inbox.trainedByLink[l.id] === 1 ? 'Entreno nuevo' : `${inbox.trainedByLink[l.id]} entrenos nuevos`} · </b> : ''}
               {inbox?.msgByLink?.[l.id] ? <b className="up">{inbox.msgByLink[l.id]} mensaje{inbox.msgByLink[l.id] === 1 ? '' : 's'} nuevo{inbox.msgByLink[l.id] === 1 ? '' : 's'} · </b> : ''}
               Entrenos, progreso y mensajes
             </div>

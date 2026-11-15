@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Modal } from './ui'
 import Icon from './icons'
-import { listMessages, sendMessage, markRead, listWorkouts, sendWorkout, answerWorkout, deleteWorkout } from './cloud'
+import { listMessages, sendMessage, markRead, listWorkouts, sendWorkout, answerWorkout, deleteWorkout, isTrainMsg, trainTxt } from './cloud'
 import { EX_BY_ID } from './data/exercises'
 import { Library } from './Workout'
 import { uid as newId, WEEKDAYS } from './store'
@@ -55,7 +55,12 @@ export function Chat({ linkId, me, title, onClose }) {
       <div className="chat">
         {!msgs && !err && <p className="muted small">Cargando…</p>}
         {msgs && !msgs.length && <p className="muted small">Todavía no hay mensajes. Escribe el primero.</p>}
-        {(msgs || []).map((m) => (
+        {(msgs || []).map((m) =>
+          isTrainMsg(m.body) ? (
+            <div key={m.id} className="chat-sys">
+              <Icon name="dumbbell" size={14} /> {trainTxt(m.body)} · {when(m.created_at)}
+            </div>
+          ) : (
           <div key={m.id} className={'bubble ' + (m.sender_id === me ? 'me' : 'them')}>
             <div>{m.body}</div>
             <span>
@@ -63,7 +68,8 @@ export function Chat({ linkId, me, title, onClose }) {
               {m.sender_id === me && m.read_at ? ' · leído' : ''}
             </span>
           </div>
-        ))}
+          )
+        )}
         <div ref={end} />
       </div>
       {err && <div className="advice sm yellow">{err}</div>}

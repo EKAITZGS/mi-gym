@@ -2218,3 +2218,6 @@ button.wday:active { transform: scale(0.96); }
 .rank-fold summary::after { content: '›'; font-size: 22px; color: var(--muted); transform: rotate(90deg); transition: transform 0.2s; }
 .rank-fold[open] summary::after { transform: rotate(-90deg); }
 .rank-fold .rank-card { margin: 10px -14px -14px; border: 0; border-radius: 0 0 var(--r) var(--r); }
+/* aviso automático en el chat: entreno terminado */
+.chat-sys { align-self: center; display: flex; align-items: center; gap: 6px; max-width: 92%; margin: 4px auto; padding: 6px 12px; border-radius: 999px; background: var(--card2); color: var(--text2); font-size: 12.5px; text-align: center; }
+.chat-sys .ico { color: var(--accent); flex: none; }

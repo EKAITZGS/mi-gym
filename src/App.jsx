@@ -53,6 +53,7 @@ export default function App() {
           const was = prev || { messages: 0, workouts: 0, requests: 0 }
           if (r.workouts > was.workouts) setNotice(r.workouts === 1 ? (r.changes?.length ? `Tu entrenador te propone cambios en tu día ${r.changes[0]}. Míralo en Perfil → Entrenador.` : 'Tu entrenador te ha mandado un entreno. Míralo en Perfil → Entrenador.') : `Tienes ${r.workouts} entrenos de tu entrenador por revisar (Perfil → Entrenador).`)
           else if (r.requests > was.requests) setNotice('Tienes una solicitud de alumno nueva (Perfil → Tus alumnos).')
+          else if (r.trained > (was.trained || 0)) setNotice(r.trained === 1 ? `${r.trainedTxt}. Míralo en Perfil → Tus alumnos.` : `${r.trained} entrenos nuevos de tus alumnos (Perfil → Tus alumnos).`)
           else if (r.messages > was.messages) setNotice(r.messages === 1 ? 'Tienes un mensaje nuevo (Perfil).' : `Tienes ${r.messages} mensajes nuevos (Perfil).`)
           return r
         })
@@ -70,7 +71,7 @@ export default function App() {
       clearInterval(t)
     }
   }, [cloud.meta?.uid, cloud.meta?.pending])
-  const boxN = box ? box.messages + box.workouts + box.requests : 0
+  const boxN = box ? box.messages + box.workouts + box.requests + (box.trained || 0) : 0
   setCustomExercises(data.myExercises || [])
   // Si hay un entreno de hoy a medias (p. ej. la app se recargó por una actualización), vuelve directo a él
   const resume = data.active && data.active.date === todayStr()

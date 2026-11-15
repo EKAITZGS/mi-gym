@@ -13,6 +13,7 @@ import { FEELINGS, ZONES, adviceFor, painFor, needsDeload, recentPains, zoneHits
 import { groupsOf } from './ranks'
 import Coach from './Coach.jsx'
 import { DayModal, doneSessions, fmtDay } from './DayDetail'
+import { queueTrainerNote, cloudMeta } from './cloud'
 import { State, SyncPill, Badge, Stat, fmtMin, miles } from './ds'
 
 const ORDER = [1, 2, 3, 4, 5, 6, 0] // lunes primero
@@ -1337,6 +1338,10 @@ function Session({ data, setData, onExit, cloud, online }) {
       onExit()
       return
     }
+    // si tiene entrenador, le llega un aviso (va en cola si no hay cobertura)
+    queueTrainerNote(
+      `${cloudMeta()?.name || 'Tu alumno'} ha terminado ${name}: ${nEx} ejercicio${nEx === 1 ? '' : 's'}, ${nSets} series${min ? `, ${min} min` : ''}${prs.length ? `, ${prs.length} récord${prs.length === 1 ? '' : 's'} 🏆` : ''}`
+    )
     setData((d) => ({
       ...d,
       active: null,

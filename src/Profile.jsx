@@ -61,11 +61,12 @@ export default function Profile({ data, setData, cloud, inbox, onInbox, online }
 
   if (sub === 'settings') return <Settings data={data} setData={setData} cloud={cloud} onBack={() => setSub(null)} />
 
-  const inboxN = inbox ? inbox.messages + inbox.workouts + inbox.requests : 0
+  const inboxN = inbox ? inbox.messages + inbox.workouts + inbox.requests + (inbox.trained || 0) : 0
   const inboxTxt = (() => {
     const parts = []
     if (inbox?.requests) parts.push(`${inbox.requests} solicitud${inbox.requests === 1 ? '' : 'es'}`)
     if (inbox?.workouts) parts.push(inbox.workouts === 1 && inbox.changes?.length ? 'cambios en tu entreno por revisar' : `${inbox.workouts} entreno${inbox.workouts === 1 ? '' : 's'} por revisar`)
+    if (inbox?.trained) parts.push(`${inbox.trained} entreno${inbox.trained === 1 ? '' : 's'} nuevo${inbox.trained === 1 ? '' : 's'} de alumnos`)
     if (inbox?.messages) parts.push(`${inbox.messages} mensaje${inbox.messages === 1 ? '' : 's'} nuevo${inbox.messages === 1 ? '' : 's'}`)
     return parts.length ? parts.join(' · ') : trainer ? 'Solicitudes, mensajes y entrenos de tus alumnos' : 'Mensajes y entrenos de tu entrenador'
   })()
