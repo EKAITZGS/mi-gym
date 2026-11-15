@@ -3,8 +3,9 @@ import Icon from './icons'
 import { pushSupported, isStandalone, pushState, enablePush, disablePush, testPush, syncPush, DEFAULT_PREFS, pushPlan, pushHealth } from './push'
 
 const OPTS = [
-  { k: 'train', t: 'Entreno del día', s: 'Por la mañana, los días que toca entrenar', time: 'trainAt' },
+  { k: 'train', t: 'Entreno del día', s: 'Los días que toca entrenar, si aún no has entrenado', time: 'trainAt' },
   { k: 'protein', t: 'Proteína', s: 'Si no llegas, te digo cuánto falta y qué tomar', time: 'proteinAt' },
+  { k: 'walk', t: 'Andar en días de descanso', s: 'Si ese día no tienes entreno y no llegas a tus pasos', time: 'walkAt' },
   { k: 'watch', t: 'Sincronizar el reloj', s: 'Por la noche, si entrenaste y no ha llegado el entreno' },
   { k: 'waist', t: 'Medir la cintura', s: 'Los domingos por la mañana' },
 ]

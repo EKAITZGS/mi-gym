@@ -6,7 +6,7 @@ import { polarExercisesOn } from './polar'
 import { proteinPlan } from './Extras'
 
 const LS = 'migym.push'
-export const DEFAULT_PREFS = { train: true, trainAt: '09:00', protein: true, proteinAt: '21:00', watch: true, waist: true }
+export const DEFAULT_PREFS = { train: true, trainAt: '09:00', protein: true, proteinAt: '21:00', watch: true, waist: true, walk: true, walkAt: '18:00' }
 
 export const pushSupported = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window
 export const isStandalone = () => window.matchMedia?.('(display-mode: standalone)').matches || navigator.standalone === true
@@ -76,6 +76,19 @@ export function pushPlan(data) {
       } else {
         items.push({ k: 'prot-' + date, at: at(date, pr.proteinAt), title: '¿Cómo vas de proteína?', body: 'Apunta lo que has comido y te digo cuánto te falta.' })
       }
+    }
+    // días de descanso: a andar, salvo que ya hayas entrenado, el reloj tenga un entreno o ya llegues a tus pasos
+    // (los pasos solo se saben de hoy y con la última sincronización; al abrir la app se recalcula)
+    if (pr.walk && !data.plan.some((d) => d.weekday === wd)) {
+      const moved = data.sessions.some((s) => s.date === date) || polarExercisesOn(data, date).length > 0
+      const steps = data.polar?.days?.[date]?.steps || 0
+      if (!moved && steps < (data.goals?.steps || 7000))
+        items.push({
+          k: 'walk-' + date,
+          at: at(date, pr.walkAt),
+          title: 'Hoy toca andar 🚶',
+          body: 'Día de descanso: 30–45 min andando a buen ritmo (unos 4.000 pasos) ayudan a bajar grasa y a recuperar las piernas.',
+        })
     }
     if (pr.waist && wd === 0) {
       const w = data.body?.waist || []
