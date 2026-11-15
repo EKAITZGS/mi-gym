@@ -42,9 +42,10 @@ export function HrRow({ e, onOpen }) {
 }
 
 // Tarjeta de un entreno apuntado: ejercicios con sus series, RIR, reloj y nota
-export function SessionCard({ s, nameOf, watch = [], onHr, showDate = true }) {
+export function SessionCard({ s, nameOf, watch = [], onHr, showDate = true, className = '', badge }) {
   return (
-    <div className="sv-card">
+    <div className={'sv-card ' + className}>
+      {badge && <div className="sv-badge">{badge}</div>}
       <div className="sv-head">
         <b>{s.dayName || 'Entreno'}</b>
         {(showDate || s.min) && (

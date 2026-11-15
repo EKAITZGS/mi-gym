@@ -73,6 +73,7 @@ export function MyTrainer({ uid, data, setData, inbox, onInbox }) {
               linkId={mine.id}
               me={uid}
               title={trainers.find((t) => t.id === mine.trainer_id)?.name || 'Tu entrenador'}
+              ctx={data ? { data, them: false } : null}
               onClose={() => (setChat(false), onInbox?.())}
             />
           )}
@@ -118,7 +119,7 @@ export function MyTrainer({ uid, data, setData, inbox, onInbox }) {
 }
 
 // ---- Entrenador: solicitudes y alumnos ----
-export function Students({ uid, data, setData, inbox, onInbox }) {
+export function Students({ uid, data, setData, inbox, onInbox, focus, onFocused }) {
   const [st, reload] = useLoad(async () => {
     const links = (await myLinks()).filter((l) => l.trainer_id === uid)
     const people = await profilesOf([...new Set(links.map((l) => l.user_id))])
@@ -128,6 +129,18 @@ export function Students({ uid, data, setData, inbox, onInbox }) {
   const [busy, setBusy] = useState('')
   const [err, setErr] = useState('')
   const [open, setOpen] = useState(null)
+  // venir desde el aviso de "entreno nuevo": abrir su ficha con ese entreno marcado
+  useEffect(() => {
+    if (!focus || !st.data) return
+    const l = st.data.find((x) => x.id === focus.link && x.status === 'accepted')
+    if (l) {
+      setOpen({ ...l, focusSid: focus.sid })
+      markTrainRead(l.id)
+        .then(() => onInbox?.())
+        .catch(() => {})
+    }
+    onFocused?.()
+  }, [focus, st.data])
   const act = async (id, fn) => {
     setBusy(id)
     setErr('')
@@ -241,7 +254,7 @@ function StudentView({ student, me, data, setData, unread, onInbox, onClose, onR
           <Icon name="dumbbell" size={15} /> Mandar entreno
         </button>
       </div>
-      {chat && <Chat linkId={student.id} me={me} title={student.name} onClose={() => (setChat(false), onInbox?.())} />}
+      {chat && <Chat linkId={student.id} me={me} title={student.name} ctx={d ? { data: d, them: true } : null} onClose={() => (setChat(false), onInbox?.())} />}
       {build && (
         <WorkoutBuilder
           data={data}
@@ -300,7 +313,15 @@ function StudentView({ student, me, data, setData, unread, onInbox, onClose, onR
             <>
               {!sessions.length && <p className="muted small">Aún no ha entrenado.</p>}
               {sessions.slice(0, 20).map((s) => (
-                <SessionCard key={s.id} s={s} nameOf={nameOf} watch={watch.filter((e) => e.date === s.date)} onHr={setPx} />
+                <SessionCard
+                  key={s.id}
+                  s={s}
+                  nameOf={nameOf}
+                  watch={watch.filter((e) => e.date === s.date)}
+                  onHr={setPx}
+                  className={s.id === student.focusSid ? 'focus' : ''}
+                  badge={s.id === student.focusSid ? 'Nuevo' : null}
+                />
               ))}
             </>
           )}

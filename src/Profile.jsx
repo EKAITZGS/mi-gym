@@ -1,5 +1,5 @@
 // Pestaña Perfil: tu cuenta, reloj, entrenador/alumnos, cuerpo y ajustes.
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Modal } from './ui'
 import Icon from './icons'
 import { ProfileModal, logout } from './Account'
@@ -34,9 +34,13 @@ export const Row = ({ icon, title, desc, onClick, busy, danger, badge }) => (
   </button>
 )
 
-export default function Profile({ data, setData, cloud, inbox, onInbox, online }) {
+export default function Profile({ data, setData, cloud, inbox, onInbox, online, focus, onFocused }) {
   const m = cloud.meta || {}
   const [sub, setSub] = useState(null) // 'profile' | 'coach' | 'settings'
+  // desde el aviso de entreno nuevo de un alumno
+  useEffect(() => {
+    if (focus) setSub('coach')
+  }, [focus])
   const [sync, setSync] = useState({ busy: false, msg: '' })
   const polar = getPolar()
   const trainer = m.role === 'trainer'
@@ -108,7 +112,7 @@ export default function Profile({ data, setData, cloud, inbox, onInbox, online }
       {sub === 'coach' && (
         <Modal title={trainer ? 'Tus alumnos' : 'Entrenador'} onClose={() => setSub(null)}>
           {trainer ? (
-            <Students uid={m.uid} data={data} setData={setData} inbox={inbox} onInbox={onInbox} />
+            <Students uid={m.uid} data={data} setData={setData} inbox={inbox} onInbox={onInbox} focus={focus} onFocused={onFocused} />
           ) : (
             <MyTrainer uid={m.uid} data={data} setData={setData} inbox={inbox} onInbox={onInbox} />
           )}

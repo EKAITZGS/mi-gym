@@ -2,7 +2,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { Modal } from './ui'
 import Icon from './icons'
-import { listMessages, sendMessage, markRead, listWorkouts, sendWorkout, answerWorkout, deleteWorkout, isTrainMsg, trainTxt } from './cloud'
+import { listMessages, sendMessage, markRead, listWorkouts, sendWorkout, answerWorkout, deleteWorkout, isTrainMsg, trainTxt, trainRef } from './cloud'
+import { SessionCard, nameFor, watchOf } from './DayDetail'
+import PolarSession from './PolarSession'
 import { EX_BY_ID } from './data/exercises'
 import { Library } from './Workout'
 import { uid as newId, WEEKDAYS } from './store'
@@ -15,8 +17,12 @@ const when = (iso) => {
 }
 
 // ---- Chat ----
-export function Chat({ linkId, me, title, onClose }) {
+// ctx = { data, them }: datos del alumno (o los tuyos si eres el alumno) para enseñar entero cada entreno avisado, con el pulso
+export function Chat({ linkId, me, title, onClose, ctx }) {
   const [msgs, setMsgs] = useState(null)
+  const [px, setPx] = useState(null)
+  const nameOf = nameFor(ctx?.data)
+  const watch = ctx?.data ? watchOf(ctx.data) : []
   const [text, setText] = useState('')
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
@@ -57,9 +63,26 @@ export function Chat({ linkId, me, title, onClose }) {
         {msgs && !msgs.length && <p className="muted small">Todavía no hay mensajes. Escribe el primero.</p>}
         {(msgs || []).map((m) =>
           isTrainMsg(m.body) ? (
-            <div key={m.id} className="chat-sys">
-              <Icon name="dumbbell" size={14} /> {trainTxt(m.body)} · {when(m.created_at)}
-            </div>
+            (() => {
+              const ref = trainRef(m.body)
+              const s = ref && (ctx?.data?.sessions || []).find((x) => x.id === ref.sid)
+              if (!s)
+                return (
+                  <div key={m.id} className="chat-sys">
+                    <Icon name="dumbbell" size={14} /> {trainTxt(m.body)} · {when(m.created_at)}
+                  </div>
+                )
+              const hr = watch.filter((e) => e.date === s.date).reverse()
+              return (
+                <div key={m.id} className="chat-train">
+                  <div className="chat-sys">
+                    <Icon name="dumbbell" size={14} /> {ctx.them ? `${title} ha terminado un entreno` : 'Aviso a tu entrenador: entreno terminado'} · {when(m.created_at)}
+                  </div>
+                  <SessionCard s={s} nameOf={nameOf} watch={hr} onHr={setPx} />
+                  {!hr.length && <p className="muted small chat-wait">{ctx.them ? 'Las pulsaciones salen aquí cuando sincronice el reloj.' : 'Las pulsaciones salen cuando sincronices el reloj.'}</p>}
+                </div>
+              )
+            })()
           ) : (
           <div key={m.id} className={'bubble ' + (m.sender_id === me ? 'me' : 'them')}>
             <div>{m.body}</div>
@@ -73,6 +96,7 @@ export function Chat({ linkId, me, title, onClose }) {
         <div ref={end} />
       </div>
       {err && <div className="advice sm yellow">{err}</div>}
+      {px && <PolarSession ex={px} data={ctx.data} them={!!ctx.them} onClose={() => setPx(null)} />}
       <div className="chat-in">
         <textarea className="inp" rows={2} placeholder="Escribe un mensaje…" value={text} onChange={(e) => setText(e.target.value.slice(0, 2000))} />
         <button className="btn primary" disabled={busy || !text.trim()} onClick={send}>

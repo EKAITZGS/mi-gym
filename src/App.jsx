@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useStore, todayStr, prefillSets } from './store'
 import { setCustomExercises } from './data/exercises'
 import Home from './Home'
@@ -53,7 +53,12 @@ export default function App() {
           const was = prev || { messages: 0, workouts: 0, requests: 0 }
           if (r.workouts > was.workouts) setNotice(r.workouts === 1 ? (r.changes?.length ? `Tu entrenador te propone cambios en tu día ${r.changes[0]}. Míralo en Perfil → Entrenador.` : 'Tu entrenador te ha mandado un entreno. Míralo en Perfil → Entrenador.') : `Tienes ${r.workouts} entrenos de tu entrenador por revisar (Perfil → Entrenador).`)
           else if (r.requests > was.requests) setNotice('Tienes una solicitud de alumno nueva (Perfil → Tus alumnos).')
-          else if (r.trained > (was.trained || 0)) setNotice(r.trained === 1 ? `${r.trainedTxt}. Míralo en Perfil → Tus alumnos.` : `${r.trained} entrenos nuevos de tus alumnos (Perfil → Tus alumnos).`)
+          else if (r.trained > (was.trained || 0)) {
+            // aviso con acción: al tocarlo se abre la ficha del alumno con ese entreno (series y pulso)
+            const txt = r.trained === 1 ? `${r.trainedTxt}. Toca para verlo.` : `${r.trained} entrenos nuevos de tus alumnos. Toca para verlos.`
+            setNotice(txt)
+            setNoticeGo({ text: txt, fn: () => (goTabRef.current?.('profile'), setFocus(r.trainedLast)) })
+          }
           else if (r.messages > was.messages) setNotice(r.messages === 1 ? 'Tienes un mensaje nuevo (Perfil).' : `Tienes ${r.messages} mensajes nuevos (Perfil).`)
           return r
         })
@@ -78,6 +83,14 @@ export default function App() {
   const [tab, setTab] = useState(resume ? 'train' : 'home')
   const [view, setView] = useState(resume ? { name: 'session' } : { name: 'list' })
   const [notice, setNotice] = useState(null)
+  const [noticeGo, setNoticeGo] = useState(null) // { text, fn }: acción del aviso que se está enseñando
+  const [focus, setFocus] = useState(null) // { link, sid }: abrir la ficha de un alumno en Perfil
+  const goTabRef = useRef(null)
+  const tapNotice = () => {
+    if (noticeGo?.text === notice) noticeGo.fn()
+    setNotice(null)
+    setNoticeGo(null)
+  }
   const [startSheet, setStartSheet] = useState(false)
   const storedPolarEx = () => { try { return JSON.parse(localStorage.getItem('migym.v1') || '{}').polar?.exercises || {} } catch { return {} } }
 
@@ -147,7 +160,7 @@ export default function App() {
   }, [])
   useEffect(() => {
     if (!notice) return
-    const t = setTimeout(() => setNotice(null), 5000)
+    const t = setTimeout(() => setNotice(null), noticeGo?.text === notice ? 9000 : 5000)
     return () => clearTimeout(t)
   }, [notice])
 
@@ -195,6 +208,8 @@ export default function App() {
     if (id === 'train' && view.name === 'session') return
     if (id === 'train' || id === 'routines') setView({ name: 'list' })
   }
+  goTabRef.current = goTab
+
 
   // hace falta cuenta para usar la app (la sesión se queda abierta hasta cerrar sesión)
   if (cloudReady() && (!cloud.meta?.uid || cloud.meta.pending))
@@ -232,7 +247,7 @@ export default function App() {
         )}
         {tab === 'diet' && <Diet data={data} setData={setData} onBack={() => goTab('home')} />}
         {tab === 'progress' && <Progress data={data} setData={setData} go={goTab} />}
-        {tab === 'profile' && <Profile data={data} setData={setData} cloud={cloud} inbox={box} onInbox={refreshBox} online={online} />}
+        {tab === 'profile' && <Profile data={data} setData={setData} cloud={cloud} inbox={box} onInbox={refreshBox} online={online} focus={focus} onFocused={() => setFocus(null)} />}
       </main>
       {cloud.recovery && <NewPassword onDone={cloud.doneRecovery} />}
       {saveFail && (
@@ -241,7 +256,7 @@ export default function App() {
         </div>
       )}
       {notice && (
-        <div className="notice" role="status" onClick={() => setNotice(null)}>
+        <div className={'notice' + (noticeGo?.text === notice ? ' act' : '')} role="status" onClick={tapNotice}>
           {notice}
         </div>
       )}

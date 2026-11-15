@@ -2221,3 +2221,10 @@ button.wday:active { transform: scale(0.96); }
 /* aviso automático en el chat: entreno terminado */
 .chat-sys { align-self: center; display: flex; align-items: center; gap: 6px; max-width: 92%; margin: 4px auto; padding: 6px 12px; border-radius: 999px; background: var(--card2); color: var(--text2); font-size: 12.5px; text-align: center; }
 .chat-sys .ico { color: var(--accent); flex: none; }
+.chat-train { align-self: stretch; margin: 6px 0; }
+.chat-train .sv-card { margin: 6px 0 0; }
+.chat-wait { margin: 4px 2px 0; }
+.sv-card.focus { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.sv-badge { display: inline-block; margin-bottom: 8px; font-size: 11.5px; font-weight: 800; color: #0b0b0b; background: var(--accent); border-radius: 6px; padding: 2px 7px; }
+.notice.act { cursor: pointer; }
+.notice.act::after { content: " ›"; font-weight: 800; }

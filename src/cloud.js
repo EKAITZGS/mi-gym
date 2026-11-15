@@ -490,7 +490,13 @@ export const deleteWorkout = (id) => q4((c) => c.from('coach_workouts').delete()
 // Va como un mensaje marcado (sin tablas nuevas). Se guarda en cola por si en el gimnasio no hay cobertura.
 export const TRAIN_TAG = '⟦entreno⟧ '
 export const isTrainMsg = (b) => typeof b === 'string' && b.startsWith(TRAIN_TAG)
-export const trainTxt = (b) => String(b || '').slice(TRAIN_TAG.length)
+// al final va la referencia del entreno: " ⟦idDelEntreno|fecha⟧" (para enseñarlo entero con el pulso)
+const REF = / ⟦([^|⟧]+)\|(\d{4}-\d{2}-\d{2})⟧$/
+export const trainTxt = (b) => String(b || '').slice(TRAIN_TAG.length).replace(REF, '')
+export const trainRef = (b) => {
+  const m = String(b || '').match(REF)
+  return m ? { sid: m[1], date: m[2] } : null
+}
 const NQ = 'migym.notify'
 const readQ = () => {
   try {
@@ -499,11 +505,12 @@ const readQ = () => {
     return []
   }
 }
-export function queueTrainerNote(text) {
+export function queueTrainerNote(text, ref) {
   const uid = uidNow()
   if (!uid) return
+  const full = ref ? `${text} ⟦${ref.sid}|${ref.date}⟧` : text
   try {
-    localStorage.setItem(NQ, JSON.stringify([...readQ(), { uid, text, at: Date.now() }].slice(-5)))
+    localStorage.setItem(NQ, JSON.stringify([...readQ(), { uid, text: full, at: Date.now() }].slice(-5)))
   } catch {}
   flushTrainerNotes().catch(() => {})
 }
@@ -564,6 +571,7 @@ export async function inbox() {
     trained: trained.length,
     trainedByLink: byLink(trained),
     trainedTxt: trained.length ? trainTxt(trained[trained.length - 1].body) : '',
+    trainedLast: trained.length ? { link: trained[trained.length - 1].link_id, ...(trainRef(trained[trained.length - 1].body) || {}) } : null,
     workouts: (wks.data || []).filter((w) => mineAsUser.has(w.link_id)).length,
     // nombres de los días de los que el entrenador propone cambios
     changes: (wks.data || []).filter((w) => mineAsUser.has(w.link_id) && w.day?.baseId).map((w) => w.day.baseName || 'tu día'),
