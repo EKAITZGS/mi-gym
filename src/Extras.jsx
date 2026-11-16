@@ -142,10 +142,10 @@ function MuscleBars({ direct, indirect, title, sub, children }) {
   const MAX = 24
   return (
     <div className="card">
-      <div className="sec-head nm">
-        <b>{title}</b>
-        <span className="muted small">{sub}</span>
+      <div className="card-h mb-0">
+        <h3>{title}</h3>
       </div>
+      <p className="muted small mt-1 mb-0">{sub}</p>
       <details className="tech-d mo-b2">
         <summary>¿Cómo se calcula?</summary>
         <p>Las series de músculos secundarios cuentan la mitad (el press banca suma a tríceps y hombro). 10-20 por músculo y semana es una referencia habitual, no una regla.</p>

@@ -6,7 +6,7 @@ import { techFor } from './data/technique'
 import { nightsOf, progressRead, streakWeeks, weekTotals, recentPRs } from './stats'
 import Icon from './icons'
 import WeeklyReview, { CoachChat } from './Review'
-import { LEVELS, EQUIP, MINUTES, DAY_TYPES, SPLITS, GOALS, DEFAULT_WEEKDAYS, splitFor, typesFor, pickFor, prescribe, buildDay, buildPlan, stripSlots, analyzePlan } from './plans'
+import { LEVELS, EQUIP, MINUTES, DAY_TYPES, SPLITS, GOALS, DEFAULT_WEEKDAYS, splitFor, typesFor, pickFor, prescribe, buildDay, buildPlan, stripSlots, analyzePlan, dayMinutes } from './plans'
 import Setup from './Setup'
 import { PlanVolume } from './Extras'
 import { FEELINGS, ZONES, adviceFor, painFor, needsDeload, recentPains, zoneHits } from './coach'
@@ -678,6 +678,7 @@ function DayEditor({ data, setData, dayId, isNew, onBack }) {
   const [day, setDay] = useState(() => (saved ? structuredClone(saved) : { id: dayId, name: 'Nuevo día', weekday: null, items: [] }))
   const [picker, setPicker] = useState(false)
   const [ask, setAsk] = useState(false)
+  const [openIt, setOpenIt] = useState(null) // ejercicio con sus opciones abiertas
   const base = saved || { id: dayId, name: 'Nuevo día', weekday: null, items: [] }
   const dirty = JSON.stringify(day) !== JSON.stringify(base)
   editGuard.dirty = dirty
@@ -742,29 +743,28 @@ function DayEditor({ data, setData, dayId, isNew, onBack }) {
         ))}
       </select>
       <h4>Ejercicios</h4>
+      {day.items.length > 0 && <p className="muted small mo-b2">Toca un ejercicio para el descanso, la intensidad, drop set, unilateral, el orden o quitarlo.</p>}
       {day.items.map((it, idx) => {
         const ex = EX_BY_ID[it.ex]
+        const open = openIt === it.id
+        const uniOn = !!(it.uni ?? data.uniEx?.[it.ex])
+        const extra = [it.rest ? `descanso ${restTxt(it.rest)}` : null, it.rir != null ? `RIR ${it.rir}` : null, it.drop ? 'drop set' : null, uniOn ? 'por lados' : null].filter(Boolean)
         return (
-          <div className="card" key={it.id}>
-            <div className="row nob">
-              <Thumb ex={ex} />
-              <div className="grow">{ex?.name || it.ex}</div>
-              <button className="icon-btn" onClick={() => move(idx, -1)} aria-label="Subir">
-                <Icon name="up" size={16} />
+          <div className={'card ed-item' + (open ? ' open' : '')} key={it.id}>
+            <div className="ed-row">
+              <button type="button" className="ed-id" onClick={() => setOpenIt(open ? null : it.id)} aria-expanded={open} aria-label={`${ex?.name || it.ex}: más opciones`}>
+                <span className="ed-n">{idx + 1}</span>
+                <Thumb ex={ex} size={36} />
+                <span className="ed-t">
+                  <b>{ex?.name || it.ex}</b>
+                  {extra.length > 0 && <span className="muted small">{extra.join(' · ')}</span>}
+                </span>
               </button>
-              <button className="icon-btn" onClick={() => move(idx, 1)} aria-label="Bajar">
-                <Icon name="down" size={16} />
-              </button>
-              <button className="icon-btn" onClick={() => patchDay({ items: day.items.filter((i) => i.id !== it.id) })} aria-label="Quitar">
-                <Icon name="trash" size={16} />
-              </button>
-            </div>
-            <div className="fields">
-              <label>
-                Series
+              <div className="ed-sr">
                 <input
                   className="inp sm"
                   inputMode="numeric"
+                  aria-label="Series"
                   value={it.sets}
                   onFocus={(e) => e.target.select()}
                   onChange={(e) => {
@@ -774,56 +774,68 @@ function DayEditor({ data, setData, dayId, isNew, onBack }) {
                   }}
                   onBlur={() => !(Number(it.sets) >= 1) && patchItem(it.id, { sets: 1 })}
                 />
-              </label>
-              <label>
-                Reps / objetivo
-                <input className="inp sm" value={it.reps} onChange={(e) => patchItem(it.id, { reps: e.target.value })} />
-              </label>
-              <label className="chk-l">
-                <input type="checkbox" checked={!!it.drop} onChange={(e) => patchItem(it.id, { drop: e.target.checked })} />
-                Drop set
-              </label>
+                <span className="x">×</span>
+                <input className="inp sm ed-reps" aria-label="Reps / objetivo" value={it.reps} onChange={(e) => patchItem(it.id, { reps: e.target.value })} />
+              </div>
+              <button type="button" className="ed-chev" onClick={() => setOpenIt(open ? null : it.id)} aria-label={open ? 'Cerrar opciones' : 'Más opciones'}>
+                <Icon name={open ? 'up' : 'down'} size={18} />
+              </button>
             </div>
-            <div className="fields">
-              <label>
-                Descanso
-                <select
-                  className="inp sm"
-                  value={it.rest || ''}
-                  onChange={(e) => patchItem(it.id, { rest: e.target.value ? Number(e.target.value) : undefined })}
-                >
-                  <option value="">Por defecto</option>
-                  {[45, 60, 75, 90, 120, 150, 180, 240].map((v) => (
-                    <option key={v} value={v}>
-                      {restTxt(v)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                Intensidad (RIR)
-                <select
-                  className="inp sm"
-                  value={it.rir ?? ''}
-                  onChange={(e) => patchItem(it.id, { rir: e.target.value === '' ? undefined : Number(e.target.value) })}
-                >
-                  <option value="">Sin indicar</option>
-                  {[0, 1, 2, 3, 4].map((v) => (
-                    <option key={v} value={v}>
-                      {v === 0 ? '0 (al fallo)' : `${v} en reserva`}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-            <label className="chk-l uni-l">
-              <input
-                type="checkbox"
-                checked={!!(it.uni ?? data.uniEx?.[it.ex])}
-                onChange={(e) => patchItem(it.id, { uni: e.target.checked })}
-              />
-              Unilateral (reps de cada lado)
-            </label>
+            {open && (
+              <div className="ed-more">
+                <div className="fields">
+                  <label>
+                    Descanso
+                    <select
+                      className="inp sm"
+                      value={it.rest || ''}
+                      onChange={(e) => patchItem(it.id, { rest: e.target.value ? Number(e.target.value) : undefined })}
+                    >
+                      <option value="">Por defecto</option>
+                      {[45, 60, 75, 90, 120, 150, 180, 240].map((v) => (
+                        <option key={v} value={v}>
+                          {restTxt(v)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Intensidad (RIR)
+                    <select
+                      className="inp sm"
+                      value={it.rir ?? ''}
+                      onChange={(e) => patchItem(it.id, { rir: e.target.value === '' ? undefined : Number(e.target.value) })}
+                    >
+                      <option value="">Sin indicar</option>
+                      {[0, 1, 2, 3, 4].map((v) => (
+                        <option key={v} value={v}>
+                          {v === 0 ? '0 (al fallo)' : `${v} en reserva`}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+                <label className="chk-l">
+                  <input type="checkbox" checked={!!it.drop} onChange={(e) => patchItem(it.id, { drop: e.target.checked })} />
+                  Drop set
+                </label>
+                <label className="chk-l">
+                  <input type="checkbox" checked={uniOn} onChange={(e) => patchItem(it.id, { uni: e.target.checked })} />
+                  Unilateral (reps de cada lado)
+                </label>
+                <div className="ed-acts">
+                  <button className="btn sm-btn" onClick={() => move(idx, -1)} disabled={idx === 0} aria-label="Subir">
+                    <Icon name="up" size={16} /> Subir
+                  </button>
+                  <button className="btn sm-btn" onClick={() => move(idx, 1)} disabled={idx === day.items.length - 1} aria-label="Bajar">
+                    <Icon name="down" size={16} /> Bajar
+                  </button>
+                  <button className="btn sm-btn danger" onClick={() => patchDay({ items: day.items.filter((i) => i.id !== it.id) })} aria-label="Quitar">
+                    <Icon name="trash" size={16} /> Quitar
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )
       })}
@@ -1782,36 +1794,38 @@ export default function Workout({ data, setData, view, setView, onStart, onStart
   const sorted = [...data.plan].sort((a, b) => ((a.weekday ?? 9) + 6) % 7 - ((b.weekday ?? 9) + 6) % 7)
   const todays = byWeekday(today)
   const recent = doneSessions(data).slice(-6).reverse()
+  // Tarjeta de día compacta: miniaturas, nombre, día, grupos, series y duración; día de la semana, editar y empezar
   const dayCard = (d) => {
-    const cover = EX_BY_ID[d.items[0]?.ex]
-    const groups = [...new Set(d.items.map((i) => EX_BY_ID[i.ex]?.group).filter(Boolean))]
+    // grupos del día (sin repetir el nombre si el día ya se llama así)
+    const groups = [...new Set(d.items.map((i) => EX_BY_ID[i.ex]?.group).filter(Boolean))].filter((g) => g.toLowerCase() !== d.name.trim().toLowerCase())
     const sets = d.items.reduce((n, i) => n + Number(i.sets || 0), 0)
+    const thumbs = d.items.slice(0, 4).map((i) => EX_BY_ID[i.ex])
     return (
-      <div className={'daycard' + (d.weekday === today ? ' is-today' : '')} key={d.id}>
-        <div className={'daycover' + (cover?.imgs?.[0] ? '' : ' empty')}>
-          {cover?.imgs?.[0] ? (
-            <img src={cover.imgs[0]} alt="" loading="lazy" />
-          ) : (
-            <div className="cover-empty">
-              <Icon name="dumbbell" size={64} stroke={1.5} />
-            </div>
-          )}
-          <div className="daycover-shade" />
-          <div className="daycover-txt">
-            <span className="daypill">
+      <div className={'dcard' + (d.weekday === today ? ' is-today' : '')} key={d.id}>
+        <div className="dcard-top">
+          <div className="dcard-thumbs" aria-hidden="true">
+            {thumbs.length ? thumbs.map((ex, k) => <Thumb key={k} ex={ex} size={38} />) : <span className="dcard-empty"><Icon name="dumbbell" size={20} /></span>}
+          </div>
+          <div className="dcard-main">
+            <span className="dcard-day">
               {d.weekday != null ? WEEKDAYS[d.weekday] : 'Sin día'}
-              {d.weekday === today ? ' · Hoy' : ''}
+              {d.weekday === today ? ' · hoy' : ''}
               {d.fromTrainer ? ' · de tu entrenador' : ''}
             </span>
             <h3>{d.name}</h3>
-            <span className="small">
-              {d.items.length
-                ? `${d.items.length} ejercicios · ${sets} series${groups.length ? ' · ' + groups.join(', ') : ''}`
-                : 'Sin ejercicios: añádelos al empezar o en editar'}
+            <span className="muted small">
+              {d.items.length ? `${d.items.length} ejercicios · ${sets} series · ~${dayMinutes(d.items)} min` : 'Sin ejercicios: añádelos en editar o al empezar'}
             </span>
+            {groups.length > 0 && (
+              <span className="dcard-groups">
+                {groups.map((g) => (
+                  <Badge key={g}>{g}</Badge>
+                ))}
+              </span>
+            )}
           </div>
         </div>
-        <div className="dayfoot">
+        <div className="dcard-foot">
           <select
             className="inp mini-sel"
             value={d.weekday ?? ''}

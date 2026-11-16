@@ -2536,3 +2536,48 @@ button.setn:active { background: var(--accent-soft); color: var(--accent); }
 .sleep-gl { position: absolute; left: -6px; right: -6px; height: 0; border-top: 1.5px dashed var(--muted); opacity: 0.7; z-index: 1; }
 .sleep-key { display: flex; align-items: center; gap: 6px; margin: 0 0 var(--sp-2); }
 .sleep-key i { display: inline-block; width: 16px; border-top: 1.5px dashed var(--muted); }
+
+/* ===== Fase 4 · Rutinas y editor ===== */
+/* tarjeta de día compacta (antes: foto de ~300 px) */
+.dcard { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--sp-3); margin-bottom: var(--sp-3); }
+.dcard.is-today { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.dcard-top { display: flex; gap: var(--sp-3); align-items: flex-start; }
+.dcard-thumbs { display: grid; grid-template-columns: repeat(2, 38px); grid-auto-rows: 38px; gap: 3px; flex: none; }
+.dcard-thumbs .thumb { border-radius: var(--r-sm); object-fit: cover; }
+.dcard-empty { grid-column: span 2; grid-row: span 2; width: 79px; height: 79px; border-radius: var(--r-md); background: var(--surface-2); color: var(--muted); display: grid; place-items: center; }
+.dcard-main { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1; }
+.dcard-day { font-size: var(--fs-xs); font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); }
+.dcard:not(.is-today) .dcard-day { color: var(--muted); }
+.dcard-main h3 { margin: 0; font-family: var(--font-head); font-size: var(--fs-lg); font-weight: 800; letter-spacing: -0.01em; overflow-wrap: anywhere; }
+.dcard-groups { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
+.dcard-foot { display: flex; gap: var(--sp-2); margin-top: var(--sp-3); }
+.dcard-foot .mini-sel { flex: 1; min-width: 0; height: 44px; min-height: 44px; margin: 0; }
+.dcard-foot .icon-btn { height: 44px; margin: 0; }
+.dcard-foot .sm-btn { height: 44px; min-height: 44px; margin: 0; flex: none; padding: 0 var(--sp-4); }
+/* editor: una fila por ejercicio (series × reps) que se despliega */
+.ed-item { padding: var(--sp-2) var(--sp-1) var(--sp-2) var(--sp-3); margin-bottom: var(--sp-2); }
+.ed-item.open { border-color: var(--accent); }
+.ed-row { display: flex; align-items: center; gap: var(--sp-2); }
+.ed-id { display: flex; align-items: center; gap: var(--sp-2); flex: 1; min-width: 0; background: none; border: 0; padding: 0; color: inherit; text-align: left; }
+.ed-n { flex: none; width: 14px; font-size: var(--fs-xs); font-weight: 800; color: var(--muted); text-align: center; }
+.ed-t { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ed-t b { font-size: var(--fs-sm); font-weight: 700; line-height: 1.25; overflow-wrap: break-word; hyphens: auto; }
+.ed-sr { display: flex; align-items: center; gap: 4px; flex: none; }
+.ed-sr .inp.sm { width: 40px; min-width: 0; margin: 0; text-align: center; padding-left: 4px; padding-right: 4px; }
+.ed-sr .inp.ed-reps { width: 54px; }
+.ed-chev { flex: none; width: 28px; height: 40px; display: grid; place-items: center; background: none; border: 0; padding: 0; color: var(--muted); }
+.ed-item.open .ed-chev { color: var(--accent); }
+.ed-sr .x { color: var(--muted); font-size: var(--fs-sm); }
+.ed-more { margin-top: var(--sp-3); padding-top: var(--sp-3); border-top: 1px solid var(--border); }
+.ed-more .fields { margin-top: 0; display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-2); }
+.ed-more .fields label { min-width: 0; }
+.ed-more .fields select.inp.sm { width: 100%; min-width: 0; padding-left: var(--sp-3); padding-right: 28px; text-overflow: ellipsis; }
+.ed-more .chk-l { display: flex; flex-direction: row; align-items: center; gap: 10px; margin-top: var(--sp-3); font-size: var(--fs-md); color: var(--text); }
+.ed-acts { display: flex; gap: var(--sp-2); margin-top: var(--sp-3); }
+.ed-acts .btn { flex: 1; min-height: 40px; padding: 0 var(--sp-2); font-size: var(--fs-sm); }
+@media (min-width: 700px) {
+  .dcard { display: flex; align-items: center; gap: var(--sp-4); }
+  .dcard-top { flex: 1; min-width: 0; }
+  .dcard-foot { margin-top: 0; flex: none; }
+  .dcard-foot .mini-sel { flex: none; width: 150px; }
+}
