@@ -3,6 +3,9 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
 // base './' => funciona en GitHub Pages (subruta /repo/) y en cualquier hosting estático
+// VITE_BETA=1 => versión de pruebas: otro nombre e id de app instalada y su propia caché de fotos
+const BETA = process.env.VITE_BETA === '1'
+
 export default defineConfig({
   base: './',
   build: {
@@ -30,7 +33,7 @@ export default defineConfig({
           {
             urlPattern: /\/ex\/.+\.(webp|jpg)$/i,
             handler: 'CacheFirst',
-            options: { cacheName: 'ex-fotos', expiration: { maxEntries: 500, maxAgeSeconds: 60 * 60 * 24 * 365 }, cacheableResponse: { statuses: [0, 200] } },
+            options: { cacheName: BETA ? 'ex-fotos-beta' : 'ex-fotos', expiration: { maxEntries: 500, maxAgeSeconds: 60 * 60 * 24 * 365 }, cacheableResponse: { statuses: [0, 200] } },
           },
         ],
         navigateFallback: 'index.html',
@@ -43,8 +46,9 @@ export default defineConfig({
         importScripts: ['push-sw.js?v=2'],
       },
       manifest: {
-        name: 'MI-GYM',
-        short_name: 'MI-GYM',
+        name: BETA ? 'MI-GYM Beta' : 'MI-GYM',
+        short_name: BETA ? 'MI-GYM β' : 'MI-GYM',
+        ...(BETA ? { id: 'mi-gym-beta' } : {}),
         description: 'Entrenos, ejercicios y calorías',
         lang: 'es',
         start_url: './',

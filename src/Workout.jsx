@@ -212,7 +212,7 @@ export function Library({ data, setData, onPick, onClose, inline, title, noCreat
           </div>
         </div>
       )}
-      <p className="muted small" style={{ margin: '0 0 6px' }}>{list.length} {list.length === 1 ? 'ejercicio' : 'ejercicios'}</p>
+      <p className="muted small mo-b2">{list.length} {list.length === 1 ? 'ejercicio' : 'ejercicios'}</p>
       <div className="list">
         {list.slice(0, limit).map((e) => (
           <button key={e.id} className="row" onClick={() => setOpen(e)}>
@@ -388,7 +388,7 @@ export function Generator({ data, setData, onClose }) {
 
       {step === 0 && (
         <>
-          <h4 style={{ marginTop: 0 }}>¿Qué buscas?</h4>
+          <h4 className="mt-0">¿Qué buscas?</h4>
           <div className="list">
             {GOALS.map((g) => (
               <button key={g.id} className={'row opt' + (goal === g.id ? ' on' : '')} onClick={() => setGoal(g.id)}>
@@ -424,7 +424,7 @@ export function Generator({ data, setData, onClose }) {
 
       {step === 1 && (
         <>
-          <h4 style={{ marginTop: 0 }}>¿Qué días vas al gimnasio?</h4>
+          <h4 className="mt-0">¿Qué días vas al gimnasio?</h4>
           <div className="chips wrap">
             {ORDER.map((w) => (
               <button key={w} className={'chip' + (wds.includes(w) ? ' on' : '')} onClick={() => toggleWd(w)}>
@@ -454,7 +454,7 @@ export function Generator({ data, setData, onClose }) {
 
       {step === 2 && (
         <>
-          <h4 style={{ marginTop: 0 }}>¿Cómo repartes los músculos?</h4>
+          <h4 className="mt-0">¿Cómo repartes los músculos?</h4>
           <div className="chips wrap">
             {SPLITS.map((s) => (
               <button key={s.id} className="chip sm" onClick={() => applySplit(s)}>
@@ -468,8 +468,7 @@ export function Generator({ data, setData, onClose }) {
             <div key={d.weekday} className="sum-row">
               <b>{WEEKDAYS[d.weekday]}</b>
               <select
-                className="inp"
-                style={{ width: 'auto', margin: 0 }}
+                className="inp w-auto-m0"
                 aria-label={`Qué entrenas el ${WEEKDAYS[d.weekday]}`}
                 value={d.type}
                 onChange={(e) => setTypes((t) => ({ ...t, [d.weekday]: e.target.value }))}
@@ -488,7 +487,7 @@ export function Generator({ data, setData, onClose }) {
 
       {step === 3 && (
         <>
-          <h4 style={{ marginTop: 0 }}>¿Qué material tienes?</h4>
+          <h4 className="mt-0">¿Qué material tienes?</h4>
           <div className="chips wrap">
             {EQUIP.map((e) => (
               <button
@@ -548,7 +547,7 @@ export function Generator({ data, setData, onClose }) {
 
       {step === 4 && plan && (
         <>
-          <p className="muted small" style={{ marginTop: 0 }}>
+          <p className="muted small mt-0">
             Revisa y ajusta antes de guardar: cambia ejercicios <Icon name="swap" size={13} className="inl" />, series (− / +), quita o rehaz un día. RIR = reps que te quedan en reserva.
           </p>
           {plan.map((d) => {
@@ -873,7 +872,7 @@ function CheckIn({ onSave, onSkip, exercises = [], night }) {
   const [sleep, setSleep] = useState(night ? (night.total < 360 ? 1 : night.total < 450 ? 2 : 3) : null)
   return (
     <Modal title="¿Cómo ha ido?" onClose={onSkip}>
-      <p className="muted small" style={{ marginTop: 0 }}>
+      <p className="muted small mt-0">
         Con esto ajusto los consejos y te aviso en los próximos entrenos.
       </p>
       <h4>Sensación del entreno</h4>
@@ -940,7 +939,7 @@ function CheckIn({ onSave, onSkip, exercises = [], night }) {
               </button>
             ))}
           </div>
-          <div className="seg" style={{ marginTop: 10 }}>
+          <div className="seg mt-3">
             <button className={level === 'leve' ? 'on' : ''} onClick={() => setLevel('leve')}>
               Leve
             </button>
@@ -1201,7 +1200,7 @@ function Session({ data, setData, onExit, cloud, online }) {
           </div>
           {done.tips?.length > 0 && (
             <>
-              <h4 style={{ marginTop: 0 }}>Para tu próximo entreno</h4>
+              <h4 className="mt-0">Para tu próximo entreno</h4>
               {done.tips.map((t, i) => (
                 <div key={i} className={'advice ' + t.tone}>
                   {t.text}
@@ -1808,8 +1807,8 @@ export default function Workout({ data, setData, view, setView, onStart, onStart
         <div>
           <h1 className="title">Entrenamiento</h1>
         </div>
-        <button className="btn sm-btn" onClick={() => setChat(true)}>
-          <Icon name="sparkle" size={16} /> Preguntar
+        <button className="btn sm-btn head-act" onClick={() => setChat(true)} aria-label="Preguntar al entrenador">
+          <Icon name="sparkle" size={16} /> <span className="btn-lbl">Preguntar</span>
         </button>
       </div>
 

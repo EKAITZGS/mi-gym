@@ -41,7 +41,7 @@ export default function Coach({ data, setData, onClose }) {
     <Modal title="Mejorar mi rutina" onClose={onClose}>
       {!r && (
         <>
-          <p className="muted small" style={{ marginTop: 0 }}>
+          <p className="muted small mt-0">
             La IA mira tu rutina actual ({current} {current === 1 ? 'día' : 'días'}), tus últimos entrenos, cómo te
             sentiste y tus molestias, y te propone cambios. Tú decides si los aplicas.
           </p>

@@ -41,11 +41,11 @@ export default function StartSheet({ data, onStart, onStartFree, onClose, onRout
       {todays.map((d) => (
         <Opt key={d.id} icon="calendar" primary={!act} title={d.name} desc={`${doneToday.has(d.id) ? 'Ya hecho hoy · ' : 'Programado para hoy · '}${sum(d)}`} onClick={() => (onClose(), onStart(d.id))} />
       ))}
-      {others.length > 0 && <h4 style={{ marginTop: 14 }}>Otra rutina</h4>}
+      {others.length > 0 && <h4 className="mt-4">Otra rutina</h4>}
       {others.map((d) => (
         <Opt key={d.id} icon="list" title={d.name} desc={`${d.weekday != null ? WEEKDAYS[d.weekday] + ' · ' : ''}${sum(d)}`} onClick={() => (onClose(), onStart(d.id))} />
       ))}
-      <h4 style={{ marginTop: 14 }}>Sin plan</h4>
+      <h4 className="mt-4">Sin plan</h4>
       <Opt icon="bolt" title="Entreno libre" desc="Añades los ejercicios sobre la marcha" onClick={() => (onClose(), onStartFree())} />
       {data.plan.length === 0 && onRoutines && (
         <button className="link" onClick={() => (onClose(), onRoutines())}>

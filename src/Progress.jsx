@@ -47,7 +47,7 @@ function Highlights({ data, onOpen }) {
           <div className="sec-head nm" style={{ marginTop: prs.length ? 10 : 0 }}>
             <b>Estancados</b>
           </div>
-          <p className="muted small" style={{ marginTop: 0 }}>
+          <p className="muted small mt-0">
             3 entrenos sin mejorar. Prueba otro rango de reps, una semana de descarga o una variante del ejercicio.
           </p>
           {stuck.map((x) => (

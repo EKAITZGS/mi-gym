@@ -4,6 +4,7 @@ import LegalModal from './Legal'
 import { cloudReady, cloudMeta, signIn, signUp, signOut, resetPassword, updatePassword, connect, resolve, summary, sb, getMyProfile, updateProfile, countStudents } from './cloud'
 import { Modal } from './ui'
 import Icon from './icons'
+import { Button, Field, Segmented } from './ds'
 
 const ago = (iso) => {
   if (!iso) return ''
@@ -166,7 +167,7 @@ export default function AccountCard({ data, setData, cloud }) {
         {cloud.error && !msg && <div className="advice sm yellow">{cloud.error}</div>}
         {note}
         {!m.pending && (
-          <button className="btn full" style={{ marginTop: 10 }} onClick={() => setProfile(true)}>
+          <button className="btn full mt-3" onClick={() => setProfile(true)}>
             <Icon name="edit" size={15} /> Editar perfil
           </button>
         )}
@@ -181,7 +182,7 @@ export default function AccountCard({ data, setData, cloud }) {
             </button>
           </div>
         )}
-        <p className="muted small" style={{ marginBottom: 0 }}>
+        <p className="muted small mb-0">
           Entrenos, plan, dieta, cuerpo y reloj se guardan solos en tu cuenta. Las fotos de progreso se quedan solo en el
           móvil.
         </p>
@@ -193,32 +194,35 @@ export default function AccountCard({ data, setData, cloud }) {
   return (
     <div className="card account">
       {mode !== 'forgot' && (
-        <div className="seg">
-          <button className={mode === 'in' ? 'on' : ''} onClick={() => (setMode('in'), setMsg(null))}>
-            Entrar
-          </button>
-          <button className={mode === 'up' ? 'on' : ''} onClick={() => (setMode('up'), setMsg(null), set('pass2', ''))}>
-            Crear cuenta
-          </button>
-        </div>
+        <Segmented
+          label="Entrar o crear cuenta"
+          value={mode}
+          options={[
+            { v: 'in', label: 'Entrar' },
+            { v: 'up', label: 'Crear cuenta' },
+          ]}
+          onChange={(v) => (v === 'in' ? (setMode('in'), setMsg(null)) : (setMode('up'), setMsg(null), set('pass2', '')))}
+        />
       )}
-      {mode === 'forgot' && <p className="small" style={{ marginTop: 0 }}>Escribe tu email y te mando un enlace para poner otra contraseña.</p>}
+      {mode === 'forgot' && <p className="small mt-0">Escribe tu email y te mando un enlace para poner otra contraseña.</p>}
       {mode === 'up' && (
-        <>
-          <label className="lbl">Nombre de perfil</label>
+        <Field label="Nombre de perfil">
           <input className="inp" autoComplete="nickname" placeholder="Cómo te verán tu entrenador o tus alumnos" value={f.name} onChange={(e) => set('name', e.target.value.slice(0, 40))} />
-        </>
+        </Field>
       )}
-      <label className="lbl">Email</label>
-      <input className="inp" type="email" inputMode="email" autoComplete="email" autoCapitalize="none" value={f.email} onChange={(e) => set('email', e.target.value)} />
+      <Field label="Email">
+        <input className="inp" type="email" inputMode="email" autoComplete="email" autoCapitalize="none" value={f.email} onChange={(e) => set('email', e.target.value)} />
+      </Field>
       {mode !== 'forgot' && (
-        <>
-          <div className="lbl-row">
-            <label className="lbl">Contraseña</label>
+        <Field
+          label="Contraseña"
+          right={
             <button type="button" className="link-mini" onClick={() => set('show', !f.show)}>
               {f.show ? 'Ocultar' : 'Ver'}
             </button>
-          </div>
+          }
+          error={mode === 'up' && f.pass.length > 0 && f.pass.length < 8 ? `Mínimo 8 caracteres: te falta${8 - f.pass.length === 1 ? '' : 'n'} ${8 - f.pass.length}.` : null}
+        >
           <input
             className="inp"
             type={f.show ? 'text' : 'password'}
@@ -229,40 +233,39 @@ export default function AccountCard({ data, setData, cloud }) {
             onChange={(e) => set('pass', e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && mode === 'in' && doIn()}
           />
-          {mode === 'up' && f.pass.length > 0 && f.pass.length < 8 && (
-            <p className="small" style={{ color: 'var(--warn)', margin: '4px 0 0' }}>
-              Mínimo 8 caracteres: te falta{8 - f.pass.length === 1 ? '' : 'n'} {8 - f.pass.length}.
-            </p>
-          )}
-        </>
+        </Field>
       )}
       {mode === 'up' && (
         <>
-          <label className="lbl">Repetir contraseña</label>
-          <input
-            className="inp"
-            type={f.show ? 'text' : 'password'}
-            autoComplete="new-password"
-            autoCapitalize="none"
-            value={f.pass2 || ''}
-            onChange={(e) => set('pass2', e.target.value)}
-          />
-          {f.pass2 && f.pass2 !== f.pass && <p className="small" style={{ color: 'var(--warn)', margin: '4px 0 0' }}>No coinciden.</p>}
+          <Field label="Repetir contraseña" error={f.pass2 && f.pass2 !== f.pass ? 'No coinciden.' : null}>
+            <input
+              className="inp"
+              type={f.show ? 'text' : 'password'}
+              autoComplete="new-password"
+              autoCapitalize="none"
+              value={f.pass2 || ''}
+              onChange={(e) => set('pass2', e.target.value)}
+            />
+          </Field>
 
-          <label className="lbl">Tipo de cuenta</label>
-          <div className="seg">
-            <button className={f.role === 'user' ? 'on' : ''} onClick={() => set('role', 'user')}>
-              Usuario
-            </button>
-            <button className={f.role === 'trainer' ? 'on' : ''} onClick={() => set('role', 'trainer')}>
-              Entrenador
-            </button>
-          </div>
-          <p className="muted small" style={{ margin: '6px 0 0' }}>
-            {f.role === 'trainer'
-              ? 'Apareces en la lista de entrenadores: los usuarios te piden entrenar y, si aceptas, ves sus entrenos y su progreso. También puedes usar la app para ti. Lo puedes cambiar luego en tu perfil.'
-              : 'Usas la app para entrenar y comer, y si quieres puedes pedir a un entrenador que te lleve. Lo puedes cambiar luego en tu perfil.'}
-          </p>
+          <Field
+            label="Tipo de cuenta"
+            hint={
+              f.role === 'trainer'
+                ? 'Apareces en la lista de entrenadores: los usuarios te piden entrenar y, si aceptas, ves sus entrenos y su progreso. También puedes usar la app para ti. Lo puedes cambiar luego en tu perfil.'
+                : 'Usas la app para entrenar y comer, y si quieres puedes pedir a un entrenador que te lleve. Lo puedes cambiar luego en tu perfil.'
+            }
+          >
+            <Segmented
+              label="Tipo de cuenta"
+              value={f.role}
+              options={[
+                { v: 'user', label: 'Usuario' },
+                { v: 'trainer', label: 'Entrenador' },
+              ]}
+              onChange={(v) => set('role', v)}
+            />
+          </Field>
 
           <label className="chk-l uni-l" style={{ marginTop: 12, alignItems: 'flex-start' }}>
             <input type="checkbox" checked={!!f.ok} onChange={(e) => set('ok', e.target.checked)} />
@@ -277,14 +280,9 @@ export default function AccountCard({ data, setData, cloud }) {
           {legal && <LegalModal onClose={() => setLegal(false)} />}
         </>
       )}
-      <button
-        className="btn primary full"
-        style={{ marginTop: 12 }}
-        disabled={busy}
-        onClick={mode === 'up' ? doUp : mode === 'forgot' ? doForgot : doIn}
-      >
+      <Button variant="primary" full className="mt-3" loading={busy} onClick={mode === 'up' ? doUp : mode === 'forgot' ? doForgot : doIn}>
         {busy ? 'Un momento…' : mode === 'up' ? 'Crear cuenta' : mode === 'forgot' ? 'Mandar enlace' : 'Entrar'}
-      </button>
+      </Button>
       {note}
       {mode === 'in' && (
         <button className="link" onClick={() => (setMode('forgot'), setMsg(null))}>
@@ -296,7 +294,7 @@ export default function AccountCard({ data, setData, cloud }) {
           Volver
         </button>
       )}
-      <p className="muted small" style={{ marginBottom: 0 }}>
+      <p className="muted small mb-0">
         Tus datos se guardan solos en tu cuenta y los recuperas si cambias de móvil o borras la app. Si ya tenías datos en
         este móvil, se suben al entrar: no se borra nada.
       </p>
@@ -335,11 +333,11 @@ export function NewPassword({ onDone }) {
   }
   return (
     <Modal title="Nueva contraseña" onClose={onDone}>
-      <label className="lbl" style={{ marginTop: 0 }}>
+      <label className="lbl mt-0">
         Contraseña nueva (8 caracteres o más)
       </label>
       <input className="inp" type="password" autoComplete="new-password" value={p} onChange={(e) => setP(e.target.value)} />
-      <button className="btn primary full" style={{ marginTop: 12 }} disabled={busy || p.length < 8 || msg?.t === 'green'} onClick={save}>
+      <button className="btn primary full mt-3" disabled={busy || p.length < 8 || msg?.t === 'green'} onClick={save}>
         Guardar
       </button>
       {msg && <div className={'advice sm ' + msg.t}>{msg.x}</div>}
@@ -402,11 +400,11 @@ export function ProfileModal({ email, onClose }) {
         <p className="muted small">{msg ? '' : 'Cargando…'}</p>
       ) : (
         <>
-          <label className="lbl" style={{ marginTop: 0 }}>
+          <label className="lbl mt-0">
             Nombre
           </label>
           <input className="inp" autoComplete="name" value={f.name} onChange={(e) => set('name', e.target.value.slice(0, 40))} />
-          <p className="muted small" style={{ margin: '4px 0 0' }}>Es el que ven tu entrenador o tus alumnos.</p>
+          <p className="muted small mo-t1">Es el que ven tu entrenador o tus alumnos.</p>
 
           <label className="lbl">Tipo de cuenta</label>
           <div className="seg">
@@ -417,7 +415,7 @@ export function ProfileModal({ email, onClose }) {
               Entrenador
             </button>
           </div>
-          <p className="muted small" style={{ margin: '6px 0 0' }}>
+          <p className="muted small mo-t2">
             {f.role === 'trainer'
               ? 'Sales en la lista de entrenadores y puedes aceptar alumnos. Puedes volver a ser usuario cuando quieras.'
               : 'Si te haces entrenador, los usuarios podrán pedirte que les entrenes.'}
@@ -433,13 +431,12 @@ export function ProfileModal({ email, onClose }) {
                 value={f.bio}
                 onChange={(e) => set('bio', e.target.value.slice(0, 240))}
               />
-              <p className="muted small" style={{ margin: '4px 0 0' }}>Lo ven los usuarios en la lista de entrenadores.</p>
+              <p className="muted small mo-t1">Lo ven los usuarios en la lista de entrenadores.</p>
             </>
           )}
 
           <button
-            className="btn primary full"
-            style={{ marginTop: 14 }}
+            className="btn primary full mt-4"
             disabled={busy || (orig && f.name === orig.name && f.role === orig.role && f.bio === orig.bio)}
             onClick={save}
           >
@@ -453,7 +450,7 @@ export function ProfileModal({ email, onClose }) {
 
           <label className="lbl">Cambiar contraseña</label>
           <input className="inp" type="password" autoComplete="new-password" placeholder="Nueva (8 caracteres o más)" value={pass} onChange={(e) => setPass(e.target.value)} />
-          <button className="btn full" style={{ marginTop: 8 }} disabled={busy || pass.length < 8} onClick={savePass}>
+          <button className="btn full mt-2" disabled={busy || pass.length < 8} onClick={savePass}>
             Cambiar contraseña
           </button>
         </>

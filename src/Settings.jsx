@@ -48,7 +48,7 @@ export function GoalCalc({ onApply, onClose, skipLabel }) {
         ))}
       </div>
       {r && (
-        <div className="advice green sm" style={{ marginTop: 12 }}>
+        <div className="advice green sm mt-3">
           <b>{r.kcal} kcal</b> y <b>{r.protein} g de proteína</b> al día. Es una estimación: si en 2-3 semanas tu peso medio no va
           como quieres, ajusta unas 150-200 kcal.
         </div>
@@ -191,7 +191,7 @@ export default function Settings({ data, setData, cloud, onBack }) {
 
       <h4>Entreno</h4>
       <div className="card">
-        <label className="lbl" style={{ marginTop: 0 }}>Cuenta atrás de descanso al marcar una serie</label>
+        <label className="lbl mt-0">Cuenta atrás de descanso al marcar una serie</label>
         <div className="seg">
           <button className={restPref.on ? 'on' : ''} onClick={() => saveRest({ on: true })}>
             Sí
@@ -293,7 +293,7 @@ export default function Settings({ data, setData, cloud, onBack }) {
           </>
         ) : (
           <>
-            <p className="muted small" style={{ marginTop: 0 }}>
+            <p className="muted small mt-0">
               Trae las calorías y el pulso de tus entrenos del reloj (los que subas a Polar Flow a partir de ahora). Se
               sincroniza solo al abrir la app.
             </p>

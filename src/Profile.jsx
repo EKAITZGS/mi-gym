@@ -77,14 +77,14 @@ export default function Profile({ data, setData, cloud, inbox, onInbox, online, 
 
   return (
     <div className="page">
-      <div className="eyebrow">Tu cuenta</div>
+      <div className="eyebrow">Tu cuenta{import.meta.env.VITE_BETA === '1' && <span className="badge beta-badge">Beta</span>}</div>
       <h1 className="title">Perfil</h1>
       <div className="prof-head">
         <span className="prof-av">{initialOf(m)}</span>
         <div className="grow">
           <div className="prof-name">{m.name || (hasAccount ? 'Sin nombre' : 'Sin cuenta')}</div>
           {m.email && <div className="prof-sub">{m.email}</div>}
-          <div className="prof-sub" style={{ marginTop: 6 }}>
+          <div className="prof-sub mt-2">
             {hasAccount && <span className="badge" style={{ marginRight: 8 }}>{trainer ? 'Entrenador' : 'Usuario'}</span>}
             <SyncPill cloud={cloud} online={online} />
           </div>

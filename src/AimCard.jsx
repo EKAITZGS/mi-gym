@@ -120,7 +120,7 @@ export default function AimCard({ data, setData }) {
       <button className="btn full" onClick={() => setChat(true)}>
         <Icon name="sparkle" size={16} /> Pedir análisis al entrenador IA
       </button>
-      <p className="muted small" style={{ marginBottom: 0 }}>Orientativo: no sustituye a un médico ni a un dietista.</p>
+      <p className="muted small mb-0">Orientativo: no sustituye a un médico ni a un dietista.</p>
 
       {modal === 'weight' && <WeightModal data={data} setData={setData} onClose={() => setModal(null)} />}
       {modal === 'waist' && <WaistModal data={data} setData={setData} onClose={() => setModal(null)} />}

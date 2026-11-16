@@ -211,7 +211,7 @@ export default function DayPlanModal({ data, setData, onClose }) {
   const delta = tg.kcal - tg.base
   return (
     <Modal title="Dieta del día" onClose={onClose}>
-      <label className="lbl" style={{ marginTop: 0 }}>Objetivo</label>
+      <label className="lbl mt-0">Objetivo</label>
       <div className="seg seg3">
         {AIMS.map(([v, l]) => (
           <button key={v} className={aim === v ? 'on' : ''} onClick={() => setAim(v)}>
@@ -230,7 +230,7 @@ export default function DayPlanModal({ data, setData, onClose }) {
           )
         })}
       </div>
-      <p className="muted small" style={{ margin: '6px 0 0' }}>
+      <p className="muted small mo-t2">
         {force == null
           ? `Según tu plan, el ${wd} ${planned ? 'entrenas' : 'descansas'}.`
           : `Cambiado a día de ${train ? 'entreno' : 'descanso'}.`}{' '}
@@ -257,7 +257,7 @@ export default function DayPlanModal({ data, setData, onClose }) {
         {mp.kg ? `Calculado con tu peso medio: ${String(mp.kg).replace('.', ',')} kg.` : 'Pésate para calcular la proteína con tu peso.'}
         {aim === 'lose' && ' Así bajas unos 0,5 kg de grasa por semana sin perder fuerza.'}
         {aim === 'gain' && ' Superávit pequeño para ganar músculo con poca grasa.'}
-        <div className="muted" style={{ marginTop: 6 }}>
+        <div className="muted mt-2">
           {e.cal.ok
             ? `Calibrado con tu peso: de la actividad que marca el reloj cuento el ${Math.round(e.cal.act * 100)} %.`
             : `El reloj se pasa con las calorías de actividad: cuento el ${Math.round(e.cal.act * 100)} % hasta calibrarlo con tu peso en 3–4 semanas (${e.cal.why}).`}
@@ -265,7 +265,7 @@ export default function DayPlanModal({ data, setData, onClose }) {
       </div>
       <AutoGoal data={data} setData={setData} />
 
-      <div className="dp-ai" style={{ marginTop: 12 }}>
+      <div className="dp-ai mt-3">
         <input className="inp" placeholder="Pídele algo a la IA (opcional): sin pescado, cena rápida…" value={note} onChange={(x) => setNote(x.target.value)} />
       </div>
       <button className="btn full" disabled={busy || !hasAi()} onClick={makeAi}>
@@ -274,7 +274,7 @@ export default function DayPlanModal({ data, setData, onClose }) {
       {!hasAi() && <p className="muted small">Activa la IA en Ajustes para que te haga dietas.</p>}
       {err && <div className="advice yellow sm">{err}</div>}
 
-      <div className="polar-sum" style={{ marginTop: 12 }}>
+      <div className="polar-sum mt-3">
         <div>
           <b>{day.kcal}</b>
           <span>kcal</span>
@@ -284,7 +284,7 @@ export default function DayPlanModal({ data, setData, onClose }) {
           <span>g proteína</span>
         </div>
       </div>
-      <p className="muted small" style={{ margin: '8px 0 0' }}>
+      <p className="muted small mo-t2">
         {ai ? (
           <span className="dp-tag">
             <Icon name="sparkle" size={13} /> Hecha con IA

@@ -24,7 +24,7 @@ export default function PushCard({ data, setData }) {
   if (!pushSupported() || !isStandalone())
     return (
       <div className="card">
-        <p className="muted small" style={{ margin: 0 }}>
+        <p className="muted small m-0">
           {isStandalone()
             ? 'Este navegador no admite avisos. En iPhone necesitas iOS 16.4 o superior.'
             : 'Para recibir avisos en el iPhone, abre Mi Gym desde el icono de la pantalla de inicio (no desde Safari).'}
@@ -65,7 +65,7 @@ export default function PushCard({ data, setData }) {
     <div className="card">
       {!on ? (
         <>
-          <p className="muted small" style={{ marginTop: 0 }}>
+          <p className="muted small mt-0">
             Te aviso de lo que toca entrenar, si te falta proteína, si no has sincronizado el reloj y cuándo medir la cintura. Tú eliges cuáles.
           </p>
           <button className="btn primary full" disabled={busy} onClick={activate}>

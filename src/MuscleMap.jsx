@@ -36,7 +36,7 @@ export default function MuscleMap({ data }) {
     <div className="card">
       <div className="sec-head nm">
         <b>Mapa muscular</b>
-        <div className="seg seg3" style={{ width: 'auto', margin: 0 }}>
+        <div className="seg seg3 w-auto-m0">
           {RANGES.map((r) => (
             <button key={r.id} className={range === r.id ? 'on' : ''} onClick={() => setRange(r.id)} style={{ minHeight: 32, fontSize: 12, padding: '0 8px' }}>
               {r.label}
@@ -48,7 +48,7 @@ export default function MuscleMap({ data }) {
         <Mannequin groups={groups} />
       </div>
       <div className="mm-legend">
-        <span><i style={{ background: '#3b4250' }} /> sin series</span>
+        <span><i style={{ background: 'var(--mm-empty)' }} /> sin series</span>
         <span><i style={{ background: tone(max * 0.25, max) }} /> pocas</span>
         <span><i style={{ background: tone(max * 0.6, max) }} /> medias</span>
         <span><i style={{ background: tone(max, max) }} /> {max}+ series</span>

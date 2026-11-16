@@ -22,7 +22,7 @@ export default function SleepCard({ data, setData }) {
             <Icon name="calendar" size={16} className="inl" /> Sueño
           </b>
         </div>
-        <p className="muted small" style={{ margin: 0 }}>
+        <p className="muted small m-0">
           Aún no hay noches del reloj. Duerme con él puesto y sincroniza con Polar Flow: aquí verás tus horas, la regularidad y
           consejos.
         </p>
@@ -125,14 +125,14 @@ export default function SleepCard({ data, setData }) {
         </div>
       </div>
       {(a.deepPct != null || a.cont != null) && (
-        <p className="muted small" style={{ margin: '0 0 6px' }}>
+        <p className="muted small mo-b2">
           {a.deepPct != null ? `Fases: profundo ${a.deepPct} % · REM ${a.remPct} %` : ''}
           {a.deepPct != null && a.cont != null ? ' · ' : ''}
           {a.cont != null ? `Continuidad ${String(a.cont).replace('.', ',')}/5` : ''}
         </p>
       )}
       {a.hrv != null && (
-        <p className="muted small" style={{ margin: '0 0 6px' }}>
+        <p className="muted small mo-b2">
           Recarga nocturna: VFC media {a.hrv} ms{a.hr ? ` · pulso en reposo ${a.hr} ppm` : ''}
         </p>
       )}

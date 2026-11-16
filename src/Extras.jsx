@@ -146,7 +146,7 @@ function MuscleBars({ direct, indirect, title, sub, children }) {
         <b>{title}</b>
         <span className="muted small">{sub}</span>
       </div>
-      <details className="tech-d" style={{ margin: '0 0 6px' }}>
+      <details className="tech-d mo-b2">
         <summary>¿Cómo se calcula?</summary>
         <p>Las series de músculos secundarios cuentan la mitad (el press banca suma a tríceps y hombro). 10-20 por músculo y semana es una referencia habitual, no una regla.</p>
       </details>

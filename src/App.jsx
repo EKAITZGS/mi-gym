@@ -144,6 +144,8 @@ export default function App() {
   }, [])
   // Avisos: cuando cambian tus datos, se recalcula la lista de avisos programados (con un pequeño retraso)
   useEffect(() => {
+    // la beta no toca los avisos (evita avisos repetidos en el mismo móvil)
+    if (import.meta.env.VITE_BETA === '1') return
     const t = setTimeout(() => syncPush(data).catch(() => {}), 3000)
     return () => clearTimeout(t)
   }, [data.food, data.sessions, data.plan, data.body, data.pushPrefs, data.polar, data.goals])

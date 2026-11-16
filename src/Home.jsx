@@ -90,7 +90,7 @@ export default function Home({ data, setData, onStart, go, onOpenStart, name }) 
           <button className="btn primary full" onClick={() => setWelcome('goals')}>
             <Icon name="play" size={14} fill="currentColor" stroke={0} /> Empezar
           </button>
-          <button className="link small" style={{ paddingLeft: 0 }} onClick={() => setData((d) => ({ ...d, setupDone: true, plan: d.plan.length ? d.plan : DEFAULT.plan }))}>
+          <button className="link small pl-0" onClick={() => setData((d) => ({ ...d, setupDone: true, plan: d.plan.length ? d.plan : DEFAULT.plan }))}>
             Usar el plan de ejemplo
           </button>
         </div>
@@ -178,7 +178,7 @@ export default function Home({ data, setData, onStart, go, onOpenStart, name }) 
                 Ir a Rutinas
               </button>
             ) : (
-              <button className="link small" style={{ paddingLeft: 0 }} onClick={onOpenStart}>
+              <button className="link small pl-0" onClick={onOpenStart}>
                 {data.active ? 'Continuar entrenamiento' : 'Entrenar hoy igualmente'}
               </button>
             )}

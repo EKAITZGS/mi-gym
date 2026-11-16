@@ -622,12 +622,12 @@ function AddFood({ data, setData, date, meal, onClose }) {
       <Modal title={nc.code ? 'Producto nuevo' : 'Crear producto'} onClose={onClose}>
         {labelInput}
         {nc.code ? (
-          <div className="advice yellow sm" style={{ marginTop: 0 }}>
+          <div className="advice yellow sm mt-0">
             {nc.found ? `El código ${nc.code} existe pero no tiene datos nutricionales.` : `No conozco el código ${nc.code}.`}{' '}
             Créalo una vez y la próxima vez que lo escanees te saldrá directamente.
           </div>
         ) : (
-          <p className="muted small" style={{ marginTop: 0 }}>
+          <p className="muted small mt-0">
             Haz una foto a la tabla nutricional del envase y relleno los datos, o escríbelos tú.
           </p>
         )}
@@ -698,7 +698,7 @@ function AddFood({ data, setData, date, meal, onClose }) {
     return (
       <Modal title="Crear o añadir rápido" onClose={onClose}>
         {labelInput}
-        <h4 style={{ marginTop: 0 }}>Crear un producto</h4>
+        <h4 className="mt-0">Crear un producto</h4>
         <div className="quick-actions two-col">
           <button className="qa primary" onClick={() => { setNc(emptyNc()); setLbl({ loading: false, err: '' }); labelRef.current?.click() }}>
             <Icon name="camera" size={24} />

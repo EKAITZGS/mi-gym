@@ -285,7 +285,7 @@ export function WorkoutBuilder({ data, setData, linkId, studentName, studentPlan
     <Modal title={edit ? `Cambios para ${studentName}` : `Entreno para ${studentName}`} onClose={onClose}>
       {studentPlan.length > 0 && (
         <>
-          <label className="lbl" style={{ marginTop: 0 }}>
+          <label className="lbl mt-0">
             Partir de un día suyo (opcional)
           </label>
           <select className="inp" value={base?.id || ''} onChange={(e) => fromDay(e.target.value)}>
@@ -301,7 +301,7 @@ export function WorkoutBuilder({ data, setData, linkId, studentName, studentPlan
       )}
       {base && (
         <>
-          <div className="seg" style={{ marginTop: 10 }}>
+          <div className="seg mt-3">
             <button className={mode === 'edit' ? 'on' : ''} onClick={() => setMode('edit')}>
               Cambiar su día
             </button>
@@ -309,7 +309,7 @@ export function WorkoutBuilder({ data, setData, linkId, studentName, studentPlan
               Como día nuevo
             </button>
           </div>
-          <p className="muted small" style={{ marginTop: 0 }}>
+          <p className="muted small mt-0">
             {edit ? `Le llega qué cambias, ejercicio a ejercicio. Su "${base.name}" no se toca hasta que acepte.` : 'Le llega como un día nuevo; el suyo se queda como está.'}
           </p>
         </>
@@ -350,12 +350,12 @@ export function WorkoutBuilder({ data, setData, linkId, studentName, studentPlan
             <div className="li-t">{nameOf(b.ex)}</div>
             <div className="small muted">Se lo quitas</div>
           </div>
-          <button className="link" style={{ fontSize: 13 }} onClick={() => restore(b)}>
+          <button className="link fs-sm" onClick={() => restore(b)}>
             Volver a poner
           </button>
         </div>
       ))}
-      <button className="btn full" style={{ marginTop: 8 }} onClick={() => setPick('add')}>
+      <button className="btn full mt-2" onClick={() => setPick('add')}>
         <Icon name="plus" size={15} /> Añadir ejercicio
       </button>
       {edit && (
@@ -367,7 +367,7 @@ export function WorkoutBuilder({ data, setData, linkId, studentName, studentPlan
       <label className="lbl">Nota para {studentName} (opcional)</label>
       <textarea className="inp" rows={2} placeholder={edit ? 'Ej.: cambio el press por mancuernas para que no te moleste el hombro.' : 'Ej.: descansa 2 min en las sentadillas y sube 2,5 kg si llegas a 10.'} value={note} onChange={(e) => setNote(e.target.value.slice(0, 500))} />
       {err && <div className="advice sm yellow">{err}</div>}
-      <button className="btn primary full" style={{ marginTop: 12 }} disabled={busy || !items.length || (edit && !changes.length)} onClick={send}>
+      <button className="btn primary full mt-3" disabled={busy || !items.length || (edit && !changes.length)} onClick={send}>
         {busy ? 'Enviando…' : edit ? 'Mandar cambios' : 'Mandar entreno'}
       </button>
       <p className="muted small">{edit ? `${studentName} verá cada cambio y decide si lo acepta.` : `Le llegará como propuesta: ${studentName} decide si lo añade a su plan.`}</p>
@@ -402,7 +402,7 @@ export function SentWorkouts({ linkId, refresh, nameOf = exName }) {
               {ch ? diffDay(w.day).map((c) => shortTxt(c, nameOf)).join(' · ') : (w.day?.items || []).map((it) => nameOf(it.ex)).join(' · ')} · {when(w.created_at)}
             </div>
             {w.status === 'pending' && (
-              <button className="link" style={{ fontSize: 13 }} onClick={() => confirm(ch ? '¿Retirar estos cambios?' : '¿Retirar este entreno?') && deleteWorkout(w.id).then(load)}>
+              <button className="link fs-sm" onClick={() => confirm(ch ? '¿Retirar estos cambios?' : '¿Retirar este entreno?') && deleteWorkout(w.id).then(load)}>
                 Retirar
               </button>
             )}
@@ -527,7 +527,7 @@ export function TrainerWorkouts({ linkId, trainerName, data, setData, onChange }
         )
       })}
       {done.length > 0 && (
-        <p className="muted small" style={{ marginBottom: 0 }}>
+        <p className="muted small mb-0">
           Anteriores:{' '}
           {done
             .map((w) =>

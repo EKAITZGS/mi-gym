@@ -198,7 +198,7 @@ export default function Setup({ data, setData, onClose }) {
 
       {step === active.length + 1 && step > 0 && (
         <>
-          <h2 style={{ marginTop: 0 }}>Tu semana</h2>
+          <h2 className="mt-0">Tu semana</h2>
           {ORDER.map((w) => (
             <div key={w} className="sum-row">
               <b>{WEEKDAYS[w]}</b>

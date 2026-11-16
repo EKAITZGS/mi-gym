@@ -135,14 +135,14 @@ export function DayModal({ data, date, onClose }) {
           )}
           {!inCard && watch.length > 0 && (
             <>
-              <h4 style={{ marginTop: 14 }}>Reloj</h4>
+              <h4 className="mt-4">Reloj</h4>
               {watch.map((e) => (
                 <HrRow e={e} onOpen={setPx} key={e.id} />
               ))}
             </>
           )}
           {day && (day.steps || day.kcal) ? (
-            <p className="muted small" style={{ marginTop: 12 }}>
+            <p className="muted small mt-3">
               {day.steps ? `${day.steps.toLocaleString('es-ES')} pasos` : ''}
               {day.steps && day.kcal ? ' · ' : ''}
               {day.kcal ? `${day.kcal} kcal gastadas según el reloj` : ''}

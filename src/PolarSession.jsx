@@ -3,7 +3,8 @@ import { Modal } from './ui'
 import { groupsOf } from './ranks'
 
 const ZONE_NAMES = ['Muy suave', 'Suave', 'Moderado', 'Intenso', 'Máximo']
-const ZONE_COLORS = ['#7b8494', '#4ea8ff', '#a3ff12', '#ffb547', '#ff5d6c']
+// colores de zona = tokens del sistema de diseño (--z1…--z5 en styles.css)
+const ZONE_COLORS = ['var(--z1)', 'var(--z2)', 'var(--z3)', 'var(--z4)', 'var(--z5)']
 
 const fmtMin = (s) => {
   const m = Math.floor(s / 60)
@@ -154,7 +155,7 @@ export function HrSpark({ hr, w = 72, h = 26 }) {
   const pts = v.map((n, i) => `${((i * w) / (v.length - 1)).toFixed(1)},${(h - 2 - ((n - lo) / Math.max(1, hi - lo)) * (h - 4)).toFixed(1)}`).join(' ')
   return (
     <svg className="hr-spark" width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden="true">
-      <polyline points={pts} fill="none" stroke="#ff5d6c" strokeWidth="1.5" strokeLinejoin="round" />
+      <polyline points={pts} fill="none" stroke="var(--hr)" strokeWidth="1.5" strokeLinejoin="round" />
     </svg>
   )
 }
@@ -185,8 +186,8 @@ function HrChart({ hr, zones }) {
     <svg className="hr-chart" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Pulso durante el entreno">
       <defs>
         <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#ff5d6c" />
-          <stop offset="1" stopColor="#ffb547" />
+          <stop offset="0" stopColor="var(--hr)" />
+          <stop offset="1" stopColor="var(--warn)" />
         </linearGradient>
       </defs>
       {bands.map((z) => (
@@ -196,7 +197,7 @@ function HrChart({ hr, zones }) {
           width={W - L - R}
           y={y(Math.min(hi, z.hi))}
           height={Math.max(0, y(Math.max(lo, z.lo)) - y(Math.min(hi, z.hi)))}
-          fill={ZONE_COLORS[z.i - 1] || '#555'}
+          fill={ZONE_COLORS[z.i - 1] || 'var(--z1)'}
           opacity="0.08"
         />
       ))}
@@ -237,7 +238,7 @@ export default function PolarSession({ ex: raw, data, onClose, them = false }) {
       </div>
 
       {kind && (
-        <p className="muted small" style={{ margin: '8px 0 0' }}>
+        <p className="muted small mo-t2">
           Día de {kind.label} · {kind.sets} series apuntadas
         </p>
       )}

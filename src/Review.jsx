@@ -85,7 +85,7 @@ export function CoachChat({ data, onClose, initial }) {
       <div className="chat">
         {msgs.length === 0 && (
           <>
-            <p className="muted small" style={{ marginTop: 0 }}>
+            <p className="muted small mt-0">
               Conoce tu plan, tus últimos entrenos, molestias y sueño. Es orientativo: no sustituye a un médico ni a un fisio.
             </p>
             {IDEAS.map((i) => (

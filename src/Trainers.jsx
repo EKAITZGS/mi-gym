@@ -53,7 +53,7 @@ export function MyTrainer({ uid, data, setData, inbox, onInbox }) {
     <div className="card trainers">
       {mine ? (
         <>
-          <p className="small" style={{ marginTop: 0 }}>
+          <p className="small mt-0">
             Tu entrenador es <b>{trainers.find((t) => t.id === mine.trainer_id)?.name || 'tu entrenador'}</b>: ve tus entrenos y tu progreso, y le llega un aviso cada vez que terminas un entreno.
           </p>
           <button className="btn full" onClick={() => setChat(true)}>
@@ -79,7 +79,7 @@ export function MyTrainer({ uid, data, setData, inbox, onInbox }) {
           )}
         </>
       ) : (
-        <p className="muted small" style={{ marginTop: 0 }}>
+        <p className="muted small mt-0">
           Pide a un entrenador que te lleve. Si acepta, podrá ver tus entrenos, tu plan y tu progreso. Puedes dejarlo cuando quieras.
         </p>
       )}
@@ -112,7 +112,7 @@ export function MyTrainer({ uid, data, setData, inbox, onInbox }) {
           </div>
         )
       })}
-      {mine && <p className="muted small" style={{ marginBottom: 0 }}>Para cambiar de entrenador, deja primero el actual.</p>}
+      {mine && <p className="muted small mb-0">Para cambiar de entrenador, deja primero el actual.</p>}
       {err && <div className="advice sm yellow">{err}</div>}
     </div>
   )
@@ -202,7 +202,7 @@ export function Students({ uid, data, setData, inbox, onInbox, focus, onFocused 
           <Icon name="right" size={16} className="muted" />
         </button>
       ))}
-      <button className="link" style={{ fontSize: 13 }} onClick={reload} disabled={st.loading}>
+      <button className="link fs-sm" onClick={reload} disabled={st.loading}>
         {st.loading ? 'Actualizando…' : 'Actualizar'}
       </button>
       {err && <div className="advice sm yellow">{err}</div>}
@@ -246,7 +246,7 @@ function StudentView({ student, me, data, setData, unread, onInbox, onClose, onR
   const sign = (n) => (n > 0 ? '+' : n < 0 ? '−' : '±')
   return (
     <Modal title={student.name} onClose={onClose}>
-      <div className="btns" style={{ marginTop: 0 }}>
+      <div className="btns mt-0">
         <button className="btn" onClick={() => setChat(true)}>
           <Icon name="book" size={15} /> Mensajes{unread ? ` (${unread})` : ''}
         </button>
