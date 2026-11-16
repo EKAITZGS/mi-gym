@@ -245,7 +245,7 @@ function StudentView({ student, me, data, setData, unread, onInbox, onClose, onR
   const waist = d?.body?.waist || []
   const sign = (n) => (n > 0 ? '+' : n < 0 ? '−' : '±')
   return (
-    <Modal title={student.name} onClose={onClose}>
+    <Modal title={student.name} onClose={onClose} wide>
       <div className="btns mt-0">
         <button className="btn" onClick={() => setChat(true)}>
           <Icon name="chat" size={15} /> Mensajes{unread ? ` (${unread})` : ''}
@@ -312,6 +312,7 @@ function StudentView({ student, me, data, setData, unread, onInbox, onClose, onR
           {tab === 'train' && (
             <>
               {!sessions.length && <p className="muted small">Aún no ha entrenado.</p>}
+              <div className="sv-grid">
               {sessions.slice(0, 20).map((s) => (
                 <SessionCard
                   key={s.id}
@@ -323,6 +324,7 @@ function StudentView({ student, me, data, setData, unread, onInbox, onClose, onR
                   badge={s.id === student.focusSid ? 'Nuevo' : null}
                 />
               ))}
+              </div>
             </>
           )}
 

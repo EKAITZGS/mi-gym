@@ -74,7 +74,7 @@ export default function RankCard({ data }) {
   if (!data.sessions?.length) return null
   return (
     <>
-    <button className="card rank-card" onClick={() => setOpen(true)}>
+    <button className="card rank-card" onClick={() => setOpen(true)} aria-label="Tu personaje: ver rangos por músculo">
       <div className="char-wrap">
         <Mannequin groups={groups} />
       </div>

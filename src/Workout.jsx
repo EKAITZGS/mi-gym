@@ -765,10 +765,11 @@ function DayEditor({ data, setData, dayId, isNew, onBack }) {
       </button>
       <h2>{isNew ? 'Nuevo día' : 'Editar día'}</h2>
       <label className="lbl">Nombre</label>
-      <input className="inp" value={day.name} onChange={(e) => patchDay({ name: e.target.value })} />
+      <input className="inp" aria-label="Nombre del día" value={day.name} onChange={(e) => patchDay({ name: e.target.value })} />
       <label className="lbl">Día de la semana</label>
       <select
         className="inp"
+        aria-label="Día de la semana"
         value={day.weekday ?? ''}
         onChange={(e) => patchDay({ weekday: e.target.value === '' ? null : Number(e.target.value) })}
       >
@@ -1890,7 +1891,7 @@ export default function Workout({ data, setData, view, setView, onStart, onStart
 
   if (mode === 'routines')
     return (
-      <div className="page">
+      <div className="page wide">
         {flash && <div className="notice">{flash}</div>}
         <div className="head">
           <div>
@@ -1908,7 +1909,7 @@ export default function Workout({ data, setData, view, setView, onStart, onStart
         {data.plan.length === 0 && (
           <State icon="calendar" title="Aún no tienes rutina" text="Genera un plan a tu medida o crea tus días uno a uno." action="Crear mi plan" onAction={() => setMaker(true)} />
         )}
-        {sorted.map(dayCard)}
+        <div className="dgrid">{sorted.map(dayCard)}</div>
         <PlanVolume days={data.plan.filter((d) => d.weekday != null)} />
         <div className="sec-head">
           <h4>Herramientas</h4>
@@ -1941,7 +1942,7 @@ export default function Workout({ data, setData, view, setView, onStart, onStart
     )
 
   return (
-    <div className="page">
+    <div className="page wide">
       {flash && <div className="notice">{flash}</div>}
       <div className="head">
         <div>
@@ -1952,6 +1953,8 @@ export default function Workout({ data, setData, view, setView, onStart, onStart
         </button>
       </div>
 
+      <div className="cols">
+      <div className="col">
       {data.active && (
         <button className="banner" onClick={() => setView({ name: 'session' })}>
           <span className="pulse" />
@@ -2032,6 +2035,9 @@ export default function Workout({ data, setData, view, setView, onStart, onStart
         </div>
       ))}
 
+      </div>
+
+      <div className="col">
       <div className="sec-head">
         <h4>Últimos entrenos</h4>
       </div>
@@ -2057,6 +2063,8 @@ export default function Workout({ data, setData, view, setView, onStart, onStart
           })}
         </div>
       )}
+      </div>
+      </div>
 
       {exOpen && <ExerciseModal ex={exOpen} data={data} setData={setData} onClose={() => setExOpen(null)} />}
       {maker && <PlanMaker data={data} setData={setData} onClose={() => setMaker(false)} />}

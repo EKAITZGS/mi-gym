@@ -95,10 +95,15 @@ export default function Progress({ data, setData }) {
   }, [data.sessions])
 
   return (
-    <div className="page">
+    <div className="page wide">
       <h1 className="title">Progreso</h1>
+      {/* escritorio: «Entreno» a la izquierda; objetivo y «Cuerpo y descanso» a la derecha (mismo orden en móvil) */}
+      <div className="prog-grid">
+      <div className="ga-aim">
       <AimCard data={data} setData={setData} />
+      </div>
 
+      <div className="ga-ent">
       <Section title="Entreno">
       <MuscleMap data={data} />
       <Highlights data={data} onOpen={setOpen} />
@@ -160,11 +165,15 @@ export default function Progress({ data, setData }) {
         </details>
       )}
       </Section>
+      </div>
 
+      <div className="ga-body">
       <Section title="Cuerpo y descanso">
         <BodyCard data={data} setData={setData} />
         <SleepCard data={data} setData={setData} />
       </Section>
+      </div>
+      </div>
       {month && <MonthModal data={data} onClose={() => setMonth(false)} />}
       {open && <ExerciseModal ex={open} data={data} setData={setData} onClose={() => setOpen(null)} />}
     </div>

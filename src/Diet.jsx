@@ -935,7 +935,7 @@ export default function Diet({ data, setData, onBack }) {
   }
 
   return (
-    <div className="page">
+    <div className="page wide">
       {onBack && (
         <button className="link" onClick={onBack}>
           <Icon name="left" size={18} /> Inicio
@@ -951,6 +951,8 @@ export default function Diet({ data, setData, onBack }) {
         </button>
       </div>
 
+      <div className="cols">
+      <div className="col">
       <div className="card summary">
         <Ring value={t.kcal} max={g.kcal} size={128}>
           <b className="ring-num">{r0(Math.abs(left))}</b>
@@ -988,7 +990,9 @@ export default function Diet({ data, setData, onBack }) {
         <Icon name="sparkle" size={16} /> Dieta del día (según lo que gastas)
       </button>
       {dayPlan && <DayPlanModal data={data} setData={setData} onClose={() => setDayPlan(false)} />}
+      </div>
 
+      <div className="col">
       {entries.some((e) => e.ai || e.quick || e.src) && (
         <p className="muted small src-note">
           <span className="src-tag">≈</span> estimado · <span className="src-tag ok">✓</span> de etiqueta
@@ -1060,6 +1064,8 @@ export default function Diet({ data, setData, onBack }) {
           Gestionar comidas favoritas ({data.favMeals.length})
         </button>
       )}
+      </div>
+      </div>
       {favs && (
         <Modal title="Comidas favoritas" onClose={() => setFavs(false)}>
           {(data.favMeals || []).length === 0 && <p className="muted">No tienes favoritas.</p>}

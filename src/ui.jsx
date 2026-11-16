@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import Icon from './icons'
 
-export function Modal({ title, onClose, children }) {
+export function Modal({ title, onClose, children, wide }) {
   const tid = useId()
   const ref = useRef(null)
   useEffect(() => {
@@ -27,7 +27,7 @@ export function Modal({ title, onClose, children }) {
   // y la barra inferior quedaba por encima de la ventana.
   return createPortal(
     <div className="overlay" onClick={onClose}>
-      <div className="sheet" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby={tid} tabIndex={-1} ref={ref}>
+      <div className={'sheet' + (wide ? ' wide' : '')} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby={tid} tabIndex={-1} ref={ref}>
         <div className="grabber" />
         <div className="sheet-head">
           <h3 id={tid}>{title}</h3>

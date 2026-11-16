@@ -1,4 +1,5 @@
 // Componentes base de MI-GYM 2.0 (sistema de diseño). Pequeños, sin estado, reutilizables.
+import { cloneElement, isValidElement, useId } from 'react'
 import Icon from './icons'
 
 export const Badge = ({ tone = '', children }) => <span className={'badge ' + tone}>{children}</span>
@@ -124,18 +125,24 @@ export const Section = ({ title, aside, children }) => (
 )
 
 // Campo: etiqueta, control, ayuda o error. right = acción a la derecha de la etiqueta (p. ej. "Ver")
-export const Field = ({ label, hint, error, right, children, className = '' }) => (
-  <div className={cx('field', error && 'error', className)}>
-    {(label || right) && (
-      <div className="field-row">
-        {label && <label className="lbl">{label}</label>}
-        {right}
-      </div>
-    )}
-    {children}
-    {error ? <p className="field-err" role="alert">{error}</p> : hint ? <p className="field-hint">{hint}</p> : null}
-  </div>
-)
+export const Field = ({ label, hint, error, right, children, className = '' }) => {
+  // la etiqueta queda unida al campo (lectores de pantalla y tocar la etiqueta enfoca el campo)
+  const auto = useId()
+  const id = (isValidElement(children) && children.props.id) || auto
+  const control = isValidElement(children) && label ? cloneElement(children, { id }) : children
+  return (
+    <div className={cx('field', error && 'error', className)}>
+      {(label || right) && (
+        <div className="field-row">
+          {label && <label className="lbl" htmlFor={id}>{label}</label>}
+          {right}
+        </div>
+      )}
+      {control}
+      {error ? <p className="field-err" role="alert">{error}</p> : hint ? <p className="field-hint">{hint}</p> : null}
+    </div>
+  )
+}
 
 // Selector segmentado: options = [{ v, label }]
 export const Segmented = ({ options, value, onChange, label, className = '' }) => (

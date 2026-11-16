@@ -71,13 +71,16 @@ export default function Home({ data, setData, onStart, go, onOpenStart, name }) 
     if (confirm('¿Conectar tu reloj Polar? Entrarás con tu cuenta de Polar para dar permiso y volverás aquí.')) connectPolar()
   }
   return (
-    <div className="page">
+    <div className="page wide">
       <div className="eyebrow cap">{dateTxt}</div>
       <h1 className="title">
         {greeting()}
         {firstName ? `, ${firstName}` : ''}
       </h1>
 
+      {/* en escritorio (≥1100 px) dos columnas: lo principal a la izquierda; reloj, dieta y semana a la derecha. En móvil, el mismo orden de siempre */}
+      <div className="cols">
+      <div className="col">
       {!data.setupDone && data.sessions.length === 0 && (
         <div className="card onboard">
           <b>Bienvenido a MI-GYM</b>
@@ -193,7 +196,9 @@ export default function Home({ data, setData, onStart, go, onOpenStart, name }) 
 
       <SleepLine data={data} onOpen={() => go('progress')} />
       <WeeklyReview data={data} setData={setData} focusId={todays[0]?.id} rest={todays.length === 0} />
+      </div>
 
+      <div className="col">
       {data.polar && (() => {
         const today = todayStr()
         const ex = polarExercisesOn(data, today)
@@ -283,6 +288,8 @@ export default function Home({ data, setData, onStart, go, onOpenStart, name }) 
             </div>
           ))}
         </div>
+      </div>
+      </div>
       </div>
       {dayOpen && <DayModal data={data} date={dayOpen} onClose={() => setDayOpen(null)} />}
       {exOpen && <ExerciseModal ex={exOpen} data={data} setData={setData} onClose={() => setExOpen(null)} />}
