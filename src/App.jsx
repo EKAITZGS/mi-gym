@@ -51,7 +51,7 @@ export default function App() {
         if (!r) return
         setBox((prev) => {
           const was = prev || { messages: 0, workouts: 0, requests: 0 }
-          if (r.workouts > was.workouts) setNotice(r.workouts === 1 ? (r.changes?.length ? `Tu entrenador te propone cambios en tu día ${r.changes[0]}. Míralo en Perfil → Entrenador.` : 'Tu entrenador te ha mandado un entreno. Míralo en Perfil → Entrenador.') : `Tienes ${r.workouts} entrenos de tu entrenador por revisar (Perfil → Entrenador).`)
+          if (r.workouts > was.workouts) setNotice(r.workouts === 1 ? (r.changes?.length ? `Tu entrenador te propone cambios en tu día ${String(r.changes[0]).trim()}. Míralo en Perfil → Entrenador.` : 'Tu entrenador te ha mandado un entreno. Míralo en Perfil → Entrenador.') : `Tienes ${r.workouts} entrenos de tu entrenador por revisar (Perfil → Entrenador).`)
           else if (r.requests > was.requests) setNotice('Tienes una solicitud de alumno nueva (Perfil → Tus alumnos).')
           else if (r.trained > (was.trained || 0)) {
             // aviso con acción: al tocarlo se abre la ficha del alumno con ese entreno (series y pulso)
@@ -253,7 +253,7 @@ export default function App() {
       </main>
       {cloud.recovery && <NewPassword onDone={cloud.doneRecovery} />}
       {saveFail && (
-        <div className="notice" style={{ background: 'var(--danger)', color: '#fff', top: 0 }} role="alert">
+        <div className="notice n-danger" role="alert">
           No se está guardando: lo de ahora se perderá al cerrar. Haz una copia en Perfil → Ajustes y libera espacio en el iPhone.
         </div>
       )}

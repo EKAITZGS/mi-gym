@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { EXERCISES, EX_BY_ID, GROUPS } from './data/exercises'
 import { WEEKDAYS, addDays, uid, lastSets, prefillSets, exStats, suggestion, fmtKg, num, pad, TRACKS, trackOf, setFilled, setTxt, todayStr } from './store'
 import { Modal, Thumb, LineChart, ExPhoto } from './ui'
-import { techFor } from './data/technique'
+import { techFor, errorsFor } from './data/technique'
 import { nightsOf, progressRead, streakWeeks, weekTotals, recentPRs } from './stats'
 import Icon from './icons'
 import WeeklyReview, { CoachChat } from './Review'
@@ -38,6 +38,19 @@ export function ExerciseModal({ ex, data, setData, onClose, onPick, pickLabel, o
     return out
   }, [data.sessions, ex.id, allHist])
   const nHist = useMemo(() => data.sessions.filter((s) => s.entries?.[ex.id]).length, [data.sessions, ex.id])
+  // variantes: mismo grupo y mismo músculo principal (primero los de siempre, luego los demás de la base)
+  const variants = useMemo(
+    () =>
+      (() => {
+        // primero el mismo tipo de movimiento (misma clave de técnica), luego los de siempre y por nombre
+        const tech = techFor(ex)
+        return EXERCISES.filter((e) => e.id !== ex.id && e.group === ex.group && e.main?.[0] === ex.main?.[0])
+          .sort((a, b) => (techFor(b) === tech) - (techFor(a) === tech) || !!a.more - !!b.more || a.name.localeCompare(b.name, 'es'))
+          .slice(0, 6)
+      })(),
+    [ex.id]
+  )
+  const [vOpen, setVOpen] = useState(null)
   return (
     <Modal title={ex.name} onClose={onClose}>
       <ExPhoto ex={ex} />
@@ -57,9 +70,19 @@ export function ExerciseModal({ ex, data, setData, onClose, onPick, pickLabel, o
         )}
       </div>
       {!ex.custom && (
-        <p className="tech small">
-          <b>Técnica:</b> {techFor(ex)}
-        </p>
+        <>
+          <p className="tech small">
+            <b>Técnica:</b> {techFor(ex)}
+          </p>
+          <div className="ex-errs">
+            <b className="ex-sub">Errores habituales</b>
+            <ul>
+              {errorsFor(ex).map((t) => (
+                <li key={t}>{t}</li>
+              ))}
+            </ul>
+          </div>
+        </>
       )}
       {onPick && (
         <button className="btn primary full" onClick={onPick}>
@@ -79,7 +102,7 @@ export function ExerciseModal({ ex, data, setData, onClose, onPick, pickLabel, o
             {bestReps && bestReps.r !== bestAll.r ? ` · más reps: ${bestReps.r} con ${fmtKg(bestReps.w)} kg` : ''}
           </p>
           <p className="prog-read">
-            <span className={'prog-kind ' + read.kind}>{{ weight: 'Progresas en peso', reps: 'Progresas en repeticiones', volume: 'Más volumen', flat: 'Estable', down: 'Por debajo', few: 'Pocos datos' }[read.kind]}.</span> {read.text}
+            {read.kind !== 'few' && <span className={'prog-kind ' + read.kind}>{{ weight: 'Progresas en peso', reps: 'Progresas en repeticiones', volume: 'Más volumen', flat: 'Estable', down: 'Por debajo' }[read.kind]}.</span>} {read.text}
           </p>
           <div className="chips">
             <button className={'chip' + (metric === 'e1rm' ? ' on' : '')} onClick={() => setMetric('e1rm')}>
@@ -92,8 +115,11 @@ export function ExerciseModal({ ex, data, setData, onClose, onPick, pickLabel, o
           <LineChart points={stats.map((x) => ({ label: x.date, v: metric === 'e1rm' ? x.best.e : x.vol }))} />
         </>
       )}
-      <h4>Historial</h4>
-      {history.length === 0 && <p className="muted">Aún no has registrado este ejercicio.</p>}
+      {history.length === 0 ? (
+        <State icon="trend" title="Aún sin registros" text="Cuando lo hagas, aquí verás tu mejor serie, la gráfica de fuerza y cada sesión." />
+      ) : (
+        <h4>Historial</h4>
+      )}
       {history.map((h, hi) => (
         <div key={h.date + hi} className="hist">
           <b>{h.date}</b>
@@ -112,6 +138,17 @@ export function ExerciseModal({ ex, data, setData, onClose, onPick, pickLabel, o
           Ver las {nHist} sesiones
         </button>
       )}
+      {variants.length > 0 && (
+        <>
+          <h4>Variantes</h4>
+          <div className="ex-vars">
+            {variants.map((v) => (
+              <ListRow key={v.id} thumb={<Thumb ex={v} size={40} />} title={v.name} sub={v.equip} onClick={() => setVOpen(v)} />
+            ))}
+          </div>
+        </>
+      )}
+      {vOpen && <ExerciseModal ex={vOpen} data={data} setData={setData} onClose={() => setVOpen(null)} />}
     </Modal>
   )
 }
@@ -553,7 +590,7 @@ export function Generator({ data, setData, onClose }) {
           {plan.map((d) => {
             const an = analysis?.days.find((x) => x.id === d.id)
             return (
-              <div key={d.id} className="card" style={{ padding: 12 }}>
+              <div key={d.id} className="card card-pad-3">
                 <div className="sec-head nm">
                   <b>
                     {WEEKDAYS[d.weekday]} · {d.name}
@@ -610,7 +647,7 @@ export function Generator({ data, setData, onClose }) {
                 <div key={'w' + i} className="advice yellow sm">{w}</div>
               ))}
               {analysis.notes.map((w, i) => (
-                <div key={'n' + i} className="advice sm" style={{ borderColor: 'var(--line)' }}>{w}</div>
+                <div key={'n' + i} className="advice sm advice-plain">{w}</div>
               ))}
               {!analysis.warnings.length && !analysis.notes.length && <div className="advice green sm">Volumen, frecuencia y duración coherentes con tu objetivo.</div>}
             </div>
@@ -717,7 +754,7 @@ function DayEditor({ data, setData, dayId, isNew, onBack }) {
     setPicker(false)
   }
   const del = () => {
-    if (!confirm(isNew ? '¿Descartar este día nuevo?' : `¿Borrar el día "${day.name}"?`)) return
+    if (!confirm(isNew ? '¿Descartar este día nuevo?' : `¿Borrar el día "${day.name.trim()}"?`)) return
     if (!isNew) setData((d) => ({ ...d, plan: d.plan.filter((x) => x.id !== dayId) }))
     discard()
   }
@@ -856,7 +893,7 @@ function DayEditor({ data, setData, dayId, isNew, onBack }) {
       )}
       {ask && (
         <Modal title="¿Guardar los cambios?" onClose={() => setAsk(false)}>
-          <p className="muted">Has cambiado “{day.name}”. Si sales sin guardar, tu plan se queda como estaba.</p>
+          <p className="muted">Has cambiado “{day.name.trim()}”. Si sales sin guardar, tu plan se queda como estaba.</p>
           <button className="btn primary full" onClick={save}>
             Guardar cambios
           </button>
@@ -901,7 +938,7 @@ function CheckIn({ onSave, onSkip, exercises = [], night }) {
         ))}
       </div>
       <h4>¿Cómo dormiste anoche?</h4>
-      {night && <p className="muted small" style={{ marginTop: -4 }}>Según el reloj: {Math.floor(night.total / 60)} h {night.total % 60} min</p>}
+      {night && <p className="muted small mt-neg">Según el reloj: {Math.floor(night.total / 60)} h {night.total % 60} min</p>}
       <div className="seg seg3">
         {[
           [1, 'Mal'],
@@ -916,7 +953,7 @@ function CheckIn({ onSave, onSkip, exercises = [], night }) {
       {exercises.length > 0 && (
         <>
           <h4>¿Cuántas repeticiones más podías hacer?</h4>
-          <p className="muted small" style={{ marginTop: -4 }}>
+          <p className="muted small mt-neg">
             Piensa en la última serie de cada ejercicio. Con esto te digo cuándo subir peso.
           </p>
           {exercises.map((id) => (
@@ -1513,7 +1550,7 @@ function Session({ data, setData, onExit, cloud, online }) {
               <div className="setrow uni-head">
                 <span className="setn" />
                 <span className="uh">kg</span>
-                <span className="x" style={{ visibility: 'hidden' }}>kg</span>
+                <span className="x is-hidden">kg</span>
                 <span className="uh">Izq</span>
                 <span className="uh">Der</span>
                 <span className="chk-sp" />
@@ -2005,7 +2042,7 @@ export default function Workout({ data, setData, view, setView, onStart, onStart
             const nSets = Object.values(s.entries || {}).reduce((n, ss) => n + ss.length, 0)
             return (
               <button key={s.id} className="row nob li" onClick={() => setDayOpen(s.date)}>
-                <span className="ls-ic" style={{ width: 38, height: 38, borderRadius: 11, background: 'var(--card2)', color: 'var(--accent)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                <span className="ls-ic ls-ic-sm">
                   <Icon name="dumbbell" size={18} />
                 </span>
                 <div className="grow">

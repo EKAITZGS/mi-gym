@@ -267,7 +267,7 @@ export default function AccountCard({ data, setData, cloud }) {
             />
           </Field>
 
-          <label className="chk-l uni-l" style={{ marginTop: 12, alignItems: 'flex-start' }}>
+          <label className="chk-l uni-l chk-top">
             <input type="checkbox" checked={!!f.ok} onChange={(e) => set('ok', e.target.checked)} />
             <span className="small">
               Acepto que mis datos (entrenos, dieta, peso y reloj) se guarden en mi cuenta para usar la app. Solo los verá
@@ -444,7 +444,7 @@ export function ProfileModal({ email, onClose }) {
           </button>
 
           <label className="lbl">Email</label>
-          <div className="inp" style={{ opacity: 0.7 }}>
+          <div className="inp inp-ro">
             {email}
           </div>
 

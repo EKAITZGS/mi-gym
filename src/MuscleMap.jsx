@@ -73,7 +73,7 @@ export default function MuscleMap({ data }) {
         <Mannequin groups={groups} onPick={setSel} picked={sel} />
       </div>
       <div className="mm-legend">
-        <span><i style={{ background: 'var(--mm-empty)' }} /> sin series</span>
+        <span><i className="mm-empty-dot" /> sin series</span>
         <span><i style={{ background: tone(max * 0.25, max) }} /> pocas</span>
         <span><i style={{ background: tone(max * 0.6, max) }} /> medias</span>
         <span><i style={{ background: tone(max, max) }} /> {max}+ series</span>

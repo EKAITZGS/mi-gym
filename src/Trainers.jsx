@@ -57,7 +57,7 @@ export function MyTrainer({ uid, data, setData, inbox, onInbox }) {
             Tu entrenador es <b>{trainers.find((t) => t.id === mine.trainer_id)?.name || 'tu entrenador'}</b>: ve tus entrenos y tu progreso, y le llega un aviso cada vez que terminas un entreno.
           </p>
           <button className="btn full" onClick={() => setChat(true)}>
-            <Icon name="book" size={15} /> Mensajes{inbox?.msgByLink?.[mine.id] ? ` (${inbox.msgByLink[mine.id]} nuevos)` : ''}
+            <Icon name="chat" size={15} /> Mensajes{inbox?.msgByLink?.[mine.id] ? ` (${inbox.msgByLink[mine.id]} nuevos)` : ''}
           </button>
           {data && (
             <TrainerWorkouts
@@ -248,7 +248,7 @@ function StudentView({ student, me, data, setData, unread, onInbox, onClose, onR
     <Modal title={student.name} onClose={onClose}>
       <div className="btns mt-0">
         <button className="btn" onClick={() => setChat(true)}>
-          <Icon name="book" size={15} /> Mensajes{unread ? ` (${unread})` : ''}
+          <Icon name="chat" size={15} /> Mensajes{unread ? ` (${unread})` : ''}
         </button>
         <button className="btn primary" onClick={() => setBuild(true)}>
           <Icon name="dumbbell" size={15} /> Mandar entreno

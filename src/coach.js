@@ -354,7 +354,7 @@ export function weeklyReview(data, focusId) {
   const findings = []
   const props = []
   const pains = week.filter((s) => s.checkin.pain?.zone)
-  for (const s of pains) findings.push(`${s.dayName}: molestia ${s.checkin.pain.level} en ${s.checkin.pain.zone.toLowerCase()}`)
+  for (const s of pains) findings.push(`${String(s.dayName || '').trim()}: molestia ${s.checkin.pain.level} en ${s.checkin.pain.zone.toLowerCase()}`)
   const avg = week.reduce((n, s) => n + (s.checkin.feel || 0), 0) / week.length
   const hard = week.filter((s) => s.checkin.feel >= 4).length
   if (hard >= 2) findings.push(`${hard} de ${week.length} entrenos fueron muy duros`)

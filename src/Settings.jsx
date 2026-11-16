@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { todayStr, num } from './store'
 import { migrate, validBackup } from './migrate'
 import { getAi, setAi, DEFAULT_MODEL, cleanKey, testKey, serverAi } from './ai'
@@ -14,6 +14,8 @@ import { Modal } from './ui'
 import LegalModal from './Legal'
 import { deleteAccount } from './cloud'
 import { calcGoals, ACTIVITY } from './stats'
+import { ListRow, miles } from './ds'
+import { pushState } from './push'
 
 // Calcula kcal y proteína; los datos que pide no se guardan, solo el resultado si lo aceptas
 export function GoalCalc({ onApply, onClose, skipLabel }) {
@@ -70,6 +72,10 @@ export default function Settings({ data, setData, cloud, onBack }) {
   const [msg, setMsg] = useState('')
   const [calc, setCalc] = useState(false)
   const [legal, setLegal] = useState(false)
+  const [sec, setSec] = useState(null) // categoría abierta: train | goals | push | polar | ai | data
+  useEffect(() => {
+    document.querySelector('.main')?.scrollTo(0, 0)
+  }, [sec])
   const [delBusy, setDelBusy] = useState(false)
   // preferencia de este móvil (no va en la copia de seguridad)
   const [restPref, setRestPref] = useState(() => {
@@ -180,16 +186,27 @@ export default function Settings({ data, setData, cloud, onBack }) {
     flash('Datos borrados')
   }
 
-  return (
-    <div className="page">
-      {onBack && (
-        <button className="link" onClick={onBack}>
-          <Icon name="left" size={18} /> Perfil
-        </button>
-      )}
-      <h1 className="title">Ajustes</h1>
-
-      <h4>Entreno</h4>
+  const fmtRest = (v) => (v < 60 ? `${v} segundos` : `${Math.floor(v / 60)}:${String(v % 60).padStart(2, '0')} min`)
+  const SECS = {
+    train: { icon: 'dumbbell', title: 'Entreno', sub: restPref.on ? `Descanso de ${fmtRest(restPref.secs)}` : 'Sin cuenta atrás de descanso' },
+    goals: { icon: 'flame', title: 'Objetivos diarios', sub: `${miles(data.goals.kcal || 2200)} kcal · ${data.goals.protein || 150} g proteína · ${miles(data.goals.steps || 7000)} pasos` },
+    push: { icon: 'clock', title: 'Avisos en el móvil', sub: pushState()?.on ? 'Activados' : 'Desactivados' },
+    polar: { icon: 'watch', title: 'Reloj Polar', sub: polar?.token ? 'Conectado' : 'Sin conectar' },
+    ai: { icon: 'sparkle', title: 'Inteligencia artificial', sub: ai.key ? 'Con tu propia clave' : serverAi() ? 'Funciona sin clave (límite diario)' : 'Sin configurar' },
+    data: { icon: 'cloud', title: 'Copia y datos', sub: cloud?.meta?.uid ? 'Exportar, importar, borrar datos o la cuenta' : 'Exportar, importar o borrar datos' },
+  }
+  const back = (
+    <button className="link" onClick={() => setSec(null)}>
+      <Icon name="left" size={18} /> Ajustes
+    </button>
+  )
+  if (sec)
+    return (
+      <div className="page">
+        {back}
+        <h1 className="title">{SECS[sec].title}</h1>
+        {sec === 'train' && (
+          <>
       <div className="card">
         <label className="lbl mt-0">Cuenta atrás de descanso al marcar una serie</label>
         <div className="seg">
@@ -217,7 +234,10 @@ export default function Settings({ data, setData, cloud, onBack }) {
         </p>
       </div>
 
-      <h4>Objetivos diarios</h4>
+          </>
+        )}
+        {sec === 'goals' && (
+          <>
       <div className="card">
         <label className="lbl">Calorías (kcal)</label>
         <input className="inp" inputMode="numeric" value={goalVal('kcal', 2200)} onFocus={(e) => e.target.select()} onChange={(e) => editGoal('kcal', e.target.value)} onBlur={() => commitGoal('kcal')} />
@@ -240,10 +260,11 @@ export default function Settings({ data, setData, cloud, onBack }) {
         />
       )}
 
-      <h4>Avisos en el móvil</h4>
-      <PushCard data={data} setData={setData} />
-
-      <h4>Reloj Polar</h4>
+          </>
+        )}
+        {sec === 'push' && <PushCard data={data} setData={setData} />}
+        {sec === 'polar' && (
+          <>
       <div className="card">
         {polar?.token ? (
           <>
@@ -257,7 +278,7 @@ export default function Settings({ data, setData, cloud, onBack }) {
                     : 'Aún sin sincronizar'}
                 </div>
                 {data.polar?.actErr && (
-                  <div className="small" style={{ color: 'var(--warn)' }}>
+                  <div className="small hint-warn">
                     Polar no ha devuelto los pasos y calorías del día ({data.polar.actErr}).
                   </div>
                 )}
@@ -305,10 +326,11 @@ export default function Settings({ data, setData, cloud, onBack }) {
         {ps.msg && <div className="advice green sm">{ps.msg}</div>}
       </div>
 
-      <details className="card more-opts">
-        <summary>Más opciones</summary>
-
-        <div className="mo-h">IA con tu propia clave (opcional)</div>
+          </>
+        )}
+        {sec === 'ai' && (
+          <div className="card set-sec">
+        <div className="mo-h mt-0">IA con tu propia clave (opcional)</div>
         <p className="muted small">
           {serverAi()
             ? 'La IA ya funciona sin hacer nada, con un límite de usos al día. Si quieres usarla sin límite, crea una clave gratis en console.groq.com (API Keys) y pégala aquí.'
@@ -370,7 +392,11 @@ export default function Settings({ data, setData, cloud, onBack }) {
           </div>
         )}
       
-        <div className="mo-h">Copia en archivo</div>
+          </div>
+        )}
+        {sec === 'data' && (
+          <div className="card set-sec">
+        <div className="mo-h mt-0">Copia en archivo</div>
         <p className="muted small">Tus datos ya se guardan en tu cuenta. Si quieres, guarda también una copia en un archivo.</p>
         <div className="btns">
           <button className="btn" onClick={exportFile}>
@@ -407,11 +433,26 @@ export default function Settings({ data, setData, cloud, onBack }) {
             {delBusy ? 'Eliminando…' : 'Eliminar mi cuenta'}
           </button>
         )}
-      </details>
+          </div>
+        )}
+      </div>
+    )
 
-      <button className="link small" onClick={() => setLegal(true)}>
-        Privacidad y condiciones de uso
-      </button>
+  return (
+    <div className="page">
+      {onBack && (
+        <button className="link" onClick={onBack}>
+          <Icon name="left" size={18} /> Perfil
+        </button>
+      )}
+      <h1 className="title">Ajustes</h1>
+
+      <div className="card set-list">
+        {Object.entries(SECS).map(([k, c]) => (
+          <ListRow key={k} icon={c.icon} title={c.title} sub={c.sub} onClick={() => setSec(k)} />
+        ))}
+        <ListRow icon="info" title="Privacidad y condiciones" sub="Qué datos se guardan y cómo se usan" onClick={() => setLegal(true)} />
+      </div>
       {legal && <LegalModal onClose={() => setLegal(false)} />}
 
       <div className="brand">

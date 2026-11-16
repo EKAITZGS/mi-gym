@@ -531,7 +531,7 @@ export function TrainerWorkouts({ linkId, trainerName, data, setData, onChange }
           Anteriores:{' '}
           {done
             .map((w) =>
-              w.day?.baseId ? `cambios en ${w.day.baseName} (${w.status === 'accepted' ? 'aceptados' : 'no aceptados'})` : `${w.day?.name} (${w.status === 'accepted' ? 'añadido' : 'no añadido'})`
+              w.day?.baseId ? `cambios en ${String(w.day.baseName || '').trim()} (${w.status === 'accepted' ? 'aceptados' : 'no aceptados'})` : `${w.day?.name} (${w.status === 'accepted' ? 'añadido' : 'no añadido'})`
             )
             .join(', ')}
         </p>

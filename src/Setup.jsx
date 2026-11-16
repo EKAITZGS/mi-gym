@@ -154,7 +154,7 @@ export default function Setup({ data, setData, onClose }) {
           <div className="eyebrow">
             Día {step} de {active.length} · {WEEKDAYS[cur]}
           </div>
-          <h2 style={{ marginTop: 2 }}>{days[cur].name || WEEKDAYS[cur]}</h2>
+          <h2 className="mt-0">{days[cur].name || WEEKDAYS[cur]}</h2>
           <p className="muted small">
             Marca los ejercicios que haces este día ({days[cur].exs.length} elegidos). El orden es el que vayas marcando.
             Si aún no lo sabes, déjalo vacío y los añades el día que entrenes.

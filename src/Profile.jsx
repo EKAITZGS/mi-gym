@@ -85,7 +85,7 @@ export default function Profile({ data, setData, cloud, inbox, onInbox, online, 
           <div className="prof-name">{m.name || (hasAccount ? 'Sin nombre' : 'Sin cuenta')}</div>
           {m.email && <div className="prof-sub">{m.email}</div>}
           <div className="prof-sub mt-2">
-            {hasAccount && <span className="badge" style={{ marginRight: 8 }}>{trainer ? 'Entrenador' : 'Usuario'}</span>}
+            {hasAccount && <span className="badge mr-2">{trainer ? 'Entrenador' : 'Usuario'}</span>}
             <SyncPill cloud={cloud} online={online} />
           </div>
         </div>

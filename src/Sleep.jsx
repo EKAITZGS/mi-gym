@@ -59,13 +59,13 @@ export default function SleepCard({ data, setData }) {
             {a.last.fixed ? ' · corregida' : ''}
           </span>
           {!fix && (
-            <button className="link small" style={{ paddingLeft: 0, display: 'block' }} onClick={() => setFix({ start: a.last.start, end: a.last.end })}>
+            <button className="link small link-block" onClick={() => setFix({ start: a.last.start, end: a.last.end })}>
               ¿No es correcto? Corregir la hora
             </button>
           )}
           {fix && (
             <div className="sleep-fix">
-              <p className="muted small" style={{ margin: '4px 0' }}>
+              <p className="muted small my-1">
                 Si te pusiste el reloj antes de dormirte, el reloj cuenta ese rato como sueño. Pon tus horas reales:
               </p>
               <div className="fields">
