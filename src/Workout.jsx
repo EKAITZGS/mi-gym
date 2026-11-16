@@ -3,7 +3,7 @@ import { EXERCISES, EX_BY_ID, GROUPS } from './data/exercises'
 import { WEEKDAYS, addDays, uid, lastSets, prefillSets, exStats, suggestion, fmtKg, num, pad, TRACKS, trackOf, setFilled, setTxt, todayStr } from './store'
 import { Modal, Thumb, LineChart, ExPhoto } from './ui'
 import { techFor, errorsFor } from './data/technique'
-import { autoLevel } from './aiPlan'
+import { levelAuto } from './aiPlan'
 import { nightsOf, progressRead, streakWeeks, weekTotals, recentPRs } from './stats'
 import Icon from './icons'
 import WeeklyReview, { CoachChat } from './Review'
@@ -328,8 +328,8 @@ const restTxt = (s) => (s >= 60 ? `${Math.floor(s / 60)}:${pad(s % 60)}` : `${s}
 
 // Sustituye el plan con días fijos; conserva los días sin día fijo y no toca el historial
 export function Generator({ data, setData, onClose }) {
-  // nivel automático: el mismo cálculo que usa el entrenador IA (entrenos y tiempo entrenando)
-  const guess = autoLevel(data.sessions).id
+  // nivel automático: el mismo que usa el entrenador IA (pesos en los ejercicios básicos y tiempo entrenando)
+  const guess = levelAuto(data).id
   // preferencias permanentes del generador (nivel, objetivo, material, exclusiones) guardadas en data.prefs.gen
   const pref = data.prefs?.gen || {}
   const [step, setStep] = useState(0) // 0 nivel+objetivo, 1 días, 2 reparto, 3 material/preferencias, 4 resultado

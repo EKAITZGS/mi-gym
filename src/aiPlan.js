@@ -22,14 +22,66 @@ export function autoLevel(sessions = [], today = new Date()) {
   const id = n < 12 || days < 56 ? 'beginner' : n < 60 || days < 280 ? 'intermediate' : 'advanced'
   return { id, n, days }
 }
+// Por los pesos que mueve: solo ejercicios básicos (las máquinas de aislamiento y los ejercicios pequeños inflan la fuerza)
+// con estándares habituales de 1RM / peso corporal: [paso a intermedio, paso a avanzado]. Con peso corporal: repeticiones.
+const STANDARDS = {
+  'Barbell_Bench_Press_-_Medium_Grip': [0.75, 1.25], Smith_Machine_Bench_Press: [0.75, 1.25], 'Barbell_Incline_Bench_Press_-_Medium_Grip': [0.65, 1.1],
+  Dumbbell_Bench_Press: [0.3, 0.5], Leverage_Chest_Press: [0.6, 1.0],
+  Barbell_Squat: [1.0, 1.75], Smith_Machine_Squat: [1.0, 1.75], Front_Barbell_Squat: [0.8, 1.4], Hack_Squat: [1.25, 2.0], Leg_Press: [1.75, 3.0],
+  Barbell_Deadlift: [1.25, 2.0], Sumo_Deadlift: [1.25, 2.0], Romanian_Deadlift: [1.0, 1.6],
+  Barbell_Shoulder_Press: [0.55, 0.85], Smith_Machine_Overhead_Shoulder_Press: [0.55, 0.85], Machine_Shoulder_Military_Press: [0.5, 0.8],
+  Leverage_Shoulder_Press: [0.5, 0.8], Dumbbell_Shoulder_Press: [0.2, 0.35],
+  Bent_Over_Barbell_Row: [0.65, 1.0], 'Wide-Grip_Lat_Pulldown': [0.65, 1.0], Seated_Cable_Rows: [0.65, 1.0], Leverage_High_Row: [0.65, 1.0], 'One-Arm_Dumbbell_Row': [0.3, 0.5],
+}
+const REP_STANDARDS = { Pullups: [5, 15], 'Chin-Up': [6, 16], Pushups: [15, 40], 'Dips_-_Triceps_Version': [8, 20] }
+const LEVELS_ORDER = ['beginner', 'intermediate', 'advanced']
+const n0 = (v) => Number(String(v ?? '').replace(',', '.')) || 0
+const epley = (w, r) => (r <= 1 ? w : w * (1 + r / 30))
+export function strengthLevel(data, today = new Date()) {
+  const w = data.body?.weight || []
+  if (!w.length) return null // sin pesajes no se puede comparar con el peso corporal
+  const bw = w.slice(-3).reduce((a, x) => a + n0(x.kg), 0) / Math.min(3, w.length)
+  if (!bw) return null
+  const since = new Date(new Date(today) - 90 * DAY_MS).toISOString().slice(0, 10)
+  const best = {}
+  for (const s of data.sessions || []) {
+    if (!s.date || s.date < since) continue
+    for (const [id, sets] of Object.entries(s.entries || {})) {
+      if (!STANDARDS[id] && !REP_STANDARDS[id]) continue
+      for (const st of sets || []) {
+        const r = n0(st.r)
+        if (st.warm || r <= 0) continue
+        const v = REP_STANDARDS[id] ? r : r <= 15 ? epley(n0(st.w), r) / bw : 0
+        if (v > (best[id] || 0)) best[id] = v
+      }
+    }
+  }
+  const lifts = Object.entries(best).map(([id, v]) => {
+    const [lo, hi] = STANDARDS[id] || REP_STANDARDS[id]
+    return { id, v, lv: v >= hi ? 2 : v >= lo ? 1 : 0 }
+  })
+  if (lifts.length < 2) return null // con un solo ejercicio básico no es fiable
+  const avg = lifts.reduce((a, x) => a + x.lv, 0) / lifts.length
+  return { id: LEVELS_ORDER[Math.round(avg)], lifts: lifts.length, bench: best['Barbell_Bench_Press_-_Medium_Grip'] }
+}
 export function levelOf(data, today = new Date()) {
   const a = autoLevel(data.sessions || [], today)
   const chosen = data.prefs?.gen?.level
-  const id = LEVEL_TXT[chosen] ? chosen : a.id
-  const why = chosen && LEVEL_TXT[chosen] ? 'elegido por él' : `${a.n} ${a.n === 1 ? 'entreno registrado' : 'entrenos registrados'}${a.n ? `, el primero hace ${a.days} ${a.days === 1 ? 'día' : 'días'}` : ''}`
-  return { id, label: LEVEL_TXT[id], why, auto: !LEVEL_TXT[chosen] }
+  if (LEVEL_TXT[chosen]) return { id: chosen, label: LEVEL_TXT[chosen], why: 'elegido por él', auto: false }
+  // automático: manda la fuerza (alguien fuerte que acaba de empezar a usar la app no es principiante);
+  // el tiempo entrenando solo sube como mucho un nivel por encima de lo que dice la fuerza
+  const st = strengthLevel(data, today)
+  const T = LEVELS_ORDER.indexOf(a.id)
+  const id = st ? LEVELS_ORDER[Math.max(LEVELS_ORDER.indexOf(st.id), T - 1)] : a.id
+  const time = `${a.n} ${a.n === 1 ? 'entreno registrado' : 'entrenos registrados'}${a.n ? `, el primero hace ${a.days} ${a.days === 1 ? 'día' : 'días'}` : ''}`
+  const bench = (who) => (st?.bench ? ` (press banca ${st.bench.toFixed(2).replace('.', ',')} × ${who} peso)` : '')
+  const why = st ? `por sus pesos en ${st.lifts} ejercicios básicos respecto a su peso corporal${bench('su')} y ${time}` : time
+  const whyMe = st ? `por tus pesos en ${st.lifts} ejercicios básicos respecto a tu peso${bench('tu')} y ${time}` : time
+  return { id, label: LEVEL_TXT[id], why, whyMe, auto: true, strength: st }
 }
 // Cómo se adapta un entreno a cada nivel (lo mismo que hace el generador de rutinas)
+// el nivel que saldría en automático aunque haya uno elegido (para enseñarlo en Ajustes y en el generador)
+export const levelAuto = (data, today = new Date()) => levelOf({ ...data, prefs: { ...(data.prefs || {}), gen: { ...(data.prefs?.gen || {}), level: undefined } } }, today)
 const LEVEL_RULES = {
   beginner:
     'Principiante: 3-5 ejercicios por día, sobre todo máquinas y movimientos sencillos de aprender; 2-3 series de 10-12 reps; RIR 2-3 (nunca al fallo); sin drop sets ni técnicas avanzadas; prioridad: aprender la técnica y la constancia; progresa subiendo reps y luego peso. Un grupo muscular 2 veces por semana basta.',

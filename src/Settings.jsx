@@ -16,7 +16,7 @@ import { deleteAccount } from './cloud'
 import { calcGoals, ACTIVITY } from './stats'
 import { ListRow, miles } from './ds'
 import { pushState } from './push'
-import { levelOf, autoLevel, LEVEL_TXT } from './aiPlan'
+import { levelOf, levelAuto } from './aiPlan'
 
 // Calcula kcal y proteína; los datos que pide no se guardan, solo el resultado si lo aceptas
 export function GoalCalc({ onApply, onClose, skipLabel }) {
@@ -218,14 +218,14 @@ export default function Settings({ data, setData, cloud, onBack }) {
       <div className="card">
         <label className="lbl mt-0">Tu nivel</label>
         <select className="inp" aria-label="Tu nivel" value={data.prefs?.gen?.level || ''} onChange={(e) => setLevel(e.target.value)}>
-          <option value="">Automático (ahora: {LEVEL_TXT[autoLevel(data.sessions).id]})</option>
+          <option value="">Automático (ahora: {levelAuto(data).label})</option>
           <option value="beginner">Principiante: empiezas o vuelves tras un parón</option>
           <option value="intermediate">Intermedio: 6-12 meses entrenando con constancia</option>
           <option value="advanced">Avanzado: más de un año entrenando en serio</option>
         </select>
         <p className="muted small mb-0">
           El entrenador IA, «Mejorar con IA» y el generador de rutinas adaptan ejercicios, series, repeticiones e intensidad a tu nivel.
-          {lv.auto ? ` En automático sale de tus entrenos (${lv.why}).` : ''}
+          {lv.auto ? ` En automático sale de los pesos que mueves en los ejercicios básicos y del tiempo que llevas entrenando (ahora: ${lv.whyMe}).` : ''}
         </p>
       </div>
       <div className="card">

@@ -1,6 +1,6 @@
 // Entrenador IA: propuestas de cambios en la rutina (se leen, se validan y se aplican solo si el usuario acepta)
 import assert from 'node:assert/strict'
-import { wantsPlan, planForAi, parseCoachReply, applyAiProposal, proposalTxt, catalogForAi, groupsFor, levelOf, autoLevel, levelPrompt } from '../src/aiPlan.js'
+import { wantsPlan, planForAi, parseCoachReply, applyAiProposal, proposalTxt, catalogForAi, groupsFor, levelOf, autoLevel, levelPrompt, strengthLevel } from '../src/aiPlan.js'
 
 const data = {
   myExercises: [],
@@ -124,6 +124,30 @@ assert.equal(autoLevel(ses(30, '2026-10-20'), hoy).id, 'beginner') // muchos ent
 assert.equal(levelOf({ sessions: ses(200, '2025-01-01'), prefs: { gen: { level: 'beginner' } } }, hoy).id, 'beginner')
 assert.ok(levelOf({ sessions: ses(6, '2026-11-12') }, hoy).why.includes('6 entrenos registrados, el primero hace 4 días'))
 assert.ok(levelPrompt({ sessions: ses(6, '2026-11-12') }).includes('Principiante: 3-5 ejercicios'))
+// por los pesos: ejercicios básicos respecto al peso corporal (80 kg); manda la fuerza
+const B = 'Barbell_Bench_Press_-_Medium_Grip'
+const lift = (date, sets) => ({ id: date, date, entries: sets })
+const fuerte = {
+  body: { weight: [{ date: '2026-11-10', kg: 80 }] },
+  sessions: [
+    lift('2026-11-12', { [B]: [{ w: '110', r: '5' }], Barbell_Squat: [{ w: '150', r: '5' }] }),
+    lift('2026-11-14', { Barbell_Deadlift: [{ w: '180', r: '5' }], 'Wide-Grip_Lat_Pulldown': [{ w: '90', r: '8' }] }),
+  ],
+}
+assert.equal(strengthLevel(fuerte, hoy).id, 'advanced')
+assert.equal(levelOf(fuerte, hoy).id, 'advanced') // 2 entrenos en la app, pero mueve pesos de avanzado
+assert.ok(levelOf(fuerte, hoy).why.includes('press banca 1,6'))
+const flojo = { body: { weight: [{ date: '2026-11-10', kg: 80 }] }, sessions: [lift('2026-11-12', { [B]: [{ w: '40', r: '8' }, { w: '20', r: '10', warm: true }], 'Wide-Grip_Lat_Pulldown': [{ w: '35', r: '10' }] })] }
+assert.equal(strengthLevel(flojo, hoy).id, 'beginner')
+// las máquinas de aislamiento no cuentan (abductor en máquina con mucho peso no te hace avanzado)
+assert.equal(strengthLevel({ body: flojo.body, sessions: [lift('2026-11-12', { Thigh_Abductor: [{ w: '120', r: '12' }], Leg_Extensions: [{ w: '90', r: '12' }] })] }, hoy), null)
+// sin pesajes no se puede; con un solo básico tampoco
+assert.equal(strengthLevel({ sessions: fuerte.sessions }, hoy), null)
+assert.equal(strengthLevel({ body: flojo.body, sessions: [lift('2026-11-12', { [B]: [{ w: '100', r: '5' }] })] }, hoy), null)
+// mucho tiempo entrenando pero pesos flojos: intermedio (el tiempo sube como mucho un nivel sobre la fuerza)
+const veterano = { body: flojo.body, sessions: [...ses(200, '2025-01-01'), ...flojo.sessions] }
+assert.equal(levelOf(veterano, hoy).id, 'intermediate')
+
 // principiante: series con tope (4) y RIR de su nivel si la IA no lo pone; si lo pone, se respeta
 const nov = { ...data, sessions: ses(6, '2026-11-12') }
 const pm = planForAi(nov)
