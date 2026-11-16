@@ -303,12 +303,13 @@ export default function BodyCard({ data, setData }) {
   )
   return (
     <div className="card body-card">
-      <div className="sec-head nm">
-        <b>Tu cuerpo</b>
-        <span className="muted small">cintura y peso</span>
+      <div className="card-h">
+        <Icon name="scale" size={16} />
+        <h3>Tu cuerpo</h3>
+        <span className="card-aside">cintura y peso</span>
       </div>
       {!last && !kLast ? (
-        <p className="muted small" style={{ margin: '4px 0 10px' }}>
+        <p className="muted small mo-b2">
           Mide tu cintura una vez por semana: si baja, estás perdiendo grasa aunque la báscula no se mueva.
         </p>
       ) : (
@@ -337,7 +338,7 @@ export default function BodyCard({ data, setData }) {
                 empty="Con el próximo pesaje verás la gráfica. Uno por semana basta."
               />
               {weights.length >= 3 && (
-                <p className="muted small" style={{ margin: '2px 0 0' }}>
+                <p className="muted small mo-t1">
                   Media de los 3 últimos pesajes: <b>{fmtKg(wLast.v)} kg</b>
                 </p>
               )}

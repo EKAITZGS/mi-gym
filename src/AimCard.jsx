@@ -27,11 +27,10 @@ export default function AimCard({ data, setData }) {
 
   return (
     <div className="card aim">
-      <div className="sec-head nm">
-        <b>
-          <Icon name="trophy" size={16} className="inl" /> Tu objetivo
-        </b>
-        <span className="muted small">entrenador y dieta</span>
+      <div className="card-h">
+        <Icon name="trophy" size={16} />
+        <h3>Tu objetivo</h3>
+        <span className="card-aside">entrenador y dieta</span>
       </div>
       <div className="seg seg3">
         {AIMS.map((a) => (
@@ -40,11 +39,9 @@ export default function AimCard({ data, setData }) {
           </button>
         ))}
       </div>
-      <p className="muted small" style={{ margin: '6px 0 10px' }}>
-        {info.hint}. Es el mismo objetivo que usa Dieta.
-      </p>
+      <p className="muted small aim-hint">{info.hint}. Es el mismo objetivo que usa Dieta.</p>
 
-      <h4 style={{ margin: '4px 0 6px' }}>Control</h4>
+      <h4 className="aim-h">Control</h4>
       <div className="aim-ctrl">
         {ctrl.map((r) => (
           <button key={r.key} className={'aim-row' + (r.due ? ' due' : '')} onClick={() => setModal(open[r.key])}>
@@ -56,9 +53,7 @@ export default function AimCard({ data, setData }) {
           </button>
         ))}
       </div>
-      <p className="muted small" style={{ margin: '4px 0 10px' }}>
-        Peso y cintura cada semana, fotos cada 2.
-      </p>
+      <p className="muted small aim-hint">Peso y cintura cada semana, fotos cada 2.</p>
 
       <div className="sleep-stats">
         <div>
@@ -77,14 +72,22 @@ export default function AimCard({ data, setData }) {
 
       {todo.length > 0 && (
         <>
-          <h4 style={{ margin: '10px 0 6px' }}>Qué ajustar</h4>
-          {todo.map((it, i) => (
-            <button key={i} className="aim-todo" onClick={() => setOpenItem(openItem === i ? null : i)}>
-              <span className="grow">{it.title}</span>
-              {it.act && <b className="aim-act">{it.act}</b>}
-              {openItem === i && <span className="muted small aim-more">{it.text}</span>}
-            </button>
-          ))}
+          <h4 className="aim-h">
+            Qué ajustar <span className="aim-n">{todo.length}</span>
+          </h4>
+          <div className="aim-todos">
+            {todo.map((it, i) => (
+              <button key={i} className={'aim-todo' + (openItem === i ? ' open' : '')} onClick={() => setOpenItem(openItem === i ? null : i)} aria-expanded={openItem === i}>
+                <i className="aim-dot" aria-hidden="true" />
+                <span className="grow">
+                  <span className="aim-t">{it.title}</span>
+                  {it.act && <span className="aim-act">{it.act}</span>}
+                  {openItem === i && <span className="muted small aim-more">{it.text}</span>}
+                </span>
+                <Icon name={openItem === i ? 'up' : 'down'} size={15} className="muted" />
+              </button>
+            ))}
+          </div>
         </>
       )}
       {good.length > 0 && (

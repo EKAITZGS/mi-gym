@@ -270,6 +270,9 @@ export function TrendChart({ points, unit = 'kg', color = 'var(--accent)', good 
             </text>
           </g>
         ))}
+        <text x={L - 7} y={T - 7} textAnchor="end" className="ct ct-unit">
+          {unit}
+        </text>
         {xt.map((d, i) => (
           <text key={d + i} x={x(d)} y={H - 8} textAnchor={i === 0 ? 'start' : i === xt.length - 1 ? 'end' : 'middle'} className="ct">
             {dLabel(d)}

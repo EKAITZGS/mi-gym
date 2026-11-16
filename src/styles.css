@@ -2174,7 +2174,6 @@ body.modal-open .savebar { display: none; }
 .aim .advice b { display: block; margin-bottom: 2px; }
 .aim-prop { background: var(--card2); border-radius: var(--r-md); padding: 10px 12px; margin: 8px 0; }
 
-.aim-todo { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; width: 100%; text-align: left; font: inherit; color: var(--text); background: rgba(255, 181, 71, 0.08); border: 1px solid rgba(255, 181, 71, 0.35); border-radius: var(--r-md); padding: 10px 12px; margin: 0 0 6px; }
 
 .aim-more { flex-basis: 100%; }
 .aim-good { color: var(--accent); font-size: var(--fs-md); margin: 8px 0; line-height: 1.4; }
@@ -2355,13 +2354,6 @@ button.wday:active { transform: scale(0.96); }
 
 /* acabado: selects del editor sin cortar texto */
 .fields select.inp.sm { min-width: 128px; }
-.aim-todo .grow { flex-basis: 100%; }
-.aim-act {
-  color: var(--amber);
-  font-size: var(--fs-sm);
-  white-space: nowrap;
-  margin-top: -2px;
-}
 
 /* legal */
 .legal h4 { margin: 14px 0 4px; color: var(--text); text-transform: none; letter-spacing: 0; font-size: var(--fs-md); }
@@ -2497,3 +2489,50 @@ button.setn:active { background: var(--accent-soft); color: var(--accent); }
 .feel[data-l='4'] .fe-bars i.on { background: var(--warn); }
 .feel[data-l='5'] .fe-bars i.on { background: var(--danger); }
 .ses-now .ses-now-s { flex: none; font-size: var(--fs-sm); font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+
+/* ===== Fase 3 · Progreso ===== */
+/* secciones de la página */
+.page > .ds-section:first-of-type { margin-top: var(--sp-5); }
+.ds-section > .card:last-child { margin-bottom: 0; }
+.card-h.m-0 { margin: 0 !important; flex: 1; }
+/* Tu objetivo: avisos de "Qué ajustar" en un solo bloque */
+.aim-hint { margin: 6px 0 var(--sp-3); }
+.aim-h { margin: var(--sp-3) 0 6px; display: flex; align-items: center; gap: 6px; }
+.aim-n { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; border-radius: var(--r-full); background: rgba(255, 181, 71, 0.18); color: var(--warn); font-size: var(--fs-xs); letter-spacing: 0; }
+.aim-todos { border: 1px solid var(--border); border-radius: var(--r-md); background: var(--surface-2); overflow: hidden; margin-bottom: var(--sp-2); }
+.aim-todo { display: flex; align-items: flex-start; gap: var(--sp-3); width: 100%; padding: var(--sp-3); background: none; border: 0; border-top: 1px solid var(--border); color: var(--text); text-align: left; font: inherit; }
+.aim-todo:first-child { border-top: 0; }
+.aim-todo .grow { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.aim-todo .ico { flex: none; margin-top: 2px; }
+.aim-dot { flex: none; width: 8px; height: 8px; margin-top: 6px; border-radius: var(--r-full); background: var(--warn); }
+.aim-t { font-size: var(--fs-md); line-height: 1.35; }
+.aim-act { font-size: var(--fs-sm); font-weight: 700; color: var(--warn); }
+.aim-more { margin-top: 4px; line-height: 1.45; }
+/* mapa muscular: periodo, detalle al tocar un músculo */
+.seg.seg-sm button { min-height: 36px; font-size: var(--fs-sm); }
+.mq.pickable { cursor: pointer; }
+.mq-layer.picked { filter: drop-shadow(0 0 2px #fff) drop-shadow(0 0 8px var(--accent)) brightness(1.2); }
+.mm-detail { margin: var(--sp-2) 0 var(--sp-3); padding: var(--sp-3); background: var(--surface-2); border: 1px solid var(--accent); border-radius: var(--r-md); }
+.mm-detail-h { display: flex; align-items: center; gap: var(--sp-2); margin-bottom: var(--sp-2); }
+.mm-detail-h b { font-family: var(--font-head); font-size: var(--fs-lg); }
+.mm-detail-h .muted { flex: 1; }
+.mm-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: var(--sp-2); }
+.mm-stats > div { background: var(--surface); border-radius: var(--r-sm); padding: var(--sp-2) 6px; text-align: center; }
+.mm-stats b { display: block; font-family: var(--font-head); font-size: var(--fs-xl); line-height: 1.1; }
+.mm-stats span { font-size: var(--fs-xs); color: var(--muted); line-height: 1.2; display: block; }
+.mm-ex { display: flex; align-items: center; gap: var(--sp-2); padding: 7px 0; border-top: 1px solid var(--border); font-size: var(--fs-sm); }
+.mm-ex b { font-family: var(--font-head); min-width: 20px; text-align: right; }
+.mm-honest { margin: var(--sp-2) 0 0; font-style: italic; }
+.mm-row { width: 100%; background: none; border: 0; border-top: 1px solid var(--line); color: var(--text); text-align: left; font: inherit; font-size: var(--fs-md); min-height: 44px; }
+.mm-row.on { background: var(--accent-soft); }
+/* gráficas: unidad del eje Y */
+.ct-unit { font-weight: 700; }
+/* sueño: horas encima de cada barra y línea del objetivo */
+.sleep-bars { height: 132px; }
+.sleep-col { gap: 4px; }
+.sleep-v { font-size: var(--fs-xs); color: var(--text2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sleep-track { position: relative; flex: 1; width: 100%; max-width: 28px; display: flex; align-items: flex-end; }
+.sleep-track .sleep-bar { max-width: none; }
+.sleep-gl { position: absolute; left: -6px; right: -6px; height: 0; border-top: 1.5px dashed var(--muted); opacity: 0.7; z-index: 1; }
+.sleep-key { display: flex; align-items: center; gap: 6px; margin: 0 0 var(--sp-2); }
+.sleep-key i { display: inline-block; width: 16px; border-top: 1.5px dashed var(--muted); }

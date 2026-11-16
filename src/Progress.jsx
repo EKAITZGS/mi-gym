@@ -9,7 +9,7 @@ import MonthModal from './Month'
 import RankCard from './Rank'
 import { recentPRs, stalled, periodStats, consistency, progressRead } from './stats'
 import MuscleMap from './MuscleMap'
-import { Stat, miles, fmtMin } from './ds'
+import { Stat, miles, fmtMin, Section } from './ds'
 import { fmtDate } from './store'
 import SleepCard from './Sleep'
 import AimCard from './AimCard'
@@ -23,10 +23,10 @@ function Highlights({ data, onOpen }) {
     <div className="card list-card">
       {prs.length > 0 && (
         <>
-          <div className="sec-head nm">
-            <b>
-              <Icon name="trophy" size={16} className="inl gold" /> Récords del último mes
-            </b>
+          <div className="card-h">
+            <Icon name="trophy" size={16} className="gold" />
+            <h3>Récords del último mes</h3>
+            <span className="card-aside">{prs.length}</span>
           </div>
           {prs.map((p) => (
             <button key={p.id} className="row nob li" onClick={() => onOpen(EX_BY_ID[p.id])}>
@@ -44,8 +44,10 @@ function Highlights({ data, onOpen }) {
       )}
       {stuck.length > 0 && (
         <>
-          <div className="sec-head nm" style={{ marginTop: prs.length ? 10 : 0 }}>
-            <b>Estancados</b>
+          <div className={'card-h' + (prs.length ? ' mt-3' : '')}>
+            <Icon name="trend" size={16} />
+            <h3>Estancados</h3>
+            <span className="card-aside">{stuck.length}</span>
           </div>
           <p className="muted small mt-0">
             3 entrenos sin mejorar. Prueba otro rango de reps, una semana de descarga o una variante del ejercicio.
@@ -96,27 +98,25 @@ export default function Progress({ data, setData }) {
     <div className="page">
       <h1 className="title">Progreso</h1>
       <AimCard data={data} setData={setData} />
-      {data.sessions.length > 0 && (
-        <details className="card rank-fold">
-          <summary>
-            <b>Tu personaje</b>
-            <span className="muted small">rangos por músculo según tu fuerza</span>
-          </summary>
-          <RankCard data={data} />
-        </details>
-      )}
+
+      <Section title="Entreno">
       <MuscleMap data={data} />
       <Highlights data={data} onOpen={setOpen} />
-      <SleepCard data={data} setData={setData} />
-      <BodyCard data={data} setData={setData} />
-
-      <div className="sec-head">
-        <h4>Historial por ejercicio</h4>
-      </div>
       {progress.length === 0 ? (
-        <p className="muted small">Cuando registres entrenos verás aquí cómo sube tu fuerza en cada ejercicio.</p>
+        <div className="card">
+          <div className="card-h">
+            <Icon name="trend" size={16} />
+            <h3>Historial por ejercicio</h3>
+          </div>
+          <p className="muted small m-0">Cuando registres entrenos verás aquí cómo sube tu fuerza en cada ejercicio.</p>
+        </div>
       ) : (
         <div className="card list-card">
+          <div className="card-h">
+            <Icon name="trend" size={16} />
+            <h3>Historial por ejercicio</h3>
+            <span className="card-aside">{progress.length} ejercicios</span>
+          </div>
           {progress.slice(0, all ? undefined : 5).map((p) => {
             const diff = p.last - p.first
             return (
@@ -145,8 +145,26 @@ export default function Progress({ data, setData }) {
         </button>
       )}
       <button className="link small month-link" onClick={() => setMonth(true)}>
-        <Icon name="trend" size={15} /> Ver resumen del mes
+        <Icon name="calendar" size={15} /> Ver resumen del mes
       </button>
+      {data.sessions.length > 0 && (
+        <details className="card rank-fold">
+          <summary>
+            <span className="card-h m-0">
+              <Icon name="trophy" size={16} />
+              <h3>Tu personaje</h3>
+              <span className="card-aside">rangos por músculo</span>
+            </span>
+          </summary>
+          <RankCard data={data} />
+        </details>
+      )}
+      </Section>
+
+      <Section title="Cuerpo y descanso">
+        <BodyCard data={data} setData={setData} />
+        <SleepCard data={data} setData={setData} />
+      </Section>
       {month && <MonthModal data={data} onClose={() => setMonth(false)} />}
       {open && <ExerciseModal ex={open} data={data} setData={setData} onClose={() => setOpen(null)} />}
     </div>

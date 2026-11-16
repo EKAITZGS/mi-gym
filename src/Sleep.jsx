@@ -17,10 +17,9 @@ export default function SleepCard({ data, setData }) {
   if (!a)
     return (
       <div className="card">
-        <div className="sec-head nm">
-          <b>
-            <Icon name="calendar" size={16} className="inl" /> Sueño
-          </b>
+        <div className="card-h">
+          <Icon name="moon" size={16} />
+          <h3>Sueño</h3>
         </div>
         <p className="muted small m-0">
           Aún no hay noches del reloj. Duerme con él puesto y sincroniza con Polar Flow: aquí verás tus horas, la regularidad y
@@ -31,11 +30,10 @@ export default function SleepCard({ data, setData }) {
   const max = Math.max(a.goal, ...a.week.map((n) => n.len || 0))
   return (
     <div className="card sleep">
-      <div className="sec-head nm">
-        <b>
-          <Icon name="calendar" size={16} className="inl" /> Sueño
-        </b>
-        <span className="muted small">últimas 7 noches · medido por el reloj</span>
+      <div className="card-h">
+        <Icon name="moon" size={16} />
+        <h3>Sueño</h3>
+        <span className="card-aside">últimas 7 noches · reloj</span>
       </div>
       {(() => {
         // sensación subjetiva de los check-ins de los últimos 7 días (lo que tú marcaste, no el reloj)
@@ -45,7 +43,7 @@ export default function SleepCard({ data, setData }) {
         if (!marks.length) return null
         const c = [1, 2, 3].map((v) => marks.filter((m) => m === v).length)
         return (
-          <p className="muted small" style={{ margin: '0 0 8px' }}>
+          <p className="muted small mo-b2">
             Tu sensación (check-in): {[c[2] && `bien ×${c[2]}`, c[1] && `normal ×${c[1]}`, c[0] && `mal ×${c[0]}`].filter(Boolean).join(' · ')}.
           </p>
         )
@@ -97,14 +95,21 @@ export default function SleepCard({ data, setData }) {
           )}
         </div>
       )}
-      <div className="sleep-bars" aria-label="Horas de sueño por noche">
+      <div className="sleep-bars" role="img" aria-label={`Horas de sueño por noche; objetivo ${hmc(a.goal)}`}>
         {a.week.map((n) => (
           <div key={n.date} className="sleep-col">
-            <span className={'sleep-bar' + (n.len && n.len < a.goal - 60 ? ' low' : '')} style={{ height: `${n.len ? Math.max(6, (n.len / max) * 100) : 0}%` }} />
+            <span className="sleep-v">{n.len ? hmc(n.len) : '—'}</span>
+            <span className="sleep-track">
+              <i className="sleep-gl" style={{ bottom: `${(a.goal / max) * 100}%` }} />
+              <span className={'sleep-bar' + (n.len && n.len < a.goal - 60 ? ' low' : '')} style={{ height: `${n.len ? Math.max(6, (n.len / max) * 100) : 0}%` }} />
+            </span>
             <span className="sleep-day">{'DLMXJVS'[new Date(n.date + 'T12:00').getDay()]}</span>
           </div>
         ))}
       </div>
+      <p className="sleep-key muted small">
+        <i /> objetivo {hmc(a.goal)} · en amarillo, más de 1 h por debajo
+      </p>
       <div className="sleep-stats">
         <div>
           <b>{hmc(a.avg)}</b>
