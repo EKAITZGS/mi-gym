@@ -3,7 +3,7 @@ import { hasAi, groqChat } from './ai'
 import { uid, todayStr, addDays, suggestion, fmtKg, setTxt, fmtDate } from './store'
 import { nightsOf, muscleLoad, recentPRs, stalled, periodStats, streakWeeks, progressRead } from './stats'
 import { groupsOf } from './ranks'
-import { wantsPlan, planForAi, planPrompt, parseCoachReply } from './aiPlan'
+import { wantsPlan, planForAi, planPrompt, parseCoachReply, groupsFor, catalogForAi } from './aiPlan'
 import { exStats } from './store'
 
 // Resumen del reloj Polar de los últimos 7 días (para la revisión y para la IA)
@@ -184,47 +184,71 @@ export function coachFacts(data, now = new Date()) {
 
 export async function askCoach(data, history, question) {
   if (!hasAi()) throw new Error('NO_KEY')
-  // si va de la rutina, se le pasa la rutina con referencias y el catálogo para que pueda proponer cambios concretos
+  // si va de la rutina: rutina con referencias + catálogo de los grupos de los que habla, para proponer cambios concretos.
+  // Groq limita el tamaño de cada petición, así que en ese modo va lo justo (sin cifras de la semana, reloj ni sueño)
   const planMode = wantsPlan(question, history)
   const { view, map } = planForAi(data)
   const { plan, last } = summarize(data)
-  const nights = Object.entries(nightsOf(data)).slice(-7).map(([d, n]) => ({ fecha: d, horas: Math.round((n.total / 60) * 10) / 10 }))
-  const ctx = {
-    objetivos: data.goals,
-    plan: planMode ? undefined : plan,
-    datos_exactos: coachFacts(data),
-    ultimos_entrenos: last,
-    reloj_semana: polarWeek(data),
-    sueno_ultimas_noches: nights.length ? nights : undefined,
-  }
   const said = (m) => (m.ptxt ? ` [Propuesta: ${m.ptxt}${m.status === 'ok' ? ' (la aplicó)' : m.status === 'no' ? ' (la rechazó)' : ''}]` : '')
-  const prev = history
-    .slice(-8)
-    .map((m) => `${m.role === 'user' ? 'Usuario' : 'Entrenador'}: ${m.text}${said(m)}`)
-    .join('\n')
-  const system = `Eres el entrenador personal y nutricionista de la app Mi Gym. Respondes en español de España, cercano y directo, en 2-6 frases o una lista corta.
-Usa los datos del usuario cuando sirvan; no inventes datos que no tengas. Cuando des cifras (entrenos, series, kilos, récords), di de qué periodo son (p. ej. "esta semana, desde el lunes ${ctx.datos_exactos.esta_semana.desde}") y de dónde salen. Si no hay datos suficientes para responder, dilo claramente en vez de estimar.
-Nunca cambias tú la rutina, los objetivos ni los datos: solo propones; el usuario decide en la app. Si preguntan por dolor fuerte, lesión, mareos o algo médico, da una pauta prudente y recomienda ir a un profesional sanitario; no diagnostiques.
+  const convo = (n) =>
+    history
+      .slice(-n)
+      .map((m) => `${m.role === 'user' ? 'Usuario' : 'Entrenador'}: ${String(m.text || '').slice(0, 400)}${said(m)}`)
+      .join('\n')
+  const base = `Eres el entrenador personal y nutricionista de la app Mi Gym. Respondes en español de España, cercano y directo, en 2-6 frases o una lista corta. Usa los datos del usuario cuando sirvan; no inventes datos que no tengas. Nunca cambias tú la rutina, los objetivos ni los datos: solo propones; el usuario decide en la app. Si preguntan por dolor fuerte, lesión, mareos o algo médico, da una pauta prudente y recomienda ir a un profesional sanitario; no diagnostiques.`
+  const ask = async (slim) => {
+    let system
+    if (planMode) {
+      const groups = groupsFor(`${question} ${slim ? '' : history.slice(-2).map((m) => m.text).join(' ')}`, data)
+      const recent = last.slice(slim ? -3 : -6).map(({ ejercicios, ...x }) => x)
+      system = `${base}
+Últimos entrenos (sensaciones y molestias): ${JSON.stringify(recent)}
+
+${planPrompt(data, view, slim ? groups.slice(0, 2) : groups)}
+
+Responde SIEMPRE solo con JSON: {"respuesta":"lo que le dices al usuario","propuesta":null o la propuesta}`
+    } else {
+      const nights = Object.entries(nightsOf(data)).slice(-7).map(([d, n]) => ({ fecha: d, horas: Math.round((n.total / 60) * 10) / 10 }))
+      const facts = coachFacts(data)
+      const ctx = { objetivos: data.goals, plan, datos_exactos: facts, ultimos_entrenos: last, reloj_semana: polarWeek(data), sueno_ultimas_noches: nights.length ? nights : undefined }
+      system = `${base}
+Cuando des cifras (entrenos, series, kilos, récords), di de qué periodo son (p. ej. "esta semana, desde el lunes ${facts.esta_semana.desde}") y de dónde salen. Si no hay datos suficientes para responder, dilo claramente en vez de estimar.
 Datos del usuario: ${JSON.stringify(ctx)}
-${planMode ? `\n${planPrompt(data, view)}\n` : ''}
-Responde SIEMPRE solo con JSON: {"respuesta":"lo que le dices al usuario","propuesta":${planMode ? 'null o la propuesta' : 'null'}}`
-  const user = `${prev ? `Conversación hasta ahora:\n${prev}\n\n` : ''}Pregunta: ${question}`
-  const txt = await groqChat({
-    messages: [
-      { role: 'system', content: system },
-      { role: 'user', content: user },
-    ],
-    response_format: { type: 'json_object' },
-    temperature: 0.4,
-    max_completion_tokens: planMode ? 2000 : 700,
-  })
+Responde SIEMPRE solo con JSON: {"respuesta":"lo que le dices al usuario","propuesta":null}`
+    }
+    const prev = convo(slim ? 2 : planMode ? 6 : 8)
+    const user = `${prev ? `Conversación hasta ahora:\n${prev}\n\n` : ''}Pregunta: ${question}`
+    return groqChat({
+      messages: [
+        { role: 'system', content: system },
+        { role: 'user', content: user },
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.4,
+      max_completion_tokens: planMode ? (slim ? 1200 : 1600) : 700,
+    })
+  }
+  let txt
+  try {
+    txt = await ask(false)
+  } catch (e) {
+    // demasiado grande para el límite de Groq: un segundo intento más pequeño
+    if (e.code !== 413 || !planMode) throw e
+    try {
+      txt = await ask(true)
+    } catch (e2) {
+      if (e2.code === 413) throw new Error('La petición es demasiado grande para la IA. Prueba a pedir algo más concreto, p. ej. "hazme un día de espalda".')
+      throw e2
+    }
+  }
   const r = parseCoachReply(txt, data, planMode ? map : null)
   return { text: r.text || 'No he sabido responder a eso, prueba a preguntarlo de otra forma.', proposal: r.proposal }
 }
 
 export async function improvePlan(data, { days, focus, notes }) {
   if (!hasAi()) throw new Error('NO_KEY')
-  const catalog = EXERCISES.map((e) => `${e.id}|${e.name}|${e.group}`).join('\n')
+  // solo los ejercicios de siempre y sin nombres (los ids ya dicen qué son): con los 873 la petición pasaba del límite de Groq
+  const catalog = catalogForAi(data)
   const { plan, last } = summarize(data)
   const prompt = `Eres un entrenador personal. Mejora la rutina de gimnasio de este usuario.
 Objetivo: perder grasa y ganar músculo. Días por semana que quiere: ${days}. Enfoque: ${focus || 'equilibrado'}.
@@ -238,7 +262,7 @@ Reglas:
 - Si hay molestias recientes, evita o sustituye ejercicios que carguen esa zona y dilo.
 - Si las sensaciones son muy duras, reduce volumen. Cada grupo muscular, 10-16 series por semana aprox.
 - 4-6 ejercicios por día, 2-4 series, reps como "8-10" o "12".
-- Usa SOLO ids de este catálogo (id|nombre|grupo):
+- Usa SOLO estos ids (por grupo muscular):
 ${catalog}
 
 Responde SOLO con JSON:
@@ -247,7 +271,7 @@ Responde SOLO con JSON:
     messages: [{ role: 'user', content: prompt }],
     response_format: { type: 'json_object' },
     temperature: 0.4,
-    max_completion_tokens: 2500,
+    max_completion_tokens: 2000,
   })
   let o
   try {
@@ -495,7 +519,8 @@ export async function aiWeeklyReview(data) {
       hecho: Object.entries(s.entries || {}).map(([id, sets]) => `${EX_BY_ID[id]?.name || id}: ${sets.map(setTxt).join(', ')}`),
     }))
   const plan = data.plan.map((d) => ({ dia: d.name, ejercicios: d.items.map((i) => `${i.ex} (${EX_BY_ID[i.ex]?.name}) ${i.sets}x${i.reps}`) }))
-  const catalog = EXERCISES.map((e) => `${e.id}|${e.name}|${e.group}`).join('\n')
+  // solo los ejercicios de siempre y sin nombres (los ids ya dicen qué son): con los 873 la petición pasaba del límite de Groq
+  const catalog = catalogForAi(data)
   const prompt = `Eres un entrenador personal. Revisa la semana de entrenamiento de este usuario (objetivo: perder grasa y ganar músculo).
 Plan actual: ${JSON.stringify(plan)}
 Entrenos de la última semana: ${JSON.stringify(week)}

@@ -1,6 +1,6 @@
 // Entrenador IA: propuestas de cambios en la rutina (se leen, se validan y se aplican solo si el usuario acepta)
 import assert from 'node:assert/strict'
-import { wantsPlan, planForAi, parseCoachReply, applyAiProposal, proposalTxt, catalogForAi } from '../src/aiPlan.js'
+import { wantsPlan, planForAi, parseCoachReply, applyAiProposal, proposalTxt, catalogForAi, groupsFor } from '../src/aiPlan.js'
 
 const data = {
   myExercises: [],
@@ -30,12 +30,21 @@ assert.ok(!wantsPlan('vale, perfecto', [{ role: 'coach', proposal: {}, status: '
 const { view, map } = planForAi(data)
 assert.equal(view[0].ref, 'd1')
 assert.equal(view[0].nombre, 'Hombro')
-assert.equal(view[0].ejercicios[1].ref, 'd1e2')
+assert.deepEqual(view[0].ej[1], ['d1e2', 'Side_Lateral_Raise', 3, '12'])
 assert.equal(map.items.d1e1.item.id, 'i1')
-// el catálogo lleva los de siempre y los de su rutina, no los 600 extra
+// catálogo: solo ids de los de siempre, por grupos; con grupos pedidos, solo esos (Groq limita el tamaño)
 const cat = catalogForAi(data)
-assert.ok(cat.includes('Machine_Shoulder_Military_Press|'))
-assert.ok(cat.split('\n').length < 400)
+assert.ok(cat.includes('Machine_Shoulder_Military_Press'))
+assert.ok(cat.length < 8000)
+const esp = catalogForAi(data, ['Espalda'])
+assert.ok(esp.startsWith('Espalda: ') && esp.includes('Wide-Grip_Lat_Pulldown') && !esp.includes('Barbell_Squat'))
+assert.ok(esp.length < 1500)
+// grupos de la pregunta; una molestia trae también los grupos que cargan esa zona
+assert.deepEqual(groupsFor('hazme un día de espalda'), ['Espalda'])
+assert.deepEqual(groupsFor('me molesta el hombro').sort(), ['Hombro', 'Pecho', 'Tríceps'].sort())
+assert.deepEqual(groupsFor('¿qué ceno?'), [])
+// sin decir la zona: la de sus check-in recientes
+assert.ok(groupsFor('¿qué cambio por mis molestias?', { sessions: [{ checkin: { pain: { zone: 'Rodilla' } } }] }).includes('Pierna'))
 
 // molestia en el hombro: cambiar press con mancuernas por máquina, quitar laterales, mantener tríceps
 // + día nuevo de espalda el miércoles (ese día ya tiene Pierna) + un id inventado que se descarta
@@ -79,10 +88,10 @@ assert.equal(hombro.items[0].id, 'i1')
 assert.equal(hombro.items[0].reps, '10-12')
 assert.equal(hombro.items[1].id, 'i3')
 assert.equal(plan.find((d) => d.id === 'P2').weekday, null)
-const esp = plan.find((d) => d.name === 'Espalda')
-assert.equal(esp.weekday, 3)
-assert.equal(esp.items.length, 2)
-assert.ok(esp.items.every((x) => x.id && x.sets === 3))
+const espDay = plan.find((d) => d.name === 'Espalda')
+assert.equal(espDay.weekday, 3)
+assert.equal(espDay.items.length, 2)
+assert.ok(espDay.items.every((x) => x.id && x.sets === 3))
 // el plan original no se toca
 assert.equal(data.plan[1].weekday, 3)
 

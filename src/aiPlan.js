@@ -13,7 +13,8 @@ export const wantsPlan = (question, history = []) => PLAN_RX.test(question || ''
 const exOf = (id, data) => EX_BY_ID[id] || (data.myExercises || []).find((x) => x.id === id)
 export const exNameOf = (data) => (id) => (exOf(id, data)?.name || 'Ejercicio').replace(/ \(.*\)/, '')
 
-// Rutina con referencias cortas (d1, d1e2…) para que la IA diga qué día y qué ejercicio cambia
+// Rutina con referencias cortas (d1, d1e2…) para que la IA diga qué día y qué ejercicio cambia.
+// Compacta (Groq limita el tamaño por minuto): ej = [ref, id, series, reps] (+ nombre si es un ejercicio propio)
 export function planForAi(data) {
   const days = {}
   const items = {}
@@ -24,36 +25,64 @@ export function planForAi(data) {
       ref,
       nombre: d.name.trim(),
       dia: d.weekday,
-      ejercicios: d.items.map((it, k) => {
+      ej: d.items.map((it, k) => {
         const r = `${ref}e${k + 1}`
         items[r] = { dayId: d.id, item: it }
-        return { ref: r, id: it.ex, nombre: exNameOf(data)(it.ex), series: it.sets, reps: String(it.reps).trim() }
+        const row = [r, it.ex, it.sets, String(it.reps).trim()]
+        return EX_BY_ID[it.ex] ? row : [...row, exNameOf(data)(it.ex)]
       }),
     }
   })
   return { view, map: { days, items } }
 }
 
-// Catálogo para la IA: los ejercicios de siempre (no los 600 extra), los de su rutina y los suyos propios
-export function catalogForAi(data) {
-  const inPlan = new Set(data.plan.flatMap((d) => d.items.map((i) => i.ex)))
-  const rows = EXERCISES.filter((e) => !e.more || inPlan.has(e.id)).map((e) => `${e.id}|${e.name}|${e.group}`)
-  for (const e of data.myExercises || []) rows.push(`${e.id}|${e.name}|${e.group || 'Propio'}`)
-  return rows.join('\n')
+// Grupos de los que habla (o de sus molestias recientes): el catálogo solo lleva esos
+const GROUP_RX = [
+  ['Espalda', /espalda|dorsal|remo|jal[oó]n|dominad/i],
+  ['Pecho', /pecho|pectoral|banca|apertura/i],
+  ['Hombro', /hombro|deltoid|militar|laterales/i],
+  ['Bíceps', /b[ií]ceps|curl|brazo/i],
+  ['Tríceps', /tr[ií]ceps|brazo|fondos/i],
+  ['Pierna', /pierna|cu[aá]driceps|femoral|isquio|gl[uú]teo|gemelo|sentadilla|prensa|rodilla/i],
+  ['Core', /core|abdom|plancha|lumbar/i],
+  ['Antebrazo', /antebrazo|mu[ñn]eca/i],
+]
+// una molestia también trae los grupos con ejercicios que cargan esa zona (para poder sustituirlos)
+const PAIN_EXTRA = [
+  [/hombro/i, ['Pecho', 'Tríceps']],
+  [/codo|mu[ñn]eca/i, ['Bíceps', 'Tríceps']],
+  [/lumbar|espalda baja/i, ['Pierna', 'Espalda']],
+  [/rodilla/i, ['Pierna']],
+]
+const PAIN_RX = /molest|dol|duele|lesi|cargad/i
+export function groupsFor(text, data = { sessions: [] }) {
+  let t = String(text || '')
+  // "¿qué cambio por mis molestias?" sin decir la zona: las de los check-in de las 2 últimas semanas
+  if (PAIN_RX.test(t)) t += ' ' + (data.sessions || []).slice(-8).map((x) => x.checkin?.pain?.zone || '').join(' ')
+  const out = new Set(GROUP_RX.filter(([, re]) => re.test(t)).map(([g]) => g))
+  if (PAIN_RX.test(t)) for (const [re, gs] of PAIN_EXTRA) if (re.test(t)) gs.forEach((g) => out.add(g))
+  return [...out]
 }
 
-export function planPrompt(data, view) {
-  return `PROPUESTAS DE RUTINA: si el usuario pide cambiar su rutina, crear o "hacer" un día, qué ejercicios meter, mover un día, o adaptarla por una molestia, además de responder le preparas una propuesta concreta. Nunca se aplica sola: el usuario la acepta o la rechaza en la app.
-Su rutina, con referencias (dia: 0=domingo, 1=lunes … 6=sábado; null = sin día fijo): ${JSON.stringify(view)}
-Catálogo de ejercicios (id|nombre|grupo). Usa SOLO estos ids:
-${catalogForAi(data)}
-Reglas de la propuesta:
-- En un día que ya tiene: "ref" del día y TODOS los ejercicios con los que queda, en orden; los que se quedan o se cambian llevan la "ref" del ejercicio original, los nuevos "ref": null.
-- Día nuevo: "ref": null, su nombre y "dia" (el que pida; si ese día ya tiene otro entreno, avísalo en la respuesta).
-- Si hay molestia en una zona, quita o sustituye lo que más la carga (p. ej. con el hombro: menos press por encima de la cabeza y fondos, más máquina y agarre neutro) y explica por qué. Si es dolor fuerte o no mejora, recomienda ir a un profesional.
-- 4-6 ejercicios por día, 2-4 series, reps como "8-10" o "12". No entrenes el mismo grupo dos días seguidos si puedes evitarlo.
-- Si no pide cambios, "propuesta": null.
-Formato de la propuesta: {"resumen":"1 frase","dias":[{"ref":"d2" o null,"nombre":"...","dia":3,"ejercicios":[{"ref":"d2e1" o null,"id":"id del catálogo","series":3,"reps":"8-10"}]}]}`
+// Catálogo para la IA: solo ids (ya dicen qué ejercicio es) de los ejercicios de siempre (no los 600 extra),
+// agrupados y solo de los grupos pedidos (sin grupos = todos). Los propios llevan su nombre.
+export function catalogForAi(data, groups = []) {
+  const want = (g) => !groups.length || groups.includes(g)
+  const by = {}
+  for (const e of EXERCISES) if (!e.more && want(e.group)) (by[e.group] ||= []).push(e.id)
+  const lines = Object.entries(by).map(([g, ids]) => `${g}: ${ids.join(', ')}`)
+  const own = (data.myExercises || []).filter((e) => want(e.group)).map((e) => `${e.id} (${e.name})`)
+  if (own.length) lines.push(`Propios: ${own.join(', ')}`)
+  return lines.join('\n')
+}
+
+export function planPrompt(data, view, groups = []) {
+  return `PROPUESTAS: si pide cambiar su rutina, crear o hacer un día, qué ejercicios meter, mover un día o adaptarla por una molestia, además de responder prepara una propuesta. Nunca se aplica sola: el usuario la acepta o no en la app.
+Rutina (dia 0=domingo…6=sábado, null=sin día; ej=[ref, id, series, reps]): ${JSON.stringify(view)}
+Ejercicios que puedes usar (ids; SOLO estos o los de su rutina):
+${catalogForAi(data, groups)}
+Reglas: en un día que ya tiene, pon su ref y TODOS los ejercicios con los que queda, en orden (los que se quedan o cambias llevan la ref del original; los nuevos ref null). Día nuevo: ref null, nombre y dia. Con molestia, quita o cambia lo que carga esa zona y di por qué; si es dolor fuerte, que vaya a un profesional. 3-6 ejercicios por día, 2-4 series, reps como "8-10". En "respuesta" nombra los ejercicios en español. Si no pide cambios, propuesta null.
+Propuesta: {"resumen":"1 frase","dias":[{"ref":"d2" o null,"nombre":"...","dia":3,"ejercicios":[{"ref":"d2e1" o null,"id":"...","series":3,"reps":"8-10"}]}]}`
 }
 
 const intIn = (v, lo, hi) => {

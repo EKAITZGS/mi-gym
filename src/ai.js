@@ -68,6 +68,12 @@ export async function groqChat(body) {
       } catch {}
       throw new Error('NO_KEY')
     }
+    if (res.status === 413) {
+      // Groq: la petición pasa del límite de tamaño por minuto del modelo
+      const e = new Error('La petición es demasiado grande para la IA. Prueba con algo más concreto.')
+      e.code = 413
+      throw e
+    }
     throw new Error(`Error de la IA (${res.status})`)
   }
   const j = await res.json()
