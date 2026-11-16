@@ -1180,11 +1180,6 @@ textarea.inp {
   cursor: pointer;
 }
 
-.ex-tools {
-  display: flex;
-  gap: 6px;
-  margin-bottom: 10px;
-}
 
 .tool.danger {
   color: var(--danger);
@@ -1824,8 +1819,6 @@ body.modal-open .savebar { display: none; }
 .dp-item { padding: 2px 0; }
 
 /* Quitar serie / drop en la sesión */
-.set-links { display: flex; justify-content: space-between; align-items: center; }
-.set-links .danger-link { color: var(--danger); opacity: 0.85; }
 
 /* ---- Tu personaje (rangos por músculo) ---- */
 .rank-card { display: flex; gap: 14px; align-items: center; width: 100%; text-align: left; color: inherit; font: inherit; cursor: pointer;
@@ -2327,7 +2320,6 @@ button.wday:active { transform: scale(0.96); }
 .tech-d p { margin: 2px 0 0; background: var(--card2); border-radius: var(--r-md); padding: 10px 12px; color: var(--text2); line-height: 1.45; font-size: var(--fs-sm); }
 .setrow.warm .setn { background: var(--card2); color: var(--muted); border: 1px dashed var(--line); }
 .setrow.warm .inp { opacity: 0.85; }
-.set-links .on-link { color: var(--accent); }
 .restbar.paused .rest-t { opacity: 0.65; }
 
 /* ---- Generador 2.0 ---- */
@@ -2458,3 +2450,50 @@ button.wday:active { transform: scale(0.96); }
 .pl-0 { padding-left: 0 !important; }
 .w-auto-m0 { width: auto !important; margin: 0 !important; }
 .beta-badge { margin-left: var(--sp-2); background: var(--accent-soft); color: var(--accent); border-color: transparent; vertical-align: middle; }
+
+/* ===== Fase 2 · Entreno en curso ===== */
+/* cabecera fija arriba: tiempo, series, guardado y lo que toca ahora */
+.ses-head { position: sticky; top: 0; z-index: 20; background: var(--bg); margin: -4px -18px var(--sp-3); padding: var(--sp-2) 18px var(--sp-3); border-bottom: 1px solid var(--border); }
+.ses-now { display: flex; align-items: center; gap: var(--sp-2); width: 100%; margin-top: var(--sp-2); padding: 10px var(--sp-3); background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md); color: var(--text); text-align: left; min-height: 44px; }
+.ses-now .ses-now-l { font-size: var(--fs-xs); font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); flex: none; }
+.ses-now .ses-now-t { flex: 1; min-width: 0; font-size: var(--fs-sm); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ses-now > .ico { color: var(--muted); flex: none; }
+.ses-now.done { color: var(--accent); font-size: var(--fs-sm); font-weight: 700; justify-content: center; }
+/* tarjeta de ejercicio: cabecera limpia + menú ⋯ */
+.ex-card { scroll-margin-top: 150px; }
+.ex-top { display: flex; align-items: flex-start; gap: var(--sp-2); }
+.ex-id { display: flex; align-items: center; gap: var(--sp-3); flex: 1; min-width: 0; background: none; border: 0; padding: 0; text-align: left; color: inherit; }
+.ex-id-t { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ex-id-t b { font-size: var(--fs-md); line-height: 1.25; }
+.ex-last { margin-top: var(--sp-2); font-size: var(--fs-sm); color: var(--muted); }
+.ex-last b { color: var(--text2); font-weight: 600; }
+.ex-note { margin-top: 6px; }
+.ex-foot { display: flex; align-items: center; gap: var(--sp-3); margin-top: var(--sp-2); }
+.ex-foot .btn { width: auto; flex: none; min-height: 40px; padding: 0 var(--sp-3); color: var(--accent); }
+.ex-foot .muted { line-height: 1.3; }
+/* el número de la serie abre su menú (drop, calentamiento, quitar) */
+button.setn { border: 1px solid var(--border); padding: 0; width: 32px; height: 32px; color: var(--text2); cursor: pointer; }
+button.setn:active { background: var(--accent-soft); color: var(--accent); }
+.setrow.warm button.setn { border-style: dashed; }
+/* menú de acciones en hoja */
+.menu-list .list-row { margin-bottom: var(--sp-2); }
+.menu-list .danger-row .li-t, .menu-list .danger-row .lr-ic { color: var(--danger); }
+/* descanso: barra fija abajo, cifras grandes y botones de 44 px para una mano */
+.restbar { padding: var(--sp-2) var(--sp-2) var(--sp-2) var(--sp-4); border-radius: var(--r-lg); gap: 6px; }
+.rest-main { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.rest-t { font-size: var(--fs-2xl); line-height: 1.05; font-variant-numeric: tabular-nums; }
+.rest-sub { font-size: var(--fs-xs); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.restbar button { min-height: 44px; min-width: 44px; }
+.restbar.go .rest-sub { color: inherit; opacity: 0.75; }
+/* check-in: intensidad con barras (sin emojis) */
+.feel .fe-bars { display: flex; align-items: flex-end; gap: 2px; height: 22px; margin-bottom: 4px; }
+.feel .fe-bars i { display: block; width: 4px; border-radius: var(--r-full); background: var(--border); }
+.feel .fe-bars i:nth-child(1) { height: 30%; }
+.feel .fe-bars i:nth-child(2) { height: 45%; }
+.feel .fe-bars i:nth-child(3) { height: 60%; }
+.feel .fe-bars i:nth-child(4) { height: 80%; }
+.feel .fe-bars i:nth-child(5) { height: 100%; }
+.feel .fe-bars i.on { background: var(--accent); }
+.feel[data-l='4'] .fe-bars i.on { background: var(--warn); }
+.feel[data-l='5'] .fe-bars i.on { background: var(--danger); }
+.ses-now .ses-now-s { flex: none; font-size: var(--fs-sm); font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }

@@ -14,7 +14,7 @@ import { groupsOf } from './ranks'
 import Coach from './Coach.jsx'
 import { DayModal, doneSessions, fmtDay } from './DayDetail'
 import { queueTrainerNote, cloudMeta } from './cloud'
-import { State, SyncPill, Badge, Stat, fmtMin, miles } from './ds'
+import { State, SyncPill, Badge, Stat, fmtMin, miles, IconButton, ListRow } from './ds'
 
 const ORDER = [1, 2, 3, 4, 5, 6, 0] // lunes primero
 
@@ -878,8 +878,12 @@ function CheckIn({ onSave, onSkip, exercises = [], night }) {
       <h4>Sensación del entreno</h4>
       <div className="feels">
         {FEELINGS.map((f) => (
-          <button key={f.id} className={'feel' + (feel === f.id ? ' on' : '')} onClick={() => setFeel(f.id)}>
-            <span className="fe">{f.emoji}</span>
+          <button key={f.id} className={'feel' + (feel === f.id ? ' on' : '')} data-l={f.id} onClick={() => setFeel(f.id)} aria-pressed={feel === f.id}>
+            <span className="fe-bars" aria-hidden="true">
+              {[1, 2, 3, 4, 5].map((k) => (
+                <i key={k} className={k <= f.id ? 'on' : ''} />
+              ))}
+            </span>
             <span>{f.label}</span>
           </button>
         ))}
@@ -991,7 +995,7 @@ const restSecs = () => {
 }
 // shortcut: sin sonido (iOS no deja sonar ni vibrar a una PWA sin toque), solo aviso visual; si hace falta, usar un aviso push
 // rest = { end (ms), item, left? }: con `left` (segundos) está en pausa
-function RestTimer({ rest, onAdd, onPause, onClose }) {
+function RestTimer({ rest, onAdd, onPause, onClose, next }) {
   const [now, setNow] = useState(Date.now())
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 500)
@@ -1007,8 +1011,13 @@ function RestTimer({ rest, onAdd, onPause, onClose }) {
   }, [left, paused])
   return (
     <div className={'restbar' + (left <= 0 ? ' go' : '') + (paused ? ' paused' : '')} role="timer" aria-live="polite">
-      <span className="rest-t">{left > 0 ? `${Math.floor(left / 60)}:${pad(left % 60)}` : '¡Siguiente serie!'}</span>
-      {left > 0 && <span className="muted small grow">{paused ? 'en pausa' : 'descanso'}</span>}
+      <span className="rest-main">
+        <span className="rest-t">{left > 0 ? `${Math.floor(left / 60)}:${pad(left % 60)}` : '¡Siguiente serie!'}</span>
+        <span className="rest-sub">
+          {left > 0 ? (paused ? 'en pausa' : 'descanso') : ''}
+          {next ? `${left > 0 ? ' · ' : ''}${next}` : ''}
+        </span>
+      </span>
       {left > 0 && <button onClick={() => onAdd(-15)} aria-label="Quitar 15 segundos">−15</button>}
       {left > 0 && <button onClick={() => onAdd(15)} aria-label="Añadir 15 segundos">+15</button>}
       {left > 0 && (
@@ -1024,7 +1033,7 @@ function RestTimer({ rest, onAdd, onPause, onClose }) {
 }
 
 // Cabecera del entreno en curso: cronómetro, series hechas y estado de guardado
-function SesHead({ a, items, cloud, online }) {
+function SesHead({ a, items, cloud, online, onGo }) {
   const [, tick] = useState(0)
   useEffect(() => {
     const t = setInterval(() => tick((x) => x + 1), 30000)
@@ -1038,6 +1047,16 @@ function SesHead({ a, items, cloud, online }) {
       if (s.warm) continue
       total++
       if (s.done || s.r || s.r2 || s.s || s.m || s.km || s.min) done++
+    }
+  }
+  // lo que toca ahora: primera serie sin hacer
+  let now = null
+  for (const it of items) {
+    const sets = a.entries?.[it.ex] || []
+    const k = sets.findIndex((s) => !(s.done || s.r || s.r2 || s.s || s.m || s.km || s.min))
+    if (k >= 0) {
+      now = { it, k, n: sets.length }
+      break
     }
   }
   return (
@@ -1056,6 +1075,18 @@ function SesHead({ a, items, cloud, online }) {
         </div>
       </div>
       <SyncPill cloud={cloud} online={online} />
+      {now ? (
+        <button type="button" className="ses-now" onClick={() => onGo?.(now.it.id)}>
+          <span className="ses-now-l">Ahora</span>
+          <span className="ses-now-t">{EX_BY_ID[now.it.ex]?.name || 'Ejercicio'}</span>
+          <span className="ses-now-s">
+            serie {now.k + 1}/{now.n}
+          </span>
+          <Icon name="down" size={16} />
+        </button>
+      ) : (
+        total > 0 && <div className="ses-now done">Todo hecho: termina el entreno abajo</div>
+      )}
     </div>
   )
 }
@@ -1075,6 +1106,11 @@ function Session({ data, setData, onExit, cloud, online }) {
   const [detail, setDetail] = useState(null)
   const [picker, setPicker] = useState(null) // { mode: 'add' } | { mode: 'swap', itemId }
   const [done, setDone] = useState(null) // { prs, changed, items, dayId, name } al terminar
+  const [exMenu, setExMenu] = useState(null) // id del ejercicio con su menú abierto
+  const [setMenu, setSetMenu] = useState(null) // { ex, i } serie con su menú abierto
+  const goEx = (id) => {
+    document.getElementById('ex-' + id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
 
   // series nuevas: ya traen el peso de la última vez (las reps de hoy, vacías)
   const newSets = (exId, n, drop, from = 0) => prefillSets(data.sessions, exId, n, drop, from)
@@ -1363,7 +1399,7 @@ function Session({ data, setData, onExit, cloud, online }) {
         <Icon name="left" size={18} /> Salir (se queda guardado)
       </button>
       <h1 className="title">{name}</h1>
-      <SesHead a={a} items={items} cloud={cloud} online={online} />
+      <SesHead a={a} items={items} cloud={cloud} online={online} onGo={goEx} />
       {needsDeload(data.sessions) && (
         <div className="advice yellow">
           Tus últimos entrenos fueron muy duros. Hoy te propongo descarga: un 30% menos de peso y sin llegar al fallo.
@@ -1398,91 +1434,68 @@ function Session({ data, setData, onExit, cloud, online }) {
           return { w: b0.w, drops: (b0.drops || []).map((x) => ({ w: x.w })) }
         }
         const note = lastNote(data.sessions, it.ex)
+        const first = items[0]?.id === it.id
         return (
-          <div className="card" key={it.id}>
-            <div className="ex-tools">
-              <button className="tool" onClick={() => setPicker({ mode: 'swap', itemId: it.id })}>
-                <Icon name="swap" size={15} /> Cambiar
-              </button>
-              <button className="tool" onClick={() => addSet(it.ex)}>
-                <Icon name="plus" size={15} /> Serie
-              </button>
-              <button className="tool danger" onClick={() => confirm('¿Quitar este ejercicio de hoy?') && removeItem(it.id)}>
-                <Icon name="x" size={15} /> Quitar
-              </button>
-            </div>
-            <div className="row nob" onClick={() => ex && setDetail(ex)} role="button" tabIndex={0} aria-label={`Ficha de ${ex?.name || it.ex}`} onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && ex && (e.preventDefault(), setDetail(ex))}>
-              <Thumb ex={ex} />
-              <div className="grow">
-                <div>
+          <div className="card ex-card" key={it.id} id={'ex-' + it.id}>
+            <div className="ex-top">
+              <button type="button" className="ex-id" onClick={() => ex && setDetail(ex)} aria-label={`Ficha de ${ex?.name || it.ex}`}>
+                <Thumb ex={ex} />
+                <span className="ex-id-t">
                   <b>{ex?.name || it.ex}</b>
-                </div>
-                <div className="muted small">
-                  Objetivo: {tr === 'reps' ? `${it.sets}×${it.reps}` : `${it.sets} series`}
-                  {it.drop ? ' · drop set' : ''}
-                  {it.rir != null ? ` · RIR ${it.rir}` : ''}
-                  {it.rest ? ` · descanso ${restTxt(it.rest)}` : ''}
-                </div>
-                {last && (
-                  <div className="muted small">
-                    Última vez ({last.date.slice(8)}/{last.date.slice(5, 7)}): {last.sets.map(setTxt).join(', ')}
-                  </div>
-                )}
-                {ex && (
-                  <div className="ex-badges">
-                    {ex.main.map((m) => (
-                      <Badge key={m} tone="accent">{m}</Badge>
-                    ))}
-                    {ex.sec.slice(0, 3).map((m) => (
-                      <Badge key={m}>{m}</Badge>
-                    ))}
-                    {ex.equip && <Badge>{ex.equip}</Badge>}
-                  </div>
-                )}
-                {note && <div className="muted small">Nota anterior: {note}</div>}
-                {pain && (
-                  <div className={'advice ' + (pain.level === 'fuerte' ? 'red' : 'yellow') + ' sm'}>
-                    Molestia {pain.level} en {pain.zone.toLowerCase()} el {pain.date.slice(8)}/{pain.date.slice(5, 7)}.{' '}
-                    {pain.level === 'fuerte' ? 'Mejor cámbialo por otro o sáltalo hoy.' : 'Baja el peso y no llegues al fallo.'}
-                  </div>
-                )}
-                {hold && (
-                  <div className="tip hold">
-                    <Icon name="check" size={15} /> Mantén {fmtKg(hold.from)} kg: {hold.why}
-                  </div>
-                )}
-                {sug && (
-                  <div className="tip">
-                    <Icon name="trend" size={15} /> Sube a {fmtKg(sug.w)} kg: {sug.why}
-                  </div>
-                )}
-                {uni && imb && (
-                  <div className="tip hold">
-                    <Icon name="swap" size={15} /> El lado {imb} va por detrás: empieza por él y con el otro haz las mismas reps, no más.
-                  </div>
-                )}
-              </div>
+                  <span className="muted small">
+                    {tr === 'reps' ? `${it.sets}×${it.reps}` : `${it.sets} series · ${T.label.toLowerCase()}`}
+                    {it.drop ? ' · drop set' : ''}
+                    {it.rir != null ? ` · RIR ${it.rir}` : ''}
+                    {it.rest ? ` · descanso ${restTxt(it.rest)}` : ''}
+                    {uni ? ' · por lados' : ''}
+                  </span>
+                </span>
+              </button>
+              <IconButton icon="more" label={`Opciones de ${ex?.name || 'este ejercicio'}`} ghost onClick={() => setExMenu(it.id)} />
             </div>
+            {last && (
+              <div className="ex-last">
+                Última vez ({last.date.slice(8)}/{last.date.slice(5, 7)}): <b>{last.sets.map(setTxt).join(', ')}</b>
+              </div>
+            )}
+            {ex && (
+              <div className="ex-badges">
+                {ex.main.map((m) => (
+                  <Badge key={m} tone="accent">{m}</Badge>
+                ))}
+                {ex.sec.slice(0, 3).map((m) => (
+                  <Badge key={m}>{m}</Badge>
+                ))}
+                {ex.equip && <Badge>{ex.equip}</Badge>}
+              </div>
+            )}
+            {note && <div className="muted small ex-note">Nota anterior: {note}</div>}
+            {pain && (
+              <div className={'advice ' + (pain.level === 'fuerte' ? 'red' : 'yellow') + ' sm'}>
+                Molestia {pain.level} en {pain.zone.toLowerCase()} el {pain.date.slice(8)}/{pain.date.slice(5, 7)}.{' '}
+                {pain.level === 'fuerte' ? 'Mejor cámbialo por otro o sáltalo hoy.' : 'Baja el peso y no llegues al fallo.'}
+              </div>
+            )}
+            {hold && (
+              <div className="tip hold">
+                <Icon name="check" size={15} /> Mantén {fmtKg(hold.from)} kg: {hold.why}
+              </div>
+            )}
+            {sug && (
+              <div className="tip">
+                <Icon name="trend" size={15} /> Sube a {fmtKg(sug.w)} kg: {sug.why}
+              </div>
+            )}
+            {uni && imb && (
+              <div className="tip hold">
+                <Icon name="swap" size={15} /> El lado {imb} va por detrás: empieza por él y con el otro haz las mismas reps, no más.
+              </div>
+            )}
             {ex && !ex.custom && (
               <details className="tech-d">
                 <summary>Técnica</summary>
                 <p>{techFor(ex)}</p>
               </details>
-            )}
-            <div className="track-row">
-              <span className="muted small">Medir por</span>
-              <select className="inp sm" aria-label="Cómo se mide" value={tr} onChange={(e) => setTrack(it, e.target.value)}>
-                {Object.entries(TRACKS).map(([id, t]) => (
-                  <option key={id} value={id}>
-                    {t.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            {tr === 'reps' && (
-              <button className={'uni-tg' + (uni ? ' on' : '')} onClick={() => toggleUni(it)}>
-                <span className="uni-dot" /> {uni ? 'Por lados: izquierdo / derecho' : 'Unilateral (un lado y luego otro)'}
-              </button>
             )}
             {uni && sets.length > 0 && (
               <div className="setrow uni-head">
@@ -1499,7 +1512,15 @@ function Session({ data, setData, onExit, cloud, online }) {
               return (
                 <div key={i}>
                   <div className={'setrow' + (s.warm ? ' warm' : '')}>
-                    <span className="setn" title={s.warm ? 'Calentamiento' : undefined}>{s.warm ? 'C' : i + 1}</span>
+                    <button
+                      type="button"
+                      className="setn"
+                      title={s.warm ? 'Calentamiento' : undefined}
+                      aria-label={`Opciones de la serie ${i + 1}${s.warm ? ' (calentamiento)' : ''}`}
+                      onClick={() => setSetMenu({ ex: it.ex, i })}
+                    >
+                      {s.warm ? 'C' : i + 1}
+                    </button>
                     <input
                       className="inp sm"
                       inputMode="decimal"
@@ -1581,33 +1602,22 @@ function Session({ data, setData, onExit, cloud, online }) {
                       />
                       <button
                         className="icon-btn"
+                        aria-label="Quitar drop"
                         onClick={() => patchSet(it.ex, i, (x) => ({ ...x, drops: x.drops.filter((_, k) => k !== j) }))}
                       >
                         <Icon name="x" size={16} />
                       </button>
                     </div>
                   ))}
-                  <div className="set-links">
-                    <button
-                      className="link small"
-                      onClick={() => patchSet(it.ex, i, (x) => ({ ...x, drops: [...x.drops, { w: '', r: '' }] }))}
-                    >
-                      + drop
-                    </button>
-                    {tr === 'reps' && (
-                      <button className={'link small' + (s.warm ? ' on-link' : '')} onClick={() => patchSet(it.ex, i, (x) => ({ ...x, warm: !x.warm }))}>
-                        {s.warm ? 'Calentamiento ✓' : 'Calentamiento'}
-                      </button>
-                    )}
-                    {sets.length > 1 && (
-                      <button className="link small danger-link" onClick={() => removeSet(it.ex, i)} aria-label="Quitar serie">
-                        Quitar
-                      </button>
-                    )}
-                  </div>
                 </div>
               )
             })}
+            <div className="ex-foot">
+              <button type="button" className="btn sm-btn ghost" onClick={() => addSet(it.ex)}>
+                <Icon name="plus" size={15} /> Serie
+              </button>
+              {first && sets.length > 0 && <span className="muted small">Toca el número de una serie para drop, calentamiento o quitarla</span>}
+            </div>
             <input
               className="inp note"
               aria-label="Nota del ejercicio"
@@ -1619,7 +1629,86 @@ function Session({ data, setData, onExit, cloud, online }) {
           </div>
         )
       })}
-      {rest && <RestTimer rest={rest} onAdd={addRest} onPause={pauseRest} onClose={() => setRest(null)} />}
+      {rest && (
+        <RestTimer
+          rest={rest}
+          onAdd={addRest}
+          onPause={pauseRest}
+          onClose={() => setRest(null)}
+          next={(() => {
+            // qué toca después del descanso: la siguiente serie de ese ejercicio o el siguiente ejercicio
+            const k0 = items.findIndex((x) => x.id === rest.item)
+            for (let k = Math.max(0, k0); k < items.length; k++) {
+              const ss = a.entries[items[k].ex] || []
+              const j = ss.findIndex((x) => !(x.done || x.r || x.r2 || x.s || x.m || x.km || x.min))
+              if (j >= 0) return k === k0 ? `serie ${j + 1}/${ss.length}` : EX_BY_ID[items[k].ex]?.name || 'siguiente ejercicio'
+            }
+            return ''
+          })()}
+        />
+      )}
+      {exMenu &&
+        (() => {
+          const it = items.find((x) => x.id === exMenu)
+          if (!it) return null
+          const ex = EX_BY_ID[it.ex]
+          const tr = trackOf(it, ex)
+          const close = () => setExMenu(null)
+          return (
+            <Modal title={ex?.name || 'Ejercicio'} onClose={close}>
+              <div className="menu-list">
+                <ListRow icon="swap" title="Cambiar por otro ejercicio" onClick={() => (close(), setPicker({ mode: 'swap', itemId: it.id }))} />
+                <ListRow icon="plus" title="Añadir una serie" onClick={() => (close(), addSet(it.ex))} />
+                {ex && <ListRow icon="book" title="Ver ficha, historial y técnica" onClick={() => (close(), setDetail(ex))} />}
+              </div>
+              <h4>Ajustes del ejercicio</h4>
+              <div className="track-row">
+                <span className="muted small">Medir por</span>
+                <select className="inp sm" aria-label="Cómo se mide" value={tr} onChange={(e) => setTrack(it, e.target.value)}>
+                  {Object.entries(TRACKS).map(([id, t]) => (
+                    <option key={id} value={id}>
+                      {t.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {tr === 'reps' && (
+                <button className={'uni-tg' + (uniOf(it) ? ' on' : '')} onClick={() => toggleUni(it)}>
+                  <span className="uni-dot" /> {uniOf(it) ? 'Por lados: izquierdo / derecho' : 'Unilateral (un lado y luego otro)'}
+                </button>
+              )}
+              <button className="btn danger full mt-4" onClick={() => confirm('¿Quitar este ejercicio de hoy?') && (close(), removeItem(it.id))}>
+                <Icon name="x" size={16} /> Quitar de hoy
+              </button>
+            </Modal>
+          )
+        })()}
+      {setMenu &&
+        (() => {
+          const ss = a.entries[setMenu.ex] || []
+          const st = ss[setMenu.i]
+          const it = items.find((x) => x.ex === setMenu.ex)
+          if (!st || !it) return null
+          const tr = trackOf(it, EX_BY_ID[it.ex])
+          const close = () => setSetMenu(null)
+          const { ex: exId, i } = setMenu
+          return (
+            <Modal title={`Serie ${i + 1} · ${EX_BY_ID[exId]?.name || 'ejercicio'}`} onClose={close}>
+              <div className="menu-list">
+                <ListRow icon="plus" title="Añadir drop set" sub="Bajas el peso y sigues sin descansar" onClick={() => (close(), patchSet(exId, i, (x) => ({ ...x, drops: [...x.drops, { w: '', r: '' }] })))} />
+                {tr === 'reps' && (
+                  <ListRow
+                    icon="flame"
+                    title={st.warm ? 'Quitar marca de calentamiento' : 'Marcar como calentamiento'}
+                    sub="El calentamiento no cuenta en volumen ni récords"
+                    onClick={() => (close(), patchSet(exId, i, (x) => ({ ...x, warm: !x.warm })))}
+                  />
+                )}
+                {ss.length > 1 && <ListRow icon="trash" title="Quitar esta serie" className="danger-row" onClick={() => (close(), removeSet(exId, i))} />}
+              </div>
+            </Modal>
+          )
+        })()}
       <button className="btn full" onClick={() => setPicker({ mode: 'add' })}>
         <Icon name="plus" size={18} /> Añadir ejercicio
       </button>

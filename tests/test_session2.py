@@ -42,7 +42,9 @@ with sync_playwright() as p:
     card.locator('.chk').first.click()
     assert card.locator('.chk.on').count() == 0
     # calentamiento en la serie 1, reps y marcar → descanso del ejercicio (60 s)
-    card.locator('text=Calentamiento').first.click()
+    # (2.0 rediseño) el calentamiento se marca desde el menú de la serie: tocar su número
+    card.locator('.setrow button.setn').first.click()
+    page.click('.sheet >> text=Marcar como calentamiento')
     assert card.locator('.setrow.warm').count() == 1
     inputs.nth(1).fill('10')
     card.locator('.chk').first.click()
