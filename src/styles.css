@@ -2581,3 +2581,43 @@ button.setn:active { background: var(--accent-soft); color: var(--accent); }
   .dcard-foot { margin-top: 0; flex: none; }
   .dcard-foot .mini-sel { flex: none; width: 150px; }
 }
+
+/* ===== Fase 5 · Inicio y dieta ===== */
+/* Inicio */
+.cta.cta-hero { margin: var(--sp-3) 0 0; }
+.next-ses { margin: -6px 4px var(--sp-3); }
+.clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.card.review { border-color: var(--border); }
+.review .tips-list { font-size: var(--fs-sm); margin-bottom: var(--sp-2); }
+.review .tips-list li { margin-bottom: 4px; }
+.review > p.small { margin: 0 0 var(--sp-2); color: var(--text2); }
+.link.small.rv-ask { display: inline-flex; align-items: center; gap: 6px; padding: 4px 0 0; min-height: 36px; color: var(--accent); font-weight: 600; }
+/* pasos y kcal del reloj en una sola tarjeta */
+.watch-today { display: flex; align-items: center; padding: var(--sp-3); gap: var(--sp-2); }
+.wt-item { flex: 1; min-width: 0; display: flex; align-items: center; gap: var(--sp-2); background: none; border: 0; padding: 0; color: inherit; text-align: left; }
+.wt-txt { display: flex; flex-direction: column; min-width: 0; }
+.wt-txt .small { font-size: var(--fs-xs); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wt-num { font-size: var(--fs-xl); font-weight: 800; letter-spacing: -0.02em; line-height: 1.1; }
+.wt-sep { width: 1px; align-self: stretch; background: var(--border); }
+.wt-hint { margin: -4px 4px 10px; }
+/* Dieta */
+.dotc.c-amber { background: var(--amber); }
+.dotc.c-pink { background: var(--pink); }
+.link.link-inl { padding: 0; min-height: 0; display: inline; }
+.ml-2 { margin-left: var(--sp-2); }
+.card.prot-tip { border-color: var(--border); }
+.pt-hint { margin: 4px 0 var(--sp-2); }
+/* comidas: una tarjeta, una fila por comida; la vacía es una línea con + */
+.meals { padding-bottom: var(--sp-2); }
+.meals .card-h { margin-bottom: var(--sp-1); }
+.meal { border-top: 1px solid var(--border); padding: var(--sp-2) 0; }
+.meal:last-child { padding-bottom: 0; }
+.meal.empty { padding: var(--sp-1) 0; }
+.meal .meal-head { min-height: 44px; gap: var(--sp-2); }
+.meal.empty .meal-head b { color: var(--text2); font-weight: 600; }
+.meal .meal-add { width: 40px; height: 40px; min-width: 40px; margin: 0; }
+.meal.empty .meal-add { background: none; border-color: var(--border); color: var(--accent); }
+.meal .row.food { margin-top: 0; padding: var(--sp-2) 0; border-top: 1px dashed var(--border); }
+.meal .meal-quick { margin: 2px 0 var(--sp-1); }
+.meal .link.small.fav-save { margin: 0; padding: 2px 0 0; min-height: 32px; }
+.meal .row.food .icon-btn { background: none; border-color: transparent; color: var(--muted); }

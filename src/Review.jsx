@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { todayStr } from './store'
 import { Modal } from './ui'
 import { EX_BY_ID } from './data/exercises'
 import { Thumb } from './ui'
@@ -123,8 +124,8 @@ function AskButton({ data }) {
   const [open, setOpen] = useState(false)
   return (
     <>
-      <button className="btn full" onClick={() => setOpen(true)}>
-        <Icon name="sparkle" size={16} /> Pregunta al entrenador
+      <button className="link small rv-ask" onClick={() => setOpen(true)}>
+        <Icon name="sparkle" size={15} /> Pregunta al entrenador
       </button>
       {open && <CoachChat data={data} onClose={() => setOpen(false)} />}
     </>
@@ -134,13 +135,15 @@ function AskButton({ data }) {
 // rest: hoy no toca pesas (Inicio) -> solo recomendaciones de andar o correr
 export default function WeeklyReview({ data, setData, focusId, rest }) {
   if (rest) {
+    // sin ningún dato (cuenta nueva: ni entrenos ni reloj de hoy) no hay nada en qué basarse
+    if (!data.sessions.length && !data.polar?.days?.[todayStr()]) return null
     const tips = restDayTips(data)
     return (
       <div className="card review">
-        <div className="sec-head nm">
-          <b>
-            <Icon name="trend" size={16} className="inl" /> Recomendaciones para hoy
-          </b>
+        <div className="card-h">
+          <Icon name="trend" size={16} />
+          <h3>Para hoy</h3>
+          <span className="card-aside">día de descanso</span>
         </div>
         <ul className="tips-list">
           {tips.map((t, i) => (
@@ -183,11 +186,10 @@ function TrainingReview({ data, setData, focusId }) {
 
   return (
     <div className="card review">
-      <div className="sec-head nm">
-        <b>
-          <Icon name="trend" size={16} className="inl" /> Recomendaciones de entrenamiento
-        </b>
-        <span className="muted small">{rv.count} entrenos</span>
+      <div className="card-h">
+        <Icon name="trend" size={16} />
+        <h3>Recomendaciones</h3>
+        <span className="card-aside">{rv.count} {rv.count === 1 ? 'entreno' : 'entrenos'}</span>
       </div>
       {rv.summary && <p className="small">{rv.summary}</p>}
       {rv.findings.length > 0 && (

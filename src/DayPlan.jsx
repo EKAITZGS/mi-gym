@@ -234,7 +234,7 @@ export default function DayPlanModal({ data, setData, onClose }) {
         {force == null
           ? `Según tu plan, el ${wd} ${planned ? 'entrenas' : 'descansas'}.`
           : `Cambiado a día de ${train ? 'entreno' : 'descanso'}.`}{' '}
-        <button className="link" style={{ padding: 0, minHeight: 0, display: 'inline' }} onClick={() => (setForce(!train), setAi(null))}>
+        <button className="link link-inl" onClick={() => (setForce(!train), setAi(null))}>
           {train ? '¿No vas a entrenar?' : '¿Al final entrenas?'}
         </button>
       </p>
@@ -293,7 +293,7 @@ export default function DayPlanModal({ data, setData, onClose }) {
           'Con lo que sueles comer, ajustado a estas kcal.'
         )}
         {ai && (
-          <button className="link" onClick={() => setAi(null)} style={{ marginLeft: 8 }}>
+          <button className="link ml-2" onClick={() => setAi(null)}>
             Ver la de lo que sueles comer
           </button>
         )}

@@ -837,9 +837,10 @@ function EnergyCard({ data, setData, date }) {
     })
   return (
     <div className="card energy">
-      <div className="sec-head nm">
-        <b>{today ? 'Balance de hoy' : 'Balance de ese día'}</b>
-        <span className="muted small">
+      <div className="card-h">
+        <Icon name="flame" size={16} />
+        <h3>{today ? 'Balance de hoy' : 'Balance de ese día'}</h3>
+        <span className="card-aside">
           {aimLabel(aim)}
           {e.cal.ok ? ' · calibrado' : ''}
         </span>
@@ -975,8 +976,8 @@ export default function Diet({ data, setData, onBack }) {
             <Bar value={t.p} max={g.protein} color="var(--blue)" />
           </div>
           <div className="macro-mini">
-            <span><i className="dotc" style={{ background: 'var(--amber)' }} />Hidratos {r0(t.c)} g</span>
-            <span><i className="dotc" style={{ background: 'var(--pink)' }} />Grasa {r0(t.f)} g</span>
+            <span><i className="dotc c-amber" />Hidratos {r0(t.c)} g</span>
+            <span><i className="dotc c-pink" />Grasa {r0(t.f)} g</span>
           </div>
         </div>
       </div>
@@ -993,60 +994,67 @@ export default function Diet({ data, setData, onBack }) {
           <span className="src-tag">≈</span> estimado · <span className="src-tag ok">✓</span> de etiqueta
         </p>
       )}
-      {MEALS.map((m) => {
-        const list = entries.filter((e) => e.meal === m)
-        const yday = (data.food[addDays(date, -1)] || []).filter((e) => e.meal === m)
-        const favList = [...(data.favMeals || [])].sort((a, b) => (b.meal === m) - (a.meal === m)).slice(0, 4)
-        const mk = list.reduce((s, e) => s + macros(e).kcal, 0)
-        return (
-          <div className="card" key={m}>
-            <div className="row nob meal-head">
-              <b className="grow">{m}</b>
-              <span className="kcal-chip">{r0(mk)} kcal</span>
-              <button className="icon-btn" onClick={() => setAdding(m)} aria-label={`Añadir a ${m}`}>
-                <Icon name="plus" size={18} />
-              </button>
-            </div>
-            {list.map((e) => {
-              const mm = macros(e)
-              return (
-                <div className="row nob food" key={e.id}>
-                  <RateDot food={e} />
-                  <div className="grow">
-                    <div>{e.name}</div>
-                    <div className="muted small">
-                      {e.quick ? 'Rápido' : e.label || `${r0(e.grams)} g`} · {r0(mm.kcal)} kcal · {r1(mm.p)} g prot
-                      {e.ai || e.quick || e.src === 'list' ? <span className="src-tag" title="Valor estimado">≈</span> : e.src === 'label' || e.src === 'off' ? <span className="src-tag ok" title="De la etiqueta del producto">✓</span> : null}
-                    </div>
-                  </div>
-                  <button className="icon-btn" onClick={() => remove(e.id)} aria-label="Quitar">
-                    <Icon name="x" size={16} />
-                  </button>
-                </div>
-              )
-            })}
-            {list.length === 0 && (yday.length > 0 || favList.length > 0) && (
-              <div className="chips wrap meal-quick">
-                {yday.length > 0 && (
-                  <button className="chip" onClick={() => copyIn(yday, m)}>
-                    ↺ Repetir de ayer · {kcalOf(yday)} kcal
-                  </button>
-                )}
-                {favList.map((f) => (
-                  <button className="chip" key={f.id} onClick={() => copyIn(f.items, m)}>
-                    ★ {f.name} · {kcalOf(f.items)} kcal
-                  </button>
-                ))}
+      <div className="card meals">
+        <div className="card-h">
+          <Icon name="food" size={16} />
+          <h3>Comidas</h3>
+          <span className="card-aside">{entries.length ? `${entries.length} ${entries.length === 1 ? 'alimento' : 'alimentos'}` : 'nada apuntado'}</span>
+        </div>
+        {MEALS.map((m) => {
+          const list = entries.filter((e) => e.meal === m)
+          const yday = (data.food[addDays(date, -1)] || []).filter((e) => e.meal === m)
+          const favList = [...(data.favMeals || [])].sort((a, b) => (b.meal === m) - (a.meal === m)).slice(0, 4)
+          const mk = list.reduce((s, e) => s + macros(e).kcal, 0)
+          return (
+            <div className={'meal' + (list.length ? '' : ' empty')} key={m}>
+              <div className="row nob meal-head">
+                <b className="grow">{m}</b>
+                {list.length > 0 && <span className="kcal-chip">{r0(mk)} kcal</span>}
+                <button className="icon-btn meal-add" onClick={() => setAdding(m)} aria-label={`Añadir a ${m}`}>
+                  <Icon name="plus" size={18} />
+                </button>
               </div>
-            )}
-            {list.length > 0 && (
-              <button className="link small fav-save" onClick={() => saveFav(m, list)}>
-                ☆ Guardar como favorita
-              </button>
-            )}
-          </div>
-        )
-      })}
+              {list.map((e) => {
+                const mm = macros(e)
+                return (
+                  <div className="row nob food" key={e.id}>
+                    <RateDot food={e} />
+                    <div className="grow">
+                      <div>{e.name}</div>
+                      <div className="muted small">
+                        {e.quick ? 'Rápido' : e.label || `${r0(e.grams)} g`} · {r0(mm.kcal)} kcal · {r1(mm.p)} g prot
+                        {e.ai || e.quick || e.src === 'list' ? <span className="src-tag" title="Valor estimado">≈</span> : e.src === 'label' || e.src === 'off' ? <span className="src-tag ok" title="De la etiqueta del producto">✓</span> : null}
+                      </div>
+                    </div>
+                    <button className="icon-btn" onClick={() => remove(e.id)} aria-label="Quitar">
+                      <Icon name="x" size={16} />
+                    </button>
+                  </div>
+                )
+              })}
+              {list.length === 0 && (yday.length > 0 || favList.length > 0) && (
+                <div className="chips wrap meal-quick">
+                  {yday.length > 0 && (
+                    <button className="chip" onClick={() => copyIn(yday, m)}>
+                      ↺ Repetir de ayer · {kcalOf(yday)} kcal
+                    </button>
+                  )}
+                  {favList.map((f) => (
+                    <button className="chip" key={f.id} onClick={() => copyIn(f.items, m)}>
+                      ★ {f.name} · {kcalOf(f.items)} kcal
+                    </button>
+                  ))}
+                </div>
+              )}
+              {list.length > 0 && (
+                <button className="link small fav-save" onClick={() => saveFav(m, list)}>
+                  ☆ Guardar como favorita
+                </button>
+              )}
+            </div>
+          )
+        })}
+      </div>
       {(data.favMeals || []).length > 0 && (
         <button className="link small" onClick={() => setFavs(true)}>
           Gestionar comidas favoritas ({data.favMeals.length})

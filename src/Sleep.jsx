@@ -157,14 +157,14 @@ export function SleepLine({ data, onOpen }) {
   return (
     <button className="card sleep-line" onClick={onOpen}>
       <span className="rest-ic">
-        <Icon name="calendar" size={18} />
+        <Icon name="moon" size={18} />
       </span>
       <div className="grow">
         <div className="li-t">
           Anoche dormiste {hm(a.last.len)}
           {a.last.score > 0 ? ` · ${a.last.score}/100` : ''}
         </div>
-        <div className="muted small">{a.tips[0]}</div>
+        <div className="muted small clamp-2">{a.tips[0]}</div>
       </div>
       <Icon name="right" size={16} className="muted" />
     </button>

@@ -403,7 +403,7 @@ export function weeklyReview(data, focusId) {
       if (sg?.action === 'up' && !ready.some((r) => r.startsWith(EX_BY_ID[it.ex]?.name)))
         ready.push(`${EX_BY_ID[it.ex]?.name} (${fmtKg(sg.from)} → ${fmtKg(sg.w)} kg)`)
     }
-  if (ready.length) findings.push(`${focus ? `Hoy (${focus.name}), listos` : 'Listos'} para subir peso: ${ready.join(', ')}`)
+  if (ready.length) findings.push(`${focus ? `Hoy (${focus.name.trim()}), listos` : 'Listos'} para subir peso: ${ready.join(', ')}`)
   const pw = polarWeek(data)
   if (pw) {
     const ss = pw.sessions

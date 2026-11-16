@@ -125,7 +125,7 @@ export default function Home({ data, setData, onStart, go, onOpenStart, name }) 
                 <span className="daypill ok">
                   <Icon name="check" size={13} /> Hecho hoy
                 </span>
-                <h2>{doneToday.dayId === d.id ? d.name : doneToday.dayName || d.name}</h2>
+                <h2>{(doneToday.dayId === d.id ? d.name : doneToday.dayName || d.name).trim()}</h2>
                 <p className="hero-sum">
                   {nEx} {nEx === 1 ? 'ejercicio' : 'ejercicios'} · {sets} {sets === 1 ? 'serie' : 'series'}
                   {watch ? ` · ${watch.min} min · ${watch.kcal} kcal` : doneToday.min ? ` · ${doneToday.min} min` : ''}
@@ -144,14 +144,14 @@ export default function Home({ data, setData, onStart, go, onOpenStart, name }) 
             <div className="hero-shade" />
             <div className="hero-txt">
               <span className="daypill">{data.active?.dayId === d.id ? 'Entreno en curso' : 'Entreno de hoy'}</span>
-              <h2>{d.name}</h2>
+              <h2>{d.name.trim()}</h2>
               <div className="hero-thumbs">
                 {d.items.slice(0, 5).map((i) => (
                   <Thumb key={i.id} ex={EX_BY_ID[i.ex]} size={34} />
                 ))}
                 <span className="small">{d.items.length ? `${d.items.length} ejercicios` : 'Sin ejercicios aún: añádelos mientras entrenas'}</span>
               </div>
-              <button className="cta" style={{ margin: '12px 0 0' }} onClick={onOpenStart}>
+              <button className="cta cta-hero" onClick={onOpenStart}>
                 <Icon name="play" size={16} fill="currentColor" stroke={0} />
                 {data.active?.dayId === d.id ? 'Continuar entrenamiento' : 'Comenzar entrenamiento'}
               </button>
@@ -170,7 +170,7 @@ export default function Home({ data, setData, onStart, go, onOpenStart, name }) 
               {data.plan.length === 0
                 ? 'Créala en Rutinas o empieza un entreno libre.'
                 : nextDay
-                  ? `Recuperar también es entrenar. Siguiente sesión: ${nextDay.d.name} (${nextDay.k === 1 ? 'mañana' : 'en ' + nextDay.k + ' días'}).`
+                  ? `Recuperar también es entrenar. Siguiente sesión: ${nextDay.d.name.trim()} (${nextDay.k === 1 ? 'mañana' : 'en ' + nextDay.k + ' días'}).`
                   : 'Recuperar también es entrenar.'}
             </p>
             {data.plan.length === 0 ? (
@@ -186,8 +186,8 @@ export default function Home({ data, setData, onStart, go, onOpenStart, name }) 
         </div>
       )}
       {todays.length > 0 && nextDay && nextDay.k > 0 && (
-        <p className="muted small" style={{ margin: '-6px 4px 12px' }}>
-          Siguiente sesión: <b>{nextDay.d.name}</b> · {nextDay.k === 1 ? 'mañana' : `en ${nextDay.k} días`}
+        <p className="muted small next-ses">
+          Siguiente sesión: <b>{nextDay.d.name.trim()}</b> · {nextDay.k === 1 ? 'mañana' : `en ${nextDay.k} días`}
         </p>
       )}
 
@@ -200,10 +200,10 @@ export default function Home({ data, setData, onStart, go, onOpenStart, name }) 
         if (!ex.length) return null
         return (
           <div className="card polar-card">
-            <div className="sec-head nm">
-              <b>
-                <Icon name="watch" size={16} className="inl" /> Reloj Polar
-              </b>
+            <div className="card-h">
+              <Icon name="watch" size={16} />
+              <h3>Entrenos del reloj</h3>
+              <span className="card-aside">hoy</span>
             </div>
             {ex.map((e) => (
               <button className="polar-ex" key={e.id} onClick={() => setPolarEx(e)}>
@@ -225,31 +225,32 @@ export default function Home({ data, setData, onStart, go, onOpenStart, name }) 
         )
       })()}
 
-      {/* Inicio: siempre pasos y kcal quemadas del reloj (lo que comes está en Dieta) */}
-      <div className="grid2">
-        <button className="card tile" onClick={askPolar}>
-          <Ring value={watchDay?.steps || 0} max={data.goals.steps || 7000} size={86} stroke={9}>
-            <Icon name="trend" size={20} />
+      {/* Inicio: siempre pasos y kcal quemadas del reloj (lo que comes está en Dieta), en una tarjeta compacta */}
+      <div className="card watch-today">
+        <button className="wt-item" onClick={askPolar} aria-label="Pasos de hoy">
+          <Ring value={watchDay?.steps || 0} max={data.goals.steps || 7000} size={46} stroke={5}>
+            <Icon name="trend" size={16} />
           </Ring>
-          <div>
-            <b className="tile-num">{miles(watchDay?.steps || 0)}</b>
-            <span className="muted small"> / {miles(data.goals.steps || 7000)} pasos hoy</span>
-          </div>
+          <span className="wt-txt">
+            <b className="wt-num">{miles(watchDay?.steps || 0)}</b>
+            <span className="muted small">de {miles(data.goals.steps || 7000)} pasos</span>
+          </span>
         </button>
-        <button className="card tile" onClick={askPolar}>
-          <Ring value={watchDay?.kcal || 0} max={data.goals.kcal || 2200} size={86} stroke={9} color="var(--amber)">
-            <Icon name="flame" size={20} />
+        <span className="wt-sep" aria-hidden="true" />
+        <button className="wt-item" onClick={askPolar} aria-label="Calorías quemadas hoy">
+          <Ring value={watchDay?.kcal || 0} max={data.goals.kcal || 2200} size={46} stroke={5} color="var(--amber)">
+            <Icon name="flame" size={16} />
           </Ring>
-          <div>
-            <b className="tile-num">{miles(watchDay?.kcal || 0)}</b>
-            <span className="muted small"> kcal quemadas hoy</span>
-          </div>
+          <span className="wt-txt">
+            <b className="wt-num">{miles(watchDay?.kcal || 0)}</b>
+            <span className="muted small">kcal quemadas</span>
+          </span>
         </button>
       </div>
       {!data.polar ? (
-        <p className="muted small" style={{ margin: '-4px 4px 10px' }}>Conecta tu reloj en Perfil para ver pasos y calorías quemadas.</p>
+        <p className="muted small wt-hint">Conecta tu reloj en Perfil para ver pasos y calorías quemadas.</p>
       ) : !watchDay ? (
-        <p className="muted small" style={{ margin: '-4px 4px 10px' }}>Aún no hay datos del reloj de hoy: se actualizan al sincronizar.</p>
+        <p className="muted small wt-hint">Aún no hay datos del reloj de hoy: se actualizan al sincronizar.</p>
       ) : null}
 
       <button className="card last-ses" onClick={() => go('diet')}>
@@ -266,9 +267,10 @@ export default function Home({ data, setData, onStart, go, onOpenStart, name }) 
       </button>
 
       <div className="card">
-        <div className="sec-head nm">
-          <b>Esta semana</b>
-          <span className="muted small">
+        <div className="card-h">
+          <Icon name="calendar" size={16} />
+          <h3>Esta semana</h3>
+          <span className="card-aside">
             {done} {done === 1 ? 'entreno' : 'entrenos'}
             {planned ? ` de ${planned}` : ''}
           </span>

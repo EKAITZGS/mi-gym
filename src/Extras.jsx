@@ -2,6 +2,7 @@ import { FOODS } from './data/foods'
 import { kcalGoal, proteinGoal } from './energy'
 import { RANK_GROUPS, groupsOf } from './ranks'
 import { dayTotals, todayStr, uid, fmtDate } from './store'
+import Icon from './icons'
 
 const FOOD = Object.fromEntries(FOODS.map((f) => [f.id, f]))
 
@@ -76,12 +77,12 @@ export function ProteinTip({ data, setData }) {
   }
   return (
     <div className="card prot-tip">
-      <div className="sec-head nm">
-        <b>Te faltan {pp.left} g de proteína</b>
-        <span className="muted small">{pp.kcalLeft > 0 ? `${Math.round(pp.kcalLeft)} kcal libres` : 'sin kcal libres'}</span>
+      <div className="card-h mb-0">
+        <Icon name="bolt" size={16} />
+        <h3>Te faltan {pp.left} g de proteína</h3>
       </div>
-      <p className="muted small" style={{ margin: '4px 0 8px' }}>
-        {h >= 19 ? 'Para cerrar el día, por ejemplo:' : 'Para llegar hoy, por ejemplo:'}
+      <p className="muted small pt-hint">
+        {pp.kcalLeft > 0 ? `${Math.round(pp.kcalLeft)} kcal libres` : 'Sin kcal libres'} · {h >= 19 ? 'para cerrar el día, por ejemplo:' : 'para llegar hoy, por ejemplo:'}
       </p>
       {pp.pick.map((o) => (
         <div className="row nob li" key={o.id}>
