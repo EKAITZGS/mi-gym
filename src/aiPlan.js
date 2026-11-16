@@ -11,6 +11,39 @@ const PLAN_RX =
 export const wantsPlan = (question, history = []) => PLAN_RX.test(question || '') || history.slice(-2).some((m) => m.proposal && !m.status)
 
 const exOf = (id, data) => EX_BY_ID[id] || (data.myExercises || []).find((x) => x.id === id)
+
+// ---- Nivel: lo elige el usuario (Ajustes → Entreno o el generador: prefs.gen.level) o sale de su historial ----
+export const LEVEL_TXT = { beginner: 'principiante', intermediate: 'intermedio', advanced: 'avanzado' }
+const DAY_MS = 86400000
+export function autoLevel(sessions = [], today = new Date()) {
+  const n = sessions.length
+  const first = sessions.reduce((m, s) => (s.date && s.date < m ? s.date : m), '9999')
+  const days = n ? Math.max(0, Math.round((new Date(today) - new Date(first + 'T12:00:00')) / DAY_MS)) : 0
+  const id = n < 12 || days < 56 ? 'beginner' : n < 60 || days < 280 ? 'intermediate' : 'advanced'
+  return { id, n, days }
+}
+export function levelOf(data, today = new Date()) {
+  const a = autoLevel(data.sessions || [], today)
+  const chosen = data.prefs?.gen?.level
+  const id = LEVEL_TXT[chosen] ? chosen : a.id
+  const why = chosen && LEVEL_TXT[chosen] ? 'elegido por él' : `${a.n} ${a.n === 1 ? 'entreno registrado' : 'entrenos registrados'}${a.n ? `, el primero hace ${a.days} ${a.days === 1 ? 'día' : 'días'}` : ''}`
+  return { id, label: LEVEL_TXT[id], why, auto: !LEVEL_TXT[chosen] }
+}
+// Cómo se adapta un entreno a cada nivel (lo mismo que hace el generador de rutinas)
+const LEVEL_RULES = {
+  beginner:
+    'Principiante: 3-5 ejercicios por día, sobre todo máquinas y movimientos sencillos de aprender; 2-3 series de 10-12 reps; RIR 2-3 (nunca al fallo); sin drop sets ni técnicas avanzadas; prioridad: aprender la técnica y la constancia; progresa subiendo reps y luego peso. Un grupo muscular 2 veces por semana basta.',
+  intermediate:
+    'Intermedio: 4-6 ejercicios por día, mezcla de peso libre y máquinas; 3-4 series de 6-12 reps; RIR 1-2; algún drop set puntual en el último ejercicio si encaja.',
+  advanced:
+    'Avanzado: 5-7 ejercicios por día; 3-5 series; más volumen por grupo (12-20 series/semana); RIR 0-2; técnicas avanzadas puntuales (drop sets, rest-pause) en accesorios.',
+}
+export const levelPrompt = (data) => {
+  const lv = levelOf(data)
+  return `Nivel del usuario: ${lv.label} (${lv.why}). Adapta TODO a su nivel. ${LEVEL_RULES[lv.id]}`
+}
+export const LEVEL_MAX_SETS = { beginner: 4, intermediate: 5, advanced: 6 }
+export const LEVEL_RIR = { beginner: 3, intermediate: 2, advanced: 1 }
 export const exNameOf = (data) => (id) => (exOf(id, data)?.name || 'Ejercicio').replace(/ \(.*\)/, '')
 
 // Rutina con referencias cortas (d1, d1e2…) para que la IA diga qué día y qué ejercicio cambia.
@@ -81,8 +114,9 @@ export function planPrompt(data, view, groups = []) {
 Rutina (dia 0=domingo…6=sábado, null=sin día; ej=[ref, id, series, reps]): ${JSON.stringify(view)}
 Ejercicios que puedes usar (ids; SOLO estos o los de su rutina):
 ${catalogForAi(data, groups)}
-Reglas: en un día que ya tiene, pon su ref y TODOS los ejercicios con los que queda, en orden (los que se quedan o cambias llevan la ref del original; los nuevos ref null). Día nuevo: ref null, nombre y dia. Con molestia, quita o cambia lo que carga esa zona y di por qué; si es dolor fuerte, que vaya a un profesional. 3-6 ejercicios por día, 2-4 series, reps como "8-10". En "respuesta" nombra los ejercicios en español. Si no pide cambios, propuesta null.
-Propuesta: {"resumen":"1 frase","dias":[{"ref":"d2" o null,"nombre":"...","dia":3,"ejercicios":[{"ref":"d2e1" o null,"id":"...","series":3,"reps":"8-10"}]}]}`
+${levelPrompt(data)}
+Reglas: en un día que ya tiene, pon su ref y TODOS los ejercicios con los que queda, en orden (los que se quedan o cambias llevan la ref del original; los nuevos ref null). Día nuevo: ref null, nombre y dia. Con molestia, quita o cambia lo que carga esa zona y di por qué; si es dolor fuerte, que vaya a un profesional. Reps como "8-10" y RIR (repeticiones en reserva, 0-4) según su nivel. En "respuesta" nombra los ejercicios en español y, si es principiante, explica brevemente por qué es así. Si no pide cambios, propuesta null.
+Propuesta: {"resumen":"1 frase","dias":[{"ref":"d2" o null,"nombre":"...","dia":3,"ejercicios":[{"ref":"d2e1" o null,"id":"...","series":3,"reps":"10-12","rir":2}]}]}`
 }
 
 const intIn = (v, lo, hi) => {
@@ -94,6 +128,7 @@ const intIn = (v, lo, hi) => {
 // Convierte la propuesta de la IA en días que la app sabe enseñar (diff) y aplicar. Descarta ids inventados.
 export function buildProposal(p, data, map) {
   if (!p || !Array.isArray(p.dias)) return null
+  const lv = levelOf(data).id
   const days = []
   const used = new Set()
   for (const d of p.dias.slice(0, 7)) {
@@ -106,9 +141,12 @@ export function buildProposal(p, data, map) {
       if (!exOf(ex, data) || seen.has(ex)) continue
       seen.add(ex)
       const src = base && e.ref && map.items[e.ref]?.dayId === base.id ? map.items[e.ref].item : null
-      const it = norm({ ex, sets: Math.max(1, Math.min(6, Number(e.series) || 3)), reps: String(e.reps || '10').slice(0, 12) })
+      // series con tope según su nivel; RIR el que diga la IA o el de su nivel
+      const it = norm({ ex, sets: Math.max(1, Math.min(LEVEL_MAX_SETS[lv], Number(e.series) || 3)), reps: String(e.reps || '10').slice(0, 12) })
+      const rir = intIn(e.rir, 0, 4)
       // si se queda el mismo ejercicio, conserva lo suyo (descanso, RIR, unilateral…)
-      items.push(src ? { ...(src.ex === ex ? clean(src) : {}), ...it, fromId: src.id } : it)
+      const keep = src && src.ex === ex ? clean(src) : null
+      items.push({ ...(keep || {}), ...it, ...(rir != null ? { rir } : keep?.rir != null ? {} : { rir: LEVEL_RIR[lv] }), ...(src ? { fromId: src.id } : {}) })
       if (items.length >= 10) break
     }
     if (!items.length) continue
@@ -125,7 +163,7 @@ export function buildProposal(p, data, map) {
       days.push({ kind: 'new', name: String(d.nombre || 'Día nuevo').trim().slice(0, 40) || 'Día nuevo', weekday: wd, items })
     }
   }
-  return days.length ? { summary: String(p.resumen || '').trim().slice(0, 300), days } : null
+  return days.length ? { summary: String(p.resumen || '').trim().slice(0, 300), days, level: lv } : null
 }
 
 // Respuesta de la IA (JSON) → texto + propuesta. Si no viene en JSON, se enseña el texto tal cual.

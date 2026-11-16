@@ -5,6 +5,7 @@ import { WEEKDAYS } from './store'
 import { EX_BY_ID } from './data/exercises'
 import { improvePlan, recentPains, needsDeload } from './coach'
 import { generatePlan } from './plans'
+import { levelOf } from './aiPlan'
 
 const FOCUS = ['Equilibrado', 'Más pierna', 'Más tren superior', 'Más brazos', 'Más hombro', 'Fuerza']
 const ORDER = [1, 2, 3, 4, 5, 6, 0]
@@ -32,8 +33,7 @@ export default function Coach({ data, setData, onClose }) {
     onClose()
   }
   const fallback = () => {
-    const level = data.sessions.length < 12 ? 'beginner' : data.sessions.length < 60 ? 'intermediate' : 'advanced'
-    apply(generatePlan(days, level))
+    apply(generatePlan(days, levelOf(data).id))
   }
 
   const r = st.result
@@ -42,8 +42,8 @@ export default function Coach({ data, setData, onClose }) {
       {!r && (
         <>
           <p className="muted small mt-0">
-            La IA mira tu rutina actual ({current} {current === 1 ? 'día' : 'días'}), tus últimos entrenos, cómo te
-            sentiste y tus molestias, y te propone cambios. Tú decides si los aplicas.
+            La IA mira tu rutina actual ({current} {current === 1 ? 'día' : 'días'}), tu nivel ({levelOf(data).label}), tus últimos
+            entrenos, cómo te sentiste y tus molestias, y te propone cambios. Tú decides si los aplicas.
           </p>
           {(pains.length > 0 || needsDeload(data.sessions)) && (
             <div className="advice yellow sm">

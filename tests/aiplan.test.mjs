@@ -1,6 +1,6 @@
 // Entrenador IA: propuestas de cambios en la rutina (se leen, se validan y se aplican solo si el usuario acepta)
 import assert from 'node:assert/strict'
-import { wantsPlan, planForAi, parseCoachReply, applyAiProposal, proposalTxt, catalogForAi, groupsFor } from '../src/aiPlan.js'
+import { wantsPlan, planForAi, parseCoachReply, applyAiProposal, proposalTxt, catalogForAi, groupsFor, levelOf, autoLevel, levelPrompt } from '../src/aiPlan.js'
 
 const data = {
   myExercises: [],
@@ -113,5 +113,32 @@ assert.equal(parseCoachReply(JSON.stringify({ respuesta: 'x', propuesta: { dias:
 // dia: null en un día existente no lo deja "sin día"
 const keep = parseCoachReply(JSON.stringify({ respuesta: 'x', propuesta: { dias: [{ ref: 'd2', nombre: 'Pierna', dia: null, ejercicios: [{ ref: 'd2e1', id: 'Barbell_Squat', series: 5, reps: '5' }] }] } }), data, map)
 assert.equal(keep.proposal.days[0].weekday, undefined)
+
+// nivel: sale de los entrenos (cuántos y desde cuándo) o lo elige él
+const ses = (n, first) => Array.from({ length: n }, (_, i) => ({ id: 's' + i, date: i === 0 ? first : '2026-11-15' }))
+const hoy = new Date('2026-11-16T12:00:00')
+assert.equal(autoLevel(ses(6, '2026-11-12'), hoy).id, 'beginner')
+assert.equal(autoLevel(ses(40, '2026-03-01'), hoy).id, 'intermediate')
+assert.equal(autoLevel(ses(200, '2025-01-01'), hoy).id, 'advanced')
+assert.equal(autoLevel(ses(30, '2026-10-20'), hoy).id, 'beginner') // muchos entrenos pero menos de 8 semanas
+assert.equal(levelOf({ sessions: ses(200, '2025-01-01'), prefs: { gen: { level: 'beginner' } } }, hoy).id, 'beginner')
+assert.ok(levelOf({ sessions: ses(6, '2026-11-12') }, hoy).why.includes('6 entrenos registrados, el primero hace 4 días'))
+assert.ok(levelPrompt({ sessions: ses(6, '2026-11-12') }).includes('Principiante: 3-5 ejercicios'))
+// principiante: series con tope (4) y RIR de su nivel si la IA no lo pone; si lo pone, se respeta
+const nov = { ...data, sessions: ses(6, '2026-11-12') }
+const pm = planForAi(nov)
+const pb = parseCoachReply(JSON.stringify({ respuesta: 'x', propuesta: { dias: [{ ref: null, nombre: 'Espalda', dia: 3, ejercicios: [
+  { ref: null, id: 'Wide-Grip_Lat_Pulldown', series: 6, reps: '10-12' },
+  { ref: null, id: 'Seated_Cable_Rows', series: 3, reps: '10-12', rir: 2 },
+] }] } }), nov, pm.map)
+assert.equal(pb.proposal.level, 'beginner')
+assert.deepEqual(pb.proposal.days[0].items.map((x) => [x.sets, x.rir]), [[4, 3], [3, 2]])
+// avanzado: RIR por defecto 1 y hasta 6 series
+const adv = { ...data, sessions: ses(200, '2025-01-01') }
+const pa = parseCoachReply(JSON.stringify({ respuesta: 'x', propuesta: { dias: [{ ref: null, nombre: 'E', ejercicios: [{ id: 'Wide-Grip_Lat_Pulldown', series: 6, reps: '8' }] }] } }), adv, planForAi(adv).map)
+assert.deepEqual([pa.proposal.days[0].items[0].sets, pa.proposal.days[0].items[0].rir], [6, 1])
+// un ejercicio que se queda igual conserva su RIR
+const kept = parseCoachReply(JSON.stringify({ respuesta: 'x', propuesta: { dias: [{ ref: 'd1', nombre: 'Hombro', ejercicios: [{ ref: 'd1e1', id: 'Dumbbell_Shoulder_Press', series: 2, reps: '8-10' }, { ref: 'd1e2', id: 'Side_Lateral_Raise', series: 3, reps: '12' }, { ref: 'd1e3', id: 'Triceps_Pushdown', series: 3, reps: '10' }] }] } }), nov, pm.map)
+assert.equal(applyAiProposal(nov.plan, kept.proposal).find((d) => d.id === 'P1').items[0].rir, 2)
 
 console.log('aiplan ok')

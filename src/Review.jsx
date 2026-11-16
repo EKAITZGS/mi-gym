@@ -9,7 +9,7 @@ import { hasAi } from './ai'
 import { WEEKDAYS } from './store'
 import { DiffLines } from './CoachTools'
 import { applyChanges } from './dayDiff'
-import { applyAiProposal, proposalTxt, exNameOf } from './aiPlan'
+import { applyAiProposal, proposalTxt, exNameOf, levelOf, LEVEL_TXT } from './aiPlan'
 
 // Propuesta del entrenador IA en el chat: se enseña qué cambia y el usuario la aplica o no (nunca se aplica sola)
 function AiProposal({ p, data, setData, status, onDecide }) {
@@ -24,6 +24,7 @@ function AiProposal({ p, data, setData, status, onDecide }) {
     <div className="tw-card ai-prop">
       <div className="tw-h">
         <Icon name="sparkle" size={16} /> Propuesta para tu rutina
+        {p.level && <span className="badge ai-lv">nivel {LEVEL_TXT[p.level]}</span>}
       </div>
       {p.summary && <p className="small m-0 ai-prop-sum">{p.summary}</p>}
       {p.days.map((d, i) => {
@@ -53,7 +54,7 @@ function AiProposal({ p, data, setData, status, onDecide }) {
                 <summary>Ver cómo queda el día</summary>
                 {after.items.map((it) => (
                   <div className="small dp-item" key={it.id}>
-                    {nameOf(it.ex)} <span className="muted">· {it.sets}×{it.reps}</span>
+                    {nameOf(it.ex)} <span className="muted">· {it.sets}×{it.reps}{it.rir != null ? ` · RIR ${it.rir}` : ''}</span>
                   </div>
                 ))}
               </details>
@@ -67,7 +68,7 @@ function AiProposal({ p, data, setData, status, onDecide }) {
             <b>Día nuevo: {d.name}</b>
             {d.items.map((it, k) => (
               <div className="small dp-item" key={k}>
-                {nameOf(it.ex)} <span className="muted">· {it.sets}×{it.reps}</span>
+                {nameOf(it.ex)} <span className="muted">· {it.sets}×{it.reps}{it.rir != null ? ` · RIR ${it.rir}` : ''}</span>
               </div>
             ))}
             {status == null && (
@@ -188,7 +189,7 @@ export function CoachChat({ data, setData, onClose, initial }) {
         {msgs.length === 0 && (
           <>
             <p className="muted small mt-0">
-              Conoce tu plan, tus últimos entrenos, molestias y sueño. Es orientativo: no sustituye a un médico ni a un fisio.
+              Conoce tu plan, tu nivel ({levelOf(data).label}), tus últimos entrenos, molestias y sueño, y puede proponerte cambios en tu rutina. Es orientativo: no sustituye a un médico ni a un fisio.
             </p>
             {IDEAS.map((i) => (
               <button key={i} className="chip sm chat-idea" onClick={() => send(i)}>

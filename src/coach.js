@@ -3,7 +3,7 @@ import { hasAi, groqChat } from './ai'
 import { uid, todayStr, addDays, suggestion, fmtKg, setTxt, fmtDate } from './store'
 import { nightsOf, muscleLoad, recentPRs, stalled, periodStats, streakWeeks, progressRead } from './stats'
 import { groupsOf } from './ranks'
-import { wantsPlan, planForAi, planPrompt, parseCoachReply, groupsFor, catalogForAi } from './aiPlan'
+import { wantsPlan, planForAi, planPrompt, parseCoachReply, groupsFor, catalogForAi, levelPrompt, levelOf, LEVEL_MAX_SETS, LEVEL_RIR } from './aiPlan'
 import { exStats } from './store'
 
 // Resumen del reloj Polar de los últimos 7 días (para la revisión y para la IA)
@@ -213,6 +213,7 @@ Responde SIEMPRE solo con JSON: {"respuesta":"lo que le dices al usuario","propu
       const ctx = { objetivos: data.goals, plan, datos_exactos: facts, ultimos_entrenos: last, reloj_semana: polarWeek(data), sueno_ultimas_noches: nights.length ? nights : undefined }
       system = `${base}
 Cuando des cifras (entrenos, series, kilos, récords), di de qué periodo son (p. ej. "esta semana, desde el lunes ${facts.esta_semana.desde}") y de dónde salen. Si no hay datos suficientes para responder, dilo claramente en vez de estimar.
+${levelPrompt(data)}
 Datos del usuario: ${JSON.stringify(ctx)}
 Responde SIEMPRE solo con JSON: {"respuesta":"lo que le dices al usuario","propuesta":null}`
     }
@@ -252,6 +253,7 @@ export async function improvePlan(data, { days, focus, notes }) {
   const { plan, last } = summarize(data)
   const prompt = `Eres un entrenador personal. Mejora la rutina de gimnasio de este usuario.
 Objetivo: perder grasa y ganar músculo. Días por semana que quiere: ${days}. Enfoque: ${focus || 'equilibrado'}.
+${levelPrompt(data)}
 Notas del usuario: ${notes || 'ninguna'}.
 Rutina actual (dia: 0=domingo,1=lunes...6=sábado): ${JSON.stringify(plan)}
 Últimos entrenos con sensaciones y molestias: ${JSON.stringify(last)}
@@ -261,12 +263,12 @@ Reglas:
 - Respeta lo que ya hace y le funciona; cambia solo lo necesario. Si añades días, mantén los suyos y añade los nuevos con sentido (no entrenar el mismo grupo dos días seguidos).
 - Si hay molestias recientes, evita o sustituye ejercicios que carguen esa zona y dilo.
 - Si las sensaciones son muy duras, reduce volumen. Cada grupo muscular, 10-16 series por semana aprox.
-- 4-6 ejercicios por día, 2-4 series, reps como "8-10" o "12".
+- Ejercicios, series, reps y RIR según su nivel (arriba); reps como "8-10" o "12".
 - Usa SOLO estos ids (por grupo muscular):
 ${catalog}
 
 Responde SOLO con JSON:
-{"resumen":"2-3 frases de qué cambias y por qué","consejos":["consejo corto",...],"plan":[{"nombre":"...","dia":1,"ejercicios":[{"id":"...","series":3,"reps":"8-10"}]}]}`
+{"resumen":"2-3 frases de qué cambias y por qué","consejos":["consejo corto",...],"plan":[{"nombre":"...","dia":1,"ejercicios":[{"id":"...","series":3,"reps":"8-10","rir":2}]}]}`
   let txt = await groqChat({
     messages: [{ role: 'user', content: prompt }],
     response_format: { type: 'json_object' },
@@ -284,6 +286,7 @@ Responde SOLO con JSON:
     }
   }
   const used = new Set()
+  const lv = levelOf(data).id
   const newPlan = (o.plan || [])
     .map((d) => {
       const w = Number.isInteger(d.dia) && d.dia >= 0 && d.dia <= 6 ? d.dia : null
@@ -296,8 +299,9 @@ Responde SOLO con JSON:
         .map((e) => ({
           id: uid(),
           ex: e.id,
-          sets: Math.max(1, Math.min(6, Number(e.series) || 3)),
+          sets: Math.max(1, Math.min(LEVEL_MAX_SETS[lv], Number(e.series) || 3)),
           reps: String(e.reps || '10').slice(0, 12),
+          rir: Number.isInteger(Number(e.rir)) && e.rir !== null && e.rir !== '' && Number(e.rir) >= 0 && Number(e.rir) <= 4 ? Number(e.rir) : LEVEL_RIR[lv],
           drop: false,
         }))
       return items.length ? { id: uid(), name: String(d.nombre || 'Día').slice(0, 40), weekday: w, items } : null

@@ -2705,3 +2705,4 @@ button.setn:active { background: var(--accent-soft); color: var(--accent); }
 .ai-prop-st { margin: var(--sp-2) 0 0; font-weight: 600; }
 .ai-prop-st.ok { color: var(--ok); }
 .ai-prop-st.no { color: var(--muted); }
+.tw-h .ai-lv { margin-left: auto; font-weight: 600; color: var(--muted); }

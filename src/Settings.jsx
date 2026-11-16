@@ -16,6 +16,7 @@ import { deleteAccount } from './cloud'
 import { calcGoals, ACTIVITY } from './stats'
 import { ListRow, miles } from './ds'
 import { pushState } from './push'
+import { levelOf, autoLevel, LEVEL_TXT } from './aiPlan'
 
 // Calcula kcal y proteína; los datos que pide no se guardan, solo el resultado si lo aceptas
 export function GoalCalc({ onApply, onClose, skipLabel }) {
@@ -73,6 +74,13 @@ export default function Settings({ data, setData, cloud, onBack }) {
   const [calc, setCalc] = useState(false)
   const [legal, setLegal] = useState(false)
   const [sec, setSec] = useState(null) // categoría abierta: train | goals | push | polar | ai | data
+  const lv = levelOf(data)
+  // nivel en prefs.gen.level (lo mismo que guarda el generador); vacío = automático según los entrenos
+  const setLevel = (v) =>
+    setData((d) => {
+      const { level, ...gen } = d.prefs?.gen || {}
+      return { ...d, prefs: { ...(d.prefs || {}), gen: v ? { ...gen, level: v } : gen } }
+    })
   useEffect(() => {
     document.querySelector('.main')?.scrollTo(0, 0)
   }, [sec])
@@ -188,7 +196,7 @@ export default function Settings({ data, setData, cloud, onBack }) {
 
   const fmtRest = (v) => (v < 60 ? `${v} segundos` : `${Math.floor(v / 60)}:${String(v % 60).padStart(2, '0')} min`)
   const SECS = {
-    train: { icon: 'dumbbell', title: 'Entreno', sub: restPref.on ? `Descanso de ${fmtRest(restPref.secs)}` : 'Sin cuenta atrás de descanso' },
+    train: { icon: 'dumbbell', title: 'Entreno', sub: `Nivel ${lv.label}${lv.auto ? ' (automático)' : ''} · ${restPref.on ? `descanso de ${fmtRest(restPref.secs)}` : 'sin cuenta atrás'}` },
     goals: { icon: 'flame', title: 'Objetivos diarios', sub: `${miles(data.goals.kcal || 2200)} kcal · ${data.goals.protein || 150} g proteína · ${miles(data.goals.steps || 7000)} pasos` },
     push: { icon: 'clock', title: 'Avisos en el móvil', sub: pushState()?.on ? 'Activados' : 'Desactivados' },
     polar: { icon: 'watch', title: 'Reloj Polar', sub: polar?.token ? 'Conectado' : 'Sin conectar' },
@@ -207,6 +215,19 @@ export default function Settings({ data, setData, cloud, onBack }) {
         <h1 className="title">{SECS[sec].title}</h1>
         {sec === 'train' && (
           <>
+      <div className="card">
+        <label className="lbl mt-0">Tu nivel</label>
+        <select className="inp" aria-label="Tu nivel" value={data.prefs?.gen?.level || ''} onChange={(e) => setLevel(e.target.value)}>
+          <option value="">Automático (ahora: {LEVEL_TXT[autoLevel(data.sessions).id]})</option>
+          <option value="beginner">Principiante: empiezas o vuelves tras un parón</option>
+          <option value="intermediate">Intermedio: 6-12 meses entrenando con constancia</option>
+          <option value="advanced">Avanzado: más de un año entrenando en serio</option>
+        </select>
+        <p className="muted small mb-0">
+          El entrenador IA, «Mejorar con IA» y el generador de rutinas adaptan ejercicios, series, repeticiones e intensidad a tu nivel.
+          {lv.auto ? ` En automático sale de tus entrenos (${lv.why}).` : ''}
+        </p>
+      </div>
       <div className="card">
         <label className="lbl mt-0">Cuenta atrás de descanso al marcar una serie</label>
         <div className="seg">
