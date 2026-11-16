@@ -2691,3 +2691,17 @@ button.setn:active { background: var(--accent-soft); color: var(--accent); }
   .dgrid .dcard-top { flex: none; }
   .dgrid .dcard-foot { margin-top: auto; padding-top: var(--sp-3); }
 }
+
+/* Entrenador IA: propuesta de cambios dentro del chat */
+.chat-turn { display: flex; flex-direction: column; gap: var(--sp-2); }
+.ai-prop { align-self: stretch; margin: 0; }
+.ai-prop-sum { color: var(--text2); margin-bottom: var(--sp-2) !important; }
+.ai-day { padding: var(--sp-2) 0; border-top: 1px solid var(--border); }
+.ai-day:first-of-type { border-top: 0; }
+.ai-day > b { display: block; margin-bottom: 4px; font-size: var(--fs-md); }
+.ai-day .lbl { margin-top: var(--sp-2); }
+.ai-day .inp { margin-bottom: 4px; }
+.ai-prop .btns { margin-top: var(--sp-2); }
+.ai-prop-st { margin: var(--sp-2) 0 0; font-weight: 600; }
+.ai-prop-st.ok { color: var(--ok); }
+.ai-prop-st.no { color: var(--muted); }

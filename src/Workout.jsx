@@ -2068,7 +2068,7 @@ export default function Workout({ data, setData, view, setView, onStart, onStart
 
       {exOpen && <ExerciseModal ex={exOpen} data={data} setData={setData} onClose={() => setExOpen(null)} />}
       {maker && <PlanMaker data={data} setData={setData} onClose={() => setMaker(false)} />}
-      {chat && <CoachChat data={data} onClose={() => setChat(false)} />}
+      {chat && <CoachChat data={data} setData={setData} onClose={() => setChat(false)} />}
       {coach && <Coach data={data} setData={setData} onClose={() => setCoach(false)} />}
     </div>
   )

@@ -6,6 +6,107 @@ import { Thumb } from './ui'
 import Icon from './icons'
 import { weeklyReview, applyProposal, aiWeeklyReview, restDayTips, askCoach } from './coach'
 import { hasAi } from './ai'
+import { WEEKDAYS } from './store'
+import { DiffLines } from './CoachTools'
+import { applyChanges } from './dayDiff'
+import { applyAiProposal, proposalTxt, exNameOf } from './aiPlan'
+
+// Propuesta del entrenador IA en el chat: se enseña qué cambia y el usuario la aplica o no (nunca se aplica sola)
+function AiProposal({ p, data, setData, status, onDecide }) {
+  const nameOf = exNameOf(data)
+  const [pick, setPick] = useState({})
+  const wdOf = (d, i) => (pick[i] !== undefined ? pick[i] : d.weekday)
+  const apply = () => {
+    setData((dd) => ({ ...dd, plan: applyAiProposal(dd.plan, p, pick) }))
+    onDecide('ok')
+  }
+  return (
+    <div className="tw-card ai-prop">
+      <div className="tw-h">
+        <Icon name="sparkle" size={16} /> Propuesta para tu rutina
+      </div>
+      {p.summary && <p className="small m-0 ai-prop-sum">{p.summary}</p>}
+      {p.days.map((d, i) => {
+        if (d.kind === 'edit') {
+          const cur = data.plan.find((x) => x.id === d.day.baseId)
+          if (!cur) return <p className="small muted" key={i}>El día "{d.day.baseName}" ya no está en tu rutina.</p>
+          const after = applyChanges([cur], d.day)[0]
+          return (
+            <div className="ai-day" key={i}>
+              <b>
+                En tu día {cur.name.trim()}
+                {cur.weekday != null ? ` (${WEEKDAYS[cur.weekday]})` : ''}
+              </b>
+              {d.changes.length > 0 && <DiffLines changes={d.changes} nameOf={nameOf} />}
+              {d.weekday !== undefined && (
+                <div className="dl">
+                  <div className="dl-row sets">
+                    <span className="dl-tag">Día</span>
+                    <span className="grow">
+                      {cur.weekday != null ? WEEKDAYS[cur.weekday] : 'Sin día'} → <b>{d.weekday != null ? WEEKDAYS[d.weekday] : 'Sin día'}</b>
+                      {d.weekday != null && data.plan.some((x) => x.weekday === d.weekday && x.id !== cur.id) ? <span className="muted"> · {data.plan.find((x) => x.weekday === d.weekday).name.trim()} se queda sin día</span> : null}
+                    </span>
+                  </div>
+                </div>
+              )}
+              <details className="tw-after">
+                <summary>Ver cómo queda el día</summary>
+                {after.items.map((it) => (
+                  <div className="small dp-item" key={it.id}>
+                    {nameOf(it.ex)} <span className="muted">· {it.sets}×{it.reps}</span>
+                  </div>
+                ))}
+              </details>
+            </div>
+          )
+        }
+        const wd = wdOf(d, i)
+        const taken = wd != null ? data.plan.find((x) => x.weekday === wd) : null
+        return (
+          <div className="ai-day" key={i}>
+            <b>Día nuevo: {d.name}</b>
+            {d.items.map((it, k) => (
+              <div className="small dp-item" key={k}>
+                {nameOf(it.ex)} <span className="muted">· {it.sets}×{it.reps}</span>
+              </div>
+            ))}
+            {status == null && (
+              <>
+                <label className="lbl">¿Qué día?</label>
+                <select className="inp" aria-label="Día de la semana del día nuevo" value={wd ?? ''} onChange={(e) => setPick((s) => ({ ...s, [i]: e.target.value === '' ? null : +e.target.value }))}>
+                  <option value="">Sin día fijo</option>
+                  {[1, 2, 3, 4, 5, 6, 0].map((n) => (
+                    <option key={n} value={n}>
+                      {WEEKDAYS[n]}
+                      {data.plan.some((x) => x.weekday === n) ? ` (sustituye a ${data.plan.find((x) => x.weekday === n).name.trim()})` : ''}
+                    </option>
+                  ))}
+                </select>
+                {taken && <p className="small hint-warn m-0">{taken.name.trim()} se quedará sin día fijo (no se borra).</p>}
+              </>
+            )}
+          </div>
+        )
+      })}
+      {status == null ? (
+        setData ? (
+          <div className="btns">
+            <button className="btn" onClick={() => onDecide('no')}>
+              No, gracias
+            </button>
+            <button className="btn primary" onClick={apply}>
+              <Icon name="check" size={16} /> Aplicar
+            </button>
+          </div>
+        ) : (
+          <p className="small muted">Para aplicarla, pregúntalo desde Entrenamiento.</p>
+        )
+      ) : (
+        <p className={'small ai-prop-st ' + status}>{status === 'ok' ? '✓ Aplicado: ya lo tienes en Rutinas.' : 'Descartada: tu rutina sigue igual.'}</p>
+      )}
+    </div>
+  )
+}
 
 function Proposal({ p, data, onDecide }) {
   const it = data.plan.find((d) => d.id === p.dayId)?.items.find((i) => i.id === p.itemId)
@@ -50,10 +151,10 @@ function Proposal({ p, data, onDecide }) {
   )
 }
 
-const IDEAS = ['¿Qué ceno hoy para llegar a la proteína?', 'Me duele un poco el hombro, ¿qué cambio en mi plan?', '¿Cómo salgo de un estancamiento en press banca?']
+const IDEAS = ['Me duele un poco el hombro, ¿qué cambio en mi plan?', 'Quiero entrenar también el miércoles: hazme un día de espalda', '¿Qué ceno hoy para llegar a la proteína?', '¿Cómo salgo de un estancamiento en press banca?']
 
 // Chat con el entrenador (IA). La conversación no se guarda: al cerrar se borra.
-export function CoachChat({ data, onClose, initial }) {
+export function CoachChat({ data, setData, onClose, initial }) {
   const [msgs, setMsgs] = useState([])
   const [q, setQ] = useState('')
   const [busy, setBusy] = useState(false)
@@ -75,7 +176,7 @@ export function CoachChat({ data, onClose, initial }) {
     setBusy(true)
     try {
       const a = await askCoach(data, msgs, t)
-      setMsgs([...hist, { role: 'coach', text: a }])
+      setMsgs([...hist, { role: 'coach', text: a.text, proposal: a.proposal, ptxt: a.proposal ? proposalTxt(a.proposal, data) : '' }])
     } catch (e) {
       setMsgs([...hist, { role: 'coach', err: true, text: e.message === 'NO_KEY' ? 'La IA no está disponible ahora. Puedes poner tu clave gratis de Groq en Ajustes.' : e.message }])
     }
@@ -97,8 +198,17 @@ export function CoachChat({ data, onClose, initial }) {
           </>
         )}
         {msgs.map((m, i) => (
-          <div key={i} className={'bubble ' + (m.role === 'user' ? 'me' : 'coach') + (m.err ? ' err' : '')}>
-            {m.text}
+          <div key={i} className="chat-turn">
+            {m.text && <div className={'bubble ' + (m.role === 'user' ? 'me' : 'coach') + (m.err ? ' err' : '')}>{m.text}</div>}
+            {m.proposal && (
+              <AiProposal
+                p={m.proposal}
+                data={data}
+                setData={setData}
+                status={m.status}
+                onDecide={(st) => setMsgs((l) => l.map((x, k) => (k === i ? { ...x, status: st } : x)))}
+              />
+            )}
           </div>
         ))}
         {busy && <div className="bubble coach muted">Pensando…</div>}
@@ -120,14 +230,14 @@ export function CoachChat({ data, onClose, initial }) {
   )
 }
 
-function AskButton({ data }) {
+function AskButton({ data, setData }) {
   const [open, setOpen] = useState(false)
   return (
     <>
       <button className="link small rv-ask" onClick={() => setOpen(true)}>
         <Icon name="sparkle" size={15} /> Pregunta al entrenador
       </button>
-      {open && <CoachChat data={data} onClose={() => setOpen(false)} />}
+      {open && <CoachChat data={data} setData={setData} onClose={() => setOpen(false)} />}
     </>
   )
 }
@@ -150,7 +260,7 @@ export default function WeeklyReview({ data, setData, focusId, rest }) {
             <li key={i}>{t}</li>
           ))}
         </ul>
-        <AskButton data={data} />
+        <AskButton data={data} setData={setData} />
       </div>
     )
   }
@@ -213,7 +323,7 @@ function TrainingReview({ data, setData, focusId }) {
         </button>
       )}
       {ai.err && <p className="toast warn small">{ai.err}</p>}
-      <AskButton data={data} />
+      <AskButton data={data} setData={setData} />
     </div>
   )
 }

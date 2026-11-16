@@ -131,6 +131,7 @@ export default function AimCard({ data, setData }) {
       {chat && (
         <CoachChat
           data={data}
+          setData={setData}
           onClose={() => setChat(false)}
           initial={`Mi objetivo es ${info.label.toLowerCase()}. Analiza mi progreso (peso, cintura, comida, entreno, fuerza y sueño) y dime qué ajusto esta semana en dieta y entreno.`}
         />

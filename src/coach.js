@@ -3,6 +3,7 @@ import { hasAi, groqChat } from './ai'
 import { uid, todayStr, addDays, suggestion, fmtKg, setTxt, fmtDate } from './store'
 import { nightsOf, muscleLoad, recentPRs, stalled, periodStats, streakWeeks, progressRead } from './stats'
 import { groupsOf } from './ranks'
+import { wantsPlan, planForAi, planPrompt, parseCoachReply } from './aiPlan'
 import { exStats } from './store'
 
 // Resumen del reloj Polar de los últimos 7 días (para la revisión y para la IA)
@@ -183,31 +184,42 @@ export function coachFacts(data, now = new Date()) {
 
 export async function askCoach(data, history, question) {
   if (!hasAi()) throw new Error('NO_KEY')
+  // si va de la rutina, se le pasa la rutina con referencias y el catálogo para que pueda proponer cambios concretos
+  const planMode = wantsPlan(question, history)
+  const { view, map } = planForAi(data)
   const { plan, last } = summarize(data)
   const nights = Object.entries(nightsOf(data)).slice(-7).map(([d, n]) => ({ fecha: d, horas: Math.round((n.total / 60) * 10) / 10 }))
   const ctx = {
     objetivos: data.goals,
-    plan,
+    plan: planMode ? undefined : plan,
     datos_exactos: coachFacts(data),
     ultimos_entrenos: last,
     reloj_semana: polarWeek(data),
     sueno_ultimas_noches: nights.length ? nights : undefined,
   }
-  const prev = history.slice(-8).map((m) => `${m.role === 'user' ? 'Usuario' : 'Entrenador'}: ${m.text}`).join('\n')
+  const said = (m) => (m.ptxt ? ` [Propuesta: ${m.ptxt}${m.status === 'ok' ? ' (la aplicó)' : m.status === 'no' ? ' (la rechazó)' : ''}]` : '')
+  const prev = history
+    .slice(-8)
+    .map((m) => `${m.role === 'user' ? 'Usuario' : 'Entrenador'}: ${m.text}${said(m)}`)
+    .join('\n')
   const system = `Eres el entrenador personal y nutricionista de la app Mi Gym. Respondes en español de España, cercano y directo, en 2-6 frases o una lista corta.
 Usa los datos del usuario cuando sirvan; no inventes datos que no tengas. Cuando des cifras (entrenos, series, kilos, récords), di de qué periodo son (p. ej. "esta semana, desde el lunes ${ctx.datos_exactos.esta_semana.desde}") y de dónde salen. Si no hay datos suficientes para responder, dilo claramente en vez de estimar.
-Nunca cambies tú la rutina, los objetivos ni los datos: solo propón; el usuario decide y lo aplica él en la app. Si preguntan por dolor fuerte, lesión, mareos o algo médico, da una pauta prudente y recomienda ir a un profesional sanitario; no diagnostiques.
-Datos del usuario: ${JSON.stringify(ctx)}`
+Nunca cambias tú la rutina, los objetivos ni los datos: solo propones; el usuario decide en la app. Si preguntan por dolor fuerte, lesión, mareos o algo médico, da una pauta prudente y recomienda ir a un profesional sanitario; no diagnostiques.
+Datos del usuario: ${JSON.stringify(ctx)}
+${planMode ? `\n${planPrompt(data, view)}\n` : ''}
+Responde SIEMPRE solo con JSON: {"respuesta":"lo que le dices al usuario","propuesta":${planMode ? 'null o la propuesta' : 'null'}}`
   const user = `${prev ? `Conversación hasta ahora:\n${prev}\n\n` : ''}Pregunta: ${question}`
   const txt = await groqChat({
     messages: [
       { role: 'system', content: system },
       { role: 'user', content: user },
     ],
-    temperature: 0.5,
-    max_completion_tokens: 700,
+    response_format: { type: 'json_object' },
+    temperature: 0.4,
+    max_completion_tokens: planMode ? 2000 : 700,
   })
-  return txt.trim() || 'No he sabido responder a eso, prueba a preguntarlo de otra forma.'
+  const r = parseCoachReply(txt, data, planMode ? map : null)
+  return { text: r.text || 'No he sabido responder a eso, prueba a preguntarlo de otra forma.', proposal: r.proposal }
 }
 
 export async function improvePlan(data, { days, focus, notes }) {
