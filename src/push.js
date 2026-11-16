@@ -4,6 +4,7 @@ import { POLAR_WORKER } from './polar'
 import { todayStr, addDays } from './store'
 import { polarExercisesOn } from './polar'
 import { proteinPlan } from './Extras'
+import { dayMinutes } from './plans'
 
 const LS = 'migym.push'
 export const DEFAULT_PREFS = { train: true, trainAt: '09:00', protein: true, proteinAt: '21:00', watch: true, waist: true, walk: true, walkAt: '18:00' }
@@ -53,13 +54,18 @@ export function pushPlan(data) {
     if (pr.train) {
       const day = data.plan.find((d) => d.weekday === wd)
       const done = data.sessions.some((s) => s.date === date)
-      if (day && !done)
+      if (day && !done) {
+        const n = day.items.length
+        const sets = day.items.reduce((t, x) => t + (Number(x.sets) || 0), 0)
         items.push({
           k: 'train-' + date,
           at: at(date, pr.trainAt),
-          title: `Hoy toca ${day.name} 💪`,
-          body: day.items.length ? `${day.items.length} ejercicios. Inicia el entreno en el reloj al empezar.` : 'Añade los ejercicios mientras entrenas.',
+          title: `Entreno de hoy · ${day.name.trim()}`,
+          body: n
+            ? `${n} ${n === 1 ? 'ejercicio' : 'ejercicios'} · ${sets} series · ~${dayMinutes(day.items)} min. Recuerda iniciar la sesión en el reloj.`
+            : 'El día aún no tiene ejercicios: añádelos al empezar.',
         })
+      }
     }
     if (pr.protein) {
       if (i === 0) {
@@ -69,12 +75,12 @@ export function pushPlan(data) {
           items.push({
             k: 'prot-' + date,
             at: at(date, pr.proteinAt),
-            title: `Te faltan ${pp.left} g de proteína`,
-            body: o ? `Por ejemplo: ${o.label} de ${o.f.name.replace(/ \(.*\)/, '').toLowerCase()} (${o.p} g).` : 'Abre Mi Gym para ver qué puedes tomar.',
+            title: `Proteína · faltan ${pp.left} g`,
+            body: o ? `Una opción para cerrar el día: ${o.label} de ${o.f.name.replace(/ \(.*\)/, '').toLowerCase()} (+${o.p} g).` : 'Revisa en Dieta qué puedes añadir para llegar a tu objetivo.',
           })
         }
       } else {
-        items.push({ k: 'prot-' + date, at: at(date, pr.proteinAt), title: '¿Cómo vas de proteína?', body: 'Apunta lo que has comido y te digo cuánto te falta.' })
+        items.push({ k: 'prot-' + date, at: at(date, pr.proteinAt), title: 'Registro de comidas', body: 'Apunta lo que has comido hoy para ver cuánta proteína te falta.' })
       }
     }
     // días de descanso: a andar, salvo que ya hayas entrenado, el reloj tenga un entreno o ya llegues a tus pasos
@@ -82,22 +88,23 @@ export function pushPlan(data) {
     if (pr.walk && !data.plan.some((d) => d.weekday === wd)) {
       const moved = data.sessions.some((s) => s.date === date) || polarExercisesOn(data, date).length > 0
       const steps = data.polar?.days?.[date]?.steps || 0
-      if (!moved && steps < (data.goals?.steps || 7000))
+      const goal = data.goals?.steps || 7000
+      if (!moved && steps < goal)
         items.push({
           k: 'walk-' + date,
           at: at(date, pr.walkAt),
-          title: 'Hoy toca andar 🚶',
-          body: 'Día de descanso: 30–45 min andando a buen ritmo (unos 4.000 pasos) ayudan a bajar grasa y a recuperar las piernas.',
+          title: 'Día de descanso · Actividad ligera',
+          body: `30–45 min andando a buen ritmo ayudan a recuperar y a mantener el gasto diario.${i === 0 && steps ? ` Llevas ${steps.toLocaleString('es-ES')} de ${goal.toLocaleString('es-ES')} pasos.` : ''}`,
         })
     }
     if (pr.waist && wd === 0) {
       const w = data.body?.waist || []
       const last = w[w.length - 1]?.date
-      if (!last || addDays(last, 6) <= date) items.push({ k: 'waist-' + date, at: at(date, '10:00'), title: 'Toca medir la cintura 📏', body: 'En ayunas, a la altura del ombligo. Si quieres, pésate también (solo cuenta la tendencia).' })
+      if (!last || addDays(last, 6) <= date) items.push({ k: 'waist-' + date, at: at(date, '10:00'), title: 'Control semanal · Cintura', body: 'Mídela en ayunas, a la altura del ombligo. Si quieres, registra también el peso.' })
     }
   }
   if (pr.watch && data.polar && data.sessions.some((s) => s.date === today) && !polarExercisesOn(data, today).length)
-    items.push({ k: 'watch-' + today, at: at(today, '21:30'), title: '¿Has sincronizado el reloj?', body: 'Abre Polar Flow para que Mi Gym coja tu entreno de hoy.' })
+    items.push({ k: 'watch-' + today, at: at(today, '21:30'), title: 'Sincroniza tu reloj Polar', body: 'Abre Polar Flow para que MI-GYM importe el entreno de hoy.' })
   return items.filter((it) => it.at > now).sort((a, b) => a.at - b.at)
 }
 

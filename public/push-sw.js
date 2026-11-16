@@ -1,4 +1,4 @@
-// Avisos de Mi Gym. El servidor manda un "toque" sin datos y aquí se pide el texto del aviso.
+// Avisos de MI-GYM. El servidor manda un "toque" sin datos y aquí se pide el texto del aviso.
 const PUSH_WORKER = 'https://mi-gym-polar.ekaitzmartinezm.workers.dev'
 
 async function subHash(endpoint) {
@@ -9,7 +9,7 @@ async function subHash(endpoint) {
 self.addEventListener('push', (event) => {
   event.waitUntil(
     (async () => {
-      let msg = { title: 'Mi Gym', body: 'Tienes un aviso nuevo en Mi Gym.' }
+      let msg = { title: 'MI-GYM', body: 'Tienes un aviso nuevo.' }
       try {
         let data = null
         try {
