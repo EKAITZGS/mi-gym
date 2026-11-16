@@ -1340,7 +1340,7 @@ function Session({ data, setData, onExit, cloud, online }) {
     }
     // si tiene entrenador, le llega un aviso (va en cola si no hay cobertura)
     queueTrainerNote(
-      `${cloudMeta()?.name || 'Tu alumno'} ha terminado ${name}: ${nEx} ejercicio${nEx === 1 ? '' : 's'}, ${nSets} series${min ? `, ${min} min` : ''}${prs.length ? `, ${prs.length} récord${prs.length === 1 ? '' : 's'} 🏆` : ''}`,
+      `${cloudMeta()?.name || 'Tu alumno'} ha terminado ${String(name).trim()}: ${nEx} ejercicio${nEx === 1 ? '' : 's'}, ${nSets} series${min ? `, ${min} min` : ''}${prs.length ? `, ${prs.length} récord${prs.length === 1 ? '' : 's'} 🏆` : ''}`,
       { sid, date: a.date }
     )
     setData((d) => ({
