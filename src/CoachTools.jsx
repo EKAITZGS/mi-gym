@@ -6,7 +6,7 @@ import { listMessages, sendMessage, markRead, listWorkouts, sendWorkout, answerW
 import { SessionCard, nameFor, watchOf } from './DayDetail'
 import PolarSession from './PolarSession'
 import { EX_BY_ID } from './data/exercises'
-import { Library } from './Workout'
+import { Library } from './workout/Library'
 import { uid as newId, WEEKDAYS } from './store'
 import { clean, sr, norm, diffDay, applyChanges } from './dayDiff'
 
