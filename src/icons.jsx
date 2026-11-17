@@ -43,6 +43,8 @@ const P = {
   cloud: 'M7 18a4.5 4.5 0 0 1-.6-9A6 6 0 0 1 18 8a4 4 0 0 1 0 8H7z',
   scale: 'M12 3v18M5 7h14M5 7l-3 7a3 3 0 0 0 6 0zM19 7l-3 7a3 3 0 0 0 6 0z',
   info: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 11v5M12 8h.01',
+  shield: 'M12 3l8 3v6c0 5-3.4 8.4-8 9-4.6-.6-8-4-8-9V6zM9 12l2 2 4-4',
+  download: 'M12 3v12M7 10l5 5 5-5M4 21h16',
 }
 
 export default function Icon({ name, size = 20, stroke = 2, className = '', fill = 'none' }) {

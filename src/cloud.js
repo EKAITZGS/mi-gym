@@ -578,3 +578,37 @@ export async function inbox() {
     requests: L.filter((l) => l.trainer_id === uid && l.status === 'pending').length,
   }
 }
+
+// ---- Panel de administración (supabase/06-admin.sql). Solo lectura; quién es admin lo decide el servidor. ----
+const noFn = (e) => /function|does not exist|schema cache|could not find/i.test(e?.message || '')
+// true / false; null si falta 06-admin.sql en Supabase
+export async function adminCheck() {
+  const c = await sb()
+  const { data, error } = await c.rpc('is_admin')
+  if (error) {
+    if (noFn(error)) return null
+    throw new Error(es(error))
+  }
+  return !!data
+}
+export async function adminUsers() {
+  const c = await sb()
+  const { data, error } = await c.rpc('admin_users')
+  if (error) throw new Error(es(error))
+  return data || []
+}
+export async function adminUserData(uid) {
+  const c = await sb()
+  const { data, error } = await c.rpc('admin_user_data', { uid })
+  if (error) throw new Error(es(error))
+  return Array.isArray(data) ? data[0] || null : data
+}
+export async function sessionUser() {
+  const c = await sb()
+  const { data } = await c.auth.getSession()
+  return data.session?.user || null
+}
+export async function authSignOut() {
+  const c = await sb()
+  await c.auth.signOut().catch(() => {})
+}

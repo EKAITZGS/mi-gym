@@ -11,6 +11,8 @@ export default defineConfig({
   build: {
     chunkSizeWarningLimit: 900,
     rollupOptions: {
+      // dos páginas: la app (index.html) y el panel de administración (admin.html)
+      input: { main: 'index.html', admin: 'admin.html' },
       output: {
         // la biblioteca de ejercicios (≈180 kB gz) va en su propio fichero: se cachea aparte y no cambia con cada versión de la app
         manualChunks: (id) => (id.includes('/src/data/exercises.js') ? 'exercises' : undefined),

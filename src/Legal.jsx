@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { Modal } from './ui'
 
-export const LEGAL_VERSION = '2026-11'
+export const LEGAL_VERSION = '2026-11-17'
 
 export default function LegalModal({ onClose, tab: tab0 = 'privacy' }) {
   const [tab, setTab] = useState(tab0)
@@ -27,7 +27,13 @@ export default function LegalModal({ onClose, tab: tab0 = 'privacy' }) {
             <li><b>En tu cuenta</b> (Supabase): una copia de tus datos (sin fotos) para no perderlos y poder usar otro dispositivo. Solo tú puedes leerla, salvo lo que autorices a un entrenador.</li>
           </ul>
           <h4>Quién puede verlos</h4>
-          <p>Nadie, salvo que aceptes a un entrenador dentro de la app: entonces ve tu rutina, tus entrenos, tu peso y cintura y el pulso de tus entrenos del reloj. No ve tu dieta, tu sueño ni tus fotos. Puedes dejar al entrenador cuando quieras y deja de ver todo.</p>
+          <p>
+            <b>Tu entrenador</b>, solo si lo aceptas dentro de la app: ve tu rutina, tus entrenos, tu peso y cintura y el pulso de tus entrenos del reloj. Puedes dejarlo cuando quieras y deja de ver todo.
+          </p>
+          <p>
+            <b>El administrador de MI-GYM</b> puede ver lo mismo (tu nombre, email, fecha de alta, rutina, entrenos, peso y cintura y pulso del reloj) para dar soporte y resolver problemas. Solo lectura: no puede cambiar nada de tu cuenta.
+          </p>
+          <p>Nadie más. Ni el entrenador ni el administrador ven tu dieta, tu sueño ni tus fotos.</p>
           <h4>Servicios de terceros que usa la app</h4>
           <ul>
             <li><b>Polar</b> (si lo conectas): la app lee tus datos con tu permiso. Puedes revocarlo en Perfil → Reloj → Desconectar.</li>

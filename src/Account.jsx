@@ -270,8 +270,9 @@ export default function AccountCard({ data, setData, cloud }) {
           <label className="chk-l uni-l chk-top">
             <input type="checkbox" checked={!!f.ok} onChange={(e) => set('ok', e.target.checked)} />
             <span className="small">
-              Acepto que mis datos (entrenos, dieta, peso y reloj) se guarden en mi cuenta para usar la app. Solo los verá
-              el entrenador que yo acepte, y puedo borrarlos cuando quiera.
+              Acepto que mis datos (entrenos, dieta, peso y reloj) se guarden en mi cuenta para usar la app. Mis entrenos, rutina y
+              peso solo los verán el entrenador que yo acepte y, para soporte, el administrador de MI-GYM (nunca la dieta, el sueño
+              ni las fotos). Puedo borrarlos cuando quiera.
             </span>
           </label>
           <button className="link small" onClick={() => setLegal(true)}>

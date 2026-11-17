@@ -6,7 +6,7 @@ import { ProfileModal, logout } from './Account'
 import AccountCard from './Account'
 import { MyTrainer, Students } from './Trainers'
 import { getPolar, syncPolar, connectPolar } from './polar'
-import { cloudReady } from './cloud'
+import { cloudReady, adminCheck } from './cloud'
 import Settings from './Settings'
 import { SyncPill } from './ds'
 
@@ -42,9 +42,17 @@ export default function Profile({ data, setData, cloud, inbox, onInbox, online, 
     if (focus) setSub('coach')
   }, [focus])
   const [sync, setSync] = useState({ busy: false, msg: '' })
+  const [admin, setAdmin] = useState(false)
   const polar = getPolar()
   const trainer = m.role === 'trainer'
   const hasAccount = cloudReady() && !!m.uid
+  // ¿es administrador? (lo decide Supabase; si falta 06-admin.sql, simplemente no sale)
+  useEffect(() => {
+    if (!hasAccount || !online) return
+    adminCheck()
+      .then((v) => setAdmin(!!v))
+      .catch(() => {})
+  }, [hasAccount, m.uid])
 
   const syncWatch = async () => {
     if (!polar?.token) {
@@ -103,6 +111,7 @@ export default function Profile({ data, setData, cloud, inbox, onInbox, online, 
         />
         {hasAccount && <Row icon="user" title="Editar perfil" desc="Nombre, tipo de cuenta y contraseña" onClick={() => setSub('profile')} />}
         {hasAccount && <Row icon="users" title={trainer ? 'Tus alumnos' : 'Entrenador'} badge={inboxN} desc={inboxTxt} onClick={() => setSub('coach')} />}
+        {admin && <Row icon="shield" title="Panel de administración" desc="Usuarios y sus entrenos · mejor en el ordenador" onClick={() => (location.href = './admin.html')} />}
         <Row icon="settings" title="Ajustes" desc="Objetivos, descanso, avisos, IA, copias" onClick={() => setSub('settings')} />
         {hasAccount && <Row icon="logout" title="Cerrar sesión" danger onClick={() => logout(cloud)} />}
       </div>
