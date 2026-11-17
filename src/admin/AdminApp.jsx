@@ -1,6 +1,6 @@
 // Panel de administración de MI-GYM (admin.html). Solo lectura.
 // Quién es administrador lo decide Supabase (tabla `admins` de supabase/06-admin.sql); la app solo pregunta.
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { cloudReady, cloudMeta, signIn, adminCheck, adminUsers, adminUserData, sessionUser, authSignOut } from '../cloud'
 import Icon from '../icons'
 import { SessionCard, fmtDay, hasSet, nameFor } from '../DayDetail'
@@ -58,27 +58,57 @@ export default function AdminApp() {
     setPhase('login')
   }
 
+  // panel de ordenador: en pantallas pequeñas se avisa (y se puede abrir igualmente)
+  const [wide, setWide] = useState(() => window.innerWidth >= 1000)
+  const [force, setForce] = useState(false)
+  useEffect(() => {
+    const on = () => setWide(window.innerWidth >= 1000)
+    window.addEventListener('resize', on)
+    return () => window.removeEventListener('resize', on)
+  }, [])
+  if (!wide && !force)
+    return (
+      <div className="adm-narrow">
+        <img src="./logo.svg" alt="" width="56" height="56" />
+        <h1>Panel para ordenador</h1>
+        <p className="muted">La administración de MI-GYM está pensada para una pantalla grande. Ábrela desde el PC en:</p>
+        <p className="adm-url">ekaitzgs.github.io/mi-gym/admin.html</p>
+        <a className="btn primary full" href="./">
+          Volver a la app
+        </a>
+        <button className="link small" onClick={() => setForce(true)}>
+          Abrir igualmente
+        </button>
+      </div>
+    )
+
   return (
     <div className="adm">
-      <header className="adm-top">
+      <aside className="adm-side">
         <a className="adm-brand" href="./">
           <img src="./logo.svg" alt="" />
           <span>
-            MI-GYM <small>Administración</small>
+            MI-GYM
+            <small>Administración</small>
           </span>
         </a>
-        <div className="adm-me">
-          {me && <span className="muted small adm-email">{me.email}</span>}
-          <a className="btn sm-btn" href="./">
-            Abrir la app
+        <nav className="adm-nav" aria-label="Secciones">
+          <span className="adm-nav-i on">
+            <Icon name="users" size={18} /> Usuarios
+          </span>
+        </nav>
+        <div className="adm-side-foot">
+          {me && <div className="adm-email">{me.email}</div>}
+          <a className="adm-nav-i" href="./">
+            <Icon name="home" size={18} /> Abrir la app
           </a>
           {me && !appHere && (
-            <button className="btn sm-btn" onClick={out}>
-              Cerrar sesión
+            <button className="adm-nav-i" onClick={out}>
+              <Icon name="logout" size={18} /> Cerrar sesión
             </button>
           )}
         </div>
-      </header>
+      </aside>
       <main className="adm-main">
         {phase === 'loading' && <p className="muted">Cargando…</p>}
         {phase === 'nocloud' && <State icon="cloud" title="Sin nube" text="Esta versión de la app no tiene cuentas configuradas." />}
@@ -128,11 +158,17 @@ function Login({ onDone }) {
   )
 }
 
-const SORTS = [
-  ['activity', 'Última actividad'],
-  ['sessions', 'Más entrenos'],
-  ['recent', 'Alta más reciente'],
-  ['name', 'Nombre'],
+// columnas: [clave, título, valor para ordenar, numérica]
+const COLS = [
+  ['name', 'Usuario', (u) => (u.name || u.email || '').toLowerCase()],
+  ['role', 'Tipo', (u) => u.role || ''],
+  ['created_at', 'Alta', (u) => u.created_at || ''],
+  ['last_sign_in_at', 'Última conexión', (u) => u.last_sign_in_at || ''],
+  ['last_session', 'Último entreno', (u) => u.last_session || ''],
+  ['sessions_30d', 'Entrenos 30 d', (u) => u.sessions_30d || 0, true],
+  ['sessions', 'Total', (u) => u.sessions || 0, true],
+  ['plan_days', 'Días de rutina', (u) => u.plan_days || 0, true],
+  ['has_polar', 'Reloj', (u) => (u.has_polar ? 1 : 0)],
 ]
 const FILTERS = [
   ['all', 'Todos'],
@@ -146,8 +182,9 @@ function Users({ meId }) {
   const [err, setErr] = useState('')
   const [q, setQ] = useState('')
   const [filter, setFilter] = useState('all')
-  const [sort, setSort] = useState('activity')
+  const [sort, setSort] = useState({ k: 'last_sign_in_at', desc: true })
   const [open, setOpen] = useState(null)
+  const searchRef = useRef(null)
   const load = () => {
     setErr('')
     adminUsers()
@@ -177,14 +214,37 @@ function Users({ meId }) {
       const hay = n(`${u.name || ''} ${u.email || ''}`)
       return words.every((w) => hay.includes(w))
     })
-    const by = {
-      activity: (a, b) => (b.updated_at || '').localeCompare(a.updated_at || ''),
-      sessions: (a, b) => (b.sessions || 0) - (a.sessions || 0),
-      recent: (a, b) => (b.created_at || '').localeCompare(a.created_at || ''),
-      name: (a, b) => (a.name || a.email || '').localeCompare(b.name || b.email || '', 'es'),
-    }[sort]
-    return out.sort(by)
+    const col = COLS.find((c) => c[0] === sort.k) || COLS[0]
+    const val = col[2]
+    const dir = sort.desc ? -1 : 1
+    return out.sort((a, b) => {
+      const x = val(a), y = val(b)
+      return (typeof x === 'number' ? x - y : String(x).localeCompare(String(y), 'es')) * dir
+    })
   }, [list, q, filter, sort])
+  const sortBy = (k) => setSort((s0) => (s0.k === k ? { k, desc: !s0.desc } : { k, desc: k !== 'name' && k !== 'role' }))
+
+  // atajos de escritorio: / buscar · ↑ ↓ cambiar de usuario · Esc cerrar la ficha
+  useEffect(() => {
+    const onKey = (e) => {
+      const typing = /INPUT|SELECT|TEXTAREA/.test(document.activeElement?.tagName || '')
+      if (e.key === '/' && !typing) {
+        e.preventDefault()
+        searchRef.current?.focus()
+      } else if (e.key === 'Escape') {
+        if (typing) document.activeElement.blur()
+        else setOpen(null)
+      } else if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && !typing && shown.length) {
+        e.preventDefault()
+        const i = shown.findIndex((u) => u.id === open?.id)
+        const j = i < 0 ? 0 : Math.max(0, Math.min(shown.length - 1, i + (e.key === 'ArrowDown' ? 1 : -1)))
+        setOpen(shown[j])
+        document.querySelector(`[data-uid="${shown[j].id}"]`)?.scrollIntoView({ block: 'nearest' })
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [shown, open])
 
   const csv = () => {
     const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`
@@ -205,8 +265,29 @@ function Users({ meId }) {
   return (
     <div className={'adm-grid' + (open ? ' has-detail' : '')}>
       <section className="adm-list">
-        <h1 className="title">Usuarios</h1>
-        <div className="stats four">
+        <div className="adm-head">
+          <div>
+            <h1 className="title">Usuarios</h1>
+            <p className="muted small">
+              {shown.length === list.length ? `${list.length} cuentas` : `${shown.length} de ${list.length} cuentas`}
+              <span className="adm-keys">
+                {' '}
+                · <kbd>/</kbd> buscar · <kbd>↑</kbd>
+                <kbd>↓</kbd> cambiar · <kbd>Esc</kbd> cerrar
+              </span>
+            </p>
+          </div>
+          <div className="adm-tools">
+            <input ref={searchRef} className="inp" placeholder="Buscar por nombre o email" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Buscar usuario" />
+            <button className="btn sm-btn" onClick={csv} title="Descargar la lista en CSV (Excel)">
+              <Icon name="download" size={15} /> Exportar CSV
+            </button>
+            <button className="btn sm-btn" onClick={load} aria-label="Actualizar" title="Actualizar">
+              <Icon name="refresh" size={15} />
+            </button>
+          </div>
+        </div>
+        <div className="adm-kpis">
           <div className="stat accent">
             <div className="st-v">{kpi.users}</div>
             <div className="st-l">cuentas</div>
@@ -224,22 +305,6 @@ function Users({ meId }) {
             <div className="st-l">entrenadores</div>
           </div>
         </div>
-        <div className="adm-tools">
-          <input className="inp" placeholder="Buscar por nombre o email…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Buscar usuario" />
-          <select className="inp" value={sort} onChange={(e) => setSort(e.target.value)} aria-label="Ordenar">
-            {SORTS.map(([v, l]) => (
-              <option key={v} value={v}>
-                {l}
-              </option>
-            ))}
-          </select>
-          <button className="btn sm-btn" onClick={csv} title="Descargar la lista en CSV">
-            <Icon name="download" size={15} /> CSV
-          </button>
-          <button className="btn sm-btn" onClick={load} aria-label="Actualizar">
-            <Icon name="refresh" size={15} />
-          </button>
-        </div>
         <div className="chips">
           {FILTERS.map(([v, l]) => (
             <button key={v} className={'chip sm' + (filter === v ? ' on' : '')} onClick={() => setFilter(v)}>
@@ -247,33 +312,31 @@ function Users({ meId }) {
             </button>
           ))}
         </div>
-        <p className="muted small">
-          {shown.length} de {list.length}
-        </p>
         {!shown.length && <State icon="search" title="Sin resultados" text="Prueba con otra búsqueda o filtro." />}
         {shown.length > 0 && (
           <div className="adm-table-wrap">
             <table className="adm-table">
               <thead>
                 <tr>
-                  <th>Usuario</th>
-                  <th className="hide-s">Tipo</th>
-                  <th className="hide-m">Alta</th>
-                  <th>Último entreno</th>
-                  <th className="num">30 d</th>
-                  <th className="num hide-s">Total</th>
-                  <th className="hide-m">Reloj</th>
-                  <th className="hide-m">Conexión</th>
+                  {COLS.map(([k, t, , num]) => (
+                    <th key={k} className={num ? 'num' : ''} aria-sort={sort.k === k ? (sort.desc ? 'descending' : 'ascending') : undefined}>
+                      <button className={'adm-th' + (sort.k === k ? ' on' : '')} onClick={() => sortBy(k)}>
+                        {t}
+                        <span className="adm-arrow">{sort.k === k ? (sort.desc ? '↓' : '↑') : ''}</span>
+                      </button>
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
                 {shown.map((u) => (
                   <tr
                     key={u.id}
+                    data-uid={u.id}
                     className={open?.id === u.id ? 'on' : ''}
                     tabIndex={0}
                     onClick={() => setOpen(u)}
-                    onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), setOpen(u))}
+                    onKeyDown={(e) => e.key === 'Enter' && setOpen(u)}
                   >
                     <td>
                       <div className="adm-user">
@@ -286,13 +349,14 @@ function Users({ meId }) {
                         </span>
                       </div>
                     </td>
-                    <td className="hide-s">{roleTxt(u.role)}</td>
-                    <td className="hide-m">{dShort(u.created_at)}</td>
+                    <td>{roleTxt(u.role)}</td>
+                    <td>{dShort(u.created_at)}</td>
+                    <td>{ago(u.last_sign_in_at)}</td>
                     <td className={u.last_session && daysAgo(u.last_session) <= 7 ? 'ok' : ''}>{lastTxt(u.last_session)}</td>
                     <td className="num">{u.sessions_30d || 0}</td>
-                    <td className="num hide-s">{u.sessions || 0}</td>
-                    <td className="hide-m">{u.has_polar ? '✓' : '—'}</td>
-                    <td className="hide-m">{ago(u.last_sign_in_at)}</td>
+                    <td className="num">{u.sessions || 0}</td>
+                    <td className="num">{u.plan_days || 0}</td>
+                    <td>{u.has_polar ? <span className="adm-yes">Polar</span> : <span className="muted">—</span>}</td>
                   </tr>
                 ))}
               </tbody>

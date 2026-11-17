@@ -41,7 +41,7 @@ def handle(route):
 errors = []
 with sync_playwright() as p:
     b = p.chromium.launch(executable_path=os.environ.get('CHROME') or None, args=['--no-sandbox'])
-    for label, vp in (('d', {'width': 1440, 'height': 900}), ('m', {'width': 390, 'height': 844})):
+    for label, vp in (('d', {'width': 1440, 'height': 900}), ('l', {'width': 1920, 'height': 1080})):
         ctx = b.new_context(viewport=vp, device_scale_factor=1 if label == 'd' else 2, locale='es-ES', reduced_motion='reduce')
         page = ctx.new_page()
         page.on('pageerror', lambda e: errors.append(str(e)))
@@ -55,6 +55,19 @@ with sync_playwright() as p:
         assert page.locator('.adm-table tbody tr').count() == 3
         assert '3' in page.locator('.stat.accent .st-v').inner_text()
         page.screenshot(path=f'{OUT}/admin_{label}_1_lista.png')
+        # ordenar por columna: Total (desc) → Admin (12) primero; otra vez → asc → Luis (0) primero
+        page.click('.adm-th:has-text("Total")')
+        assert 'Admin' in page.locator('.adm-table tbody tr').first.inner_text()
+        page.click('.adm-th:has-text("Total")')
+        assert 'Luis' in page.locator('.adm-table tbody tr').first.inner_text()
+        # atajos: / busca, flechas abren fichas, Esc cierra
+        page.keyboard.press('/')
+        assert page.evaluate('document.activeElement.getAttribute("aria-label")') == 'Buscar usuario'
+        page.keyboard.press('Escape')
+        page.keyboard.press('ArrowDown')
+        page.wait_for_selector('.adm-detail')
+        page.keyboard.press('Escape')
+        assert page.locator('.adm-detail').count() == 0
         # buscar y filtrar
         page.fill('.adm-tools .inp >> nth=0', 'luis')
         assert page.locator('.adm-table tbody tr').count() == 1
@@ -76,6 +89,15 @@ with sync_playwright() as p:
         page.click('button[aria-label="Cerrar ficha"]')
         assert page.locator('.adm-detail').count() == 0
         ctx.close()
+    # móvil: aviso de que es un panel de ordenador
+    ctx = b.new_context(viewport={'width': 390, 'height': 844}, device_scale_factor=2, locale='es-ES')
+    page = ctx.new_page()
+    page.goto(URL)
+    page.wait_for_selector('text=Panel para ordenador')
+    page.screenshot(path=f'{OUT}/admin_m_aviso.png')
+    page.click('text=Abrir igualmente')
+    page.wait_for_selector('.adm-side')
+    ctx.close()
     # cuenta sin permiso
     state['admin'] = False
     ctx = b.new_context(viewport={'width': 1280, 'height': 800}, locale='es-ES')
