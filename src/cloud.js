@@ -4,6 +4,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { DEFAULT } from './store'
 import { migrate, mergeData } from './migrate'
+import { merge3, getBase, setBase, saveBackup, canon } from './sync'
 
 // Proyecto de Supabase. La clave "anon"/"publishable" es pública por diseño: lo que protege los datos son las
 // reglas RLS de supabase/schema.sql (cada usuario solo ve lo suyo).
@@ -123,12 +124,47 @@ async function pull(uid) {
   return data
 }
 
+// Subida explícita (cuenta nueva o cuando el usuario elige "lo de este móvil"): escribe sin mirar
 async function push(uid, data) {
   const c = await sb()
   const updated_at = new Date().toISOString()
   const { error } = await c.from('user_data').upsert({ user_id: uid, data, updated_at, device: navigator.userAgent.slice(0, 120) })
   if (error) throw new Error(es(error))
+  await setBase(uid, data)
   return updated_at
+}
+
+// Subida automática con control de versión: solo escribe si la nube sigue en la versión que conocemos
+// (prevAt). Si otro dispositivo ha guardado entretanto devuelve { conflict: true } y no pisa nada.
+async function pushIf(uid, data, prevAt) {
+  const c = await sb()
+  const updated_at = new Date().toISOString()
+  const row = { data, updated_at, device: navigator.userAgent.slice(0, 120) }
+  if (prevAt) {
+    const { data: rows, error } = await c.from('user_data').update(row).eq('user_id', uid).eq('updated_at', prevAt).select('updated_at')
+    if (error) throw new Error(es(error))
+    return rows?.length ? { at: updated_at } : { conflict: true }
+  }
+  // sin versión conocida: solo se crea si aún no existe
+  const { error } = await c.from('user_data').insert({ user_id: uid, ...row })
+  if (error) {
+    if (error.code === '23505' || /duplicate key/i.test(error.message)) return { conflict: true }
+    throw new Error(es(error))
+  }
+  return { at: updated_at }
+}
+const sameAt = (a, b) => !!a && !!b && Date.parse(a) === Date.parse(b)
+
+// Junta lo de este móvil con lo de la nube. Con versión común (base): fusión a tres bandas, registro a registro.
+// Sin base: si aquí no hay cambios pendientes manda la nube; si los hay, se une todo sin borrar nada.
+async function mergeWithCloud(uid, local, row, dirty) {
+  const remote = migrate(row.data)
+  const base = await getBase(uid)
+  if (!base && !dirty) return { data: remote, conflicts: [] }
+  const r = merge3(base, local, remote)
+  await saveBackup('antes-fusion', local)
+  if (r.conflicts.length) await saveBackup('nube-anterior', row.data)
+  return r
 }
 
 // cuenta nueva: todo vacío (sin el plan de ejemplo); la bienvenida le ayuda a crear el suyo
@@ -138,8 +174,6 @@ const pl = (n, one, many) => `${n} ${n === 1 ? one : many}`
 export const summary = (d) =>
   [pl(d?.sessions?.length || 0, 'entreno', 'entrenos'), pl(Object.keys(d?.food || {}).length, 'día de dieta', 'días de dieta'), pl(d?.body?.weight?.length || 0, 'pesaje', 'pesajes')].join(', ')
 // Postgres (jsonb) cambia el orden de las claves: se compara con las claves ordenadas
-const canon = (v) =>
-  Array.isArray(v) ? `[${v.map(canon).join(',')}]` : v && typeof v === 'object' ? `{${Object.keys(v).filter((k) => v[k] !== undefined).sort().map((k) => JSON.stringify(k) + ':' + canon(v[k])).join(',')}}` : JSON.stringify(v ?? null)
 const same = (a, b) => canon(a) === canon(b)
 // guarda lo que había en el móvil antes de cambiarlo por lo de la nube, por si acaso
 const keepLocal = () => {
@@ -216,18 +250,32 @@ export async function connect(user, local, setData) {
   // misma cuenta que la última vez en este móvil: lo de la nube es lo bueno (se subió todo al cerrar sesión)
   if (last === user.id && !same(row.data, local)) {
     keepLocal()
-    // lo de la nube manda, pero un entreno hecho en este móvil sin subir no se pierde
+    const common = await getBase(user.id)
+    if (common) {
+      // misma cuenta y versión común conocida: fusión registro a registro (lo cambiado aquí sin subir no se pierde)
+      const r = merge3(common, local, migrate(row.data))
+      await saveBackup('antes-fusion', local)
+      if (r.conflicts.length) await saveBackup('nube-anterior', row.data)
+      await setBase(user.id, migrate(row.data))
+      setMeta({ ...base, synced: row.updated_at, dirty: !same(r.data, row.data) })
+      setData(r.data)
+      return { action: 'downloaded' }
+    }
+    // sin versión común: lo de la nube manda (se subió todo al cerrar sesión), pero un entreno hecho en este móvil sin subir no se pierde
     const m = mergeData(row.data, local)
+    await setBase(user.id, migrate(row.data))
     setMeta({ ...base, synced: row.updated_at, dirty: m.recovered > 0 })
     setData(m.data)
     return { action: 'downloaded', recovered: m.recovered }
   }
   if (other || !hasData(local)) {
+    await setBase(user.id, migrate(row.data))
     setMeta({ ...base, synced: row.updated_at })
     setData(migrate(row.data))
     return { action: 'downloaded' }
   }
   if (same(row.data, local)) {
+    await setBase(user.id, migrate(row.data))
     setMeta({ ...base, synced: row.updated_at })
     return { action: 'same' }
   }
@@ -251,6 +299,7 @@ export async function resolve(choice, cloud, local, setData) {
     keepLocal()
     // elige la nube, pero los entrenos del móvil que allí no estén se conservan
     const mg = mergeData(cloud.data, local)
+    await setBase(m.uid, migrate(cloud.data))
     setMeta({ ...m, pending: false, dirty: mg.recovered > 0, synced: cloud.updated_at })
     setData(mg.data)
   } else {
@@ -295,23 +344,68 @@ export function useCloudSync(data, setData) {
     return true
   }
 
+  // aplica en pantalla lo fusionado (sin que cuente como un cambio nuevo del usuario)
+  const apply = (next) => {
+    if (same(next, dataRef.current)) return
+    applying.current = true
+    dataRef.current = next
+    setData(next)
+  }
+  const uploading = useRef(false)
+  const again = useRef(false)
+
   const upload = async () => {
-    const m = cloudMeta()
+    let m = cloudMeta()
     if (!m?.uid || m.pending) return
+    // una subida cada vez; si llega otra mientras, se repite al terminar
+    if (uploading.current) {
+      again.current = true
+      return
+    }
+    uploading.current = true
     setState((s) => ({ ...s, busy: true }))
+    let err = ''
     try {
-      if (await expired()) return
-      const at = await push(m.uid, dataRef.current)
-      patchMeta({ synced: at, dirty: false })
-      setState((s) => ({ ...s, busy: false, error: '' }))
+      if (await expired()) {
+        err = 'Tu sesión ha caducado: vuelve a entrar en tu cuenta.'
+        return
+      }
+      for (let i = 0; i < 4; i++) {
+        const sent = dataRef.current
+        const r = await pushIf(m.uid, sent, m.synced)
+        if (r.at) {
+          await setBase(m.uid, sent)
+          patchMeta({ synced: r.at, dirty: dataRef.current !== sent })
+          return
+        }
+        // otro dispositivo guardó antes: se trae lo suyo, se fusiona con lo de aquí y se vuelve a intentar
+        const row = await pull(m.uid)
+        if (!row) {
+          m = { ...m, synced: null }
+          continue
+        }
+        const merged = await mergeWithCloud(m.uid, dataRef.current, row, true)
+        await setBase(m.uid, migrate(row.data))
+        patchMeta({ synced: row.updated_at })
+        apply(merged.data)
+        m = cloudMeta()
+      }
+      err = 'No se pudo guardar en tu cuenta (cambios a la vez en otro dispositivo). Se reintentará.'
     } catch (e) {
-      setState((s) => ({ ...s, busy: false, error: e.message }))
+      err = e.message
+    } finally {
+      uploading.current = false
+      setState((s) => ({ ...s, busy: false, error: err }))
+      if (again.current) {
+        again.current = false
+        setTimeout(upload, 300)
+      }
     }
   }
 
   const download = async () => {
     const m = cloudMeta()
-    if (!m?.uid || m.pending) return
+    if (!m?.uid || m.pending || uploading.current) return
     try {
       if (await expired()) return
       fetchProfile(m.uid)
@@ -319,24 +413,19 @@ export function useCloudSync(data, setData) {
         .catch(() => {})
       const row = await pull(m.uid)
       if (!row) return upload()
-      if (m.synced && row.updated_at <= m.synced) return m.dirty ? upload() : null
-      if (m.dirty) {
-        // cambios en los dos sitios: gana lo del móvil, pero lo de la nube se guarda aparte
-        // y sus entrenos que aquí falten se recuperan (nunca se pierde un entreno)
-        try {
-          localStorage.setItem('migym.v1.nube-anterior', JSON.stringify(row.data))
-        } catch {}
-        const mg = mergeData(dataRef.current, row.data)
-        if (mg.recovered > 0) {
-          applying.current = true
-          setData(mg.data)
-          dataRef.current = mg.data
-        }
-        return upload()
+      if (sameAt(row.updated_at, m.synced)) {
+        // la nube sigue como la dejamos: esa es la versión común
+        await setBase(m.uid, migrate(row.data))
+        return m.dirty ? upload() : null
       }
-      applying.current = true
-      patchMeta({ synced: row.updated_at, dirty: false })
-      setData(migrate(row.data))
+      // ha cambiado en otro dispositivo: se fusiona (si aquí no había nada pendiente, simplemente se baja)
+      const merged = await mergeWithCloud(m.uid, dataRef.current, row, !!m.dirty)
+      await setBase(m.uid, migrate(row.data))
+      const pending = !same(merged.data, row.data)
+      patchMeta({ synced: row.updated_at, dirty: pending })
+      apply(merged.data)
+      if (pending) upload()
+      setState((s) => ({ ...s, error: '' }))
     } catch (e) {
       setState((s) => ({ ...s, error: e.message }))
     }
@@ -444,14 +533,14 @@ export async function requestTrainer(trainerId) {
 export const removeLink = (id) => q((c) => c.from('coach_links').delete().eq('id', id))
 export const answerLink = (id, ok) => q((c) => c.from('coach_links').update({ status: ok ? 'accepted' : 'rejected', updated_at: new Date().toISOString() }).eq('id', id))
 export const profilesOf = (ids) => (ids.length ? q((c) => c.from('profiles').select('id, name').in('id', ids)) : Promise.resolve([]))
-// Datos del alumno: con 05-privacidad.sql el servidor devuelve solo plan, entrenos, cuerpo y pulso (student_data);
-// si esa función aún no existe, se lee la fila entera (como antes) y la app enseña solo lo mismo.
+// Datos del alumno: el servidor devuelve solo plan, entrenos, cuerpo y pulso (student_data de 05-privacidad.sql).
+// Ya no hay lectura de la fila entera: RLS no la permite y no debe intentarse.
 export async function studentData(uid) {
   const c = await sb()
   const r = await c.rpc('student_data', { uid })
   if (!r.error) return Array.isArray(r.data) ? r.data[0] || null : r.data
-  if (!/function|does not exist|schema cache/i.test(r.error.message)) throw new Error(es(r.error))
-  return q((c2) => c2.from('user_data').select('data, updated_at').eq('user_id', uid).maybeSingle())
+  if (/function|does not exist|schema cache/i.test(r.error.message)) throw new Error('Falta activar la privacidad del alumno en Supabase (05-privacidad.sql).')
+  throw new Error(es(r.error))
 }
 
 // Eliminar la cuenta entera (datos, perfil, relaciones y usuario). Necesita 05-privacidad.sql en Supabase.

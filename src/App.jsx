@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useStore, todayStr, prefillSets } from './store'
 import { setCustomExercises } from './data/exercises'
 import Home from './Home'
@@ -77,7 +77,9 @@ export default function App() {
     }
   }, [cloud.meta?.uid, cloud.meta?.pending])
   const boxN = box ? box.messages + box.workouts + box.requests + (box.trained || 0) : 0
-  setCustomExercises(data.myExercises || [])
+  // ejercicios propios en la biblioteca: se registran antes de pintar (los hijos los buscan en EX_BY_ID en este mismo
+  // render), pero solo cuando la lista cambia; antes se rehacía en cada render de la app
+  useMemo(() => setCustomExercises(data.myExercises || []), [data.myExercises])
   // Si hay un entreno de hoy a medias (p. ej. la app se recargó por una actualización), vuelve directo a él
   const resume = data.active && data.active.date === todayStr()
   const [tab, setTab] = useState(resume ? 'train' : 'home')
