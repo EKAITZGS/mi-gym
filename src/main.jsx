@@ -21,6 +21,21 @@ const updateSW = registerSW({
   },
 })
 
+// iOS (app instalada): al abrir el teclado Safari desplaza la ventana para enseñar el campo y, al cerrarlo, a veces no la
+// devuelve: la app se queda movida y los toques caen fuera de los botones (parece que "se queda pillada" y no deja tocar nada).
+// Aquí la ventana nunca hace scroll (lo hace .main), así que en cuanto no queda ningún campo con el teclado se vuelve a 0.
+const typing = () => document.activeElement?.matches?.('input, textarea, select, [contenteditable="true"]')
+const unshift = () => {
+  if (!typing() && (window.scrollY || window.scrollX || document.documentElement.scrollTop || document.body.scrollTop)) {
+    window.scrollTo(0, 0)
+    document.documentElement.scrollTop = 0
+    document.body.scrollTop = 0
+  }
+}
+document.addEventListener('focusout', () => setTimeout(unshift, 60))
+window.visualViewport?.addEventListener('resize', () => setTimeout(unshift, 60))
+document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && unshift())
+
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <ErrorBoundary>

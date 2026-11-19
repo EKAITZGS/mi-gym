@@ -91,6 +91,8 @@ body {
   -webkit-font-smoothing: antialiased;
   overscroll-behavior: none;
   font-feature-settings: 'tnum' 1;
+  /* sin la espera del doble toque (zoom) en iOS: los toques responden al momento; el zoom con dos dedos sigue */
+  touch-action: manipulation;
 }
 button {
   cursor: pointer;
