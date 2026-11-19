@@ -47,7 +47,7 @@ export default function AimCard({ data, setData }) {
           <button key={r.key} className={'aim-row' + (r.due ? ' due' : '')} onClick={() => setModal(open[r.key])}>
             <span className="grow">
               <b>{r.label}</b>
-              <span className="muted small"> · {ago(r)}</span>
+              <span className="muted small">{ago(r)}</span>
             </span>
             <span className={r.due ? 'aim-due' : 'aim-ok'}>{r.due ? 'Toca' : <Icon name="check" size={16} />}</span>
           </button>
@@ -66,7 +66,7 @@ export default function AimCard({ data, setData }) {
         </div>
         <div>
           <b>{p.waistDelta != null ? `${p.waistDelta >= 0 ? '+' : ''}${fmt1(p.waistDelta)}` : '—'}</b>
-          <span>cm cintura (4 sem.)</span>
+          <span>cm cintura/mes</span>
         </div>
       </div>
 
@@ -92,7 +92,8 @@ export default function AimCard({ data, setData }) {
       )}
       {good.length > 0 && (
         <p className="aim-good">
-          <Icon name="check" size={14} /> Va bien: {good.map((it) => it.short || it.title).join(' · ')}
+          <Icon name="check" size={14} />
+          <span>Va bien: {good.map((it) => it.short || it.title).join(' · ')}</span>
         </p>
       )}
       {tips.length > 0 && (

@@ -288,7 +288,11 @@ export default function Workout({ data, setData, view, setView, onStart, onStart
                 <div className="grow">
                   <div className="li-t">{s.dayName || 'Entreno'}</div>
                   <div className="muted small">
-                    {fmtDay(s.date)} · {Object.keys(s.entries || {}).length} {Object.keys(s.entries || {}).length === 1 ? 'ejercicio' : 'ejercicios'} · {nSets} series{s.min ? ` · ${s.min} min` : ''}
+                    {/* espacios que no parten: la línea solo se corta en los «·» */}
+                    {[fmtDay(s.date), `${Object.keys(s.entries || {}).length} ${Object.keys(s.entries || {}).length === 1 ? 'ejercicio' : 'ejercicios'}`, `${nSets} series`, s.min ? `${s.min} min` : null]
+                      .filter(Boolean)
+                      .map((t) => t.replace(/ /g, '\u00a0'))
+                      .join(' · ')}
                   </div>
                 </div>
                 <Icon name="right" size={16} className="muted" />

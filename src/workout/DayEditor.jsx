@@ -8,6 +8,21 @@ import Icon from '../icons'
 import { ORDER, restTxt, editGuard } from './shared'
 import { Library } from './Library'
 
+// Nombre del día con un toque: grupos que se combinan ("Pecho y tríceps", "Espalda, bíceps y core") y «Otro…» para escribirlo
+export const DAY_PARTS = ['Pecho', 'Espalda', 'Hombro', 'Bíceps', 'Tríceps', 'Brazos', 'Pierna', 'Glúteo', 'Core', 'Torso', 'Empuje', 'Tirón', 'Cuerpo completo']
+export const composeName = (parts) =>
+  parts.length ? parts.map((p, i) => (i ? p.toLowerCase() : p)).reduce((t, p, i, l) => (i === 0 ? p : t + (i === l.length - 1 ? ' y ' : ', ') + p), '') : ''
+// "Pecho y tríceps" → ['Pecho', 'Tríceps']; null si el nombre no sale de los grupos (lo escribiste tú)
+export function parseName(name) {
+  const bits = String(name || '')
+    .trim()
+    .split(/\s*,\s*|\s+y\s+/i)
+    .filter(Boolean)
+  if (!bits.length) return null
+  const out = bits.map((b) => DAY_PARTS.find((p) => p.toLowerCase() === b.toLowerCase()))
+  return out.every(Boolean) && new Set(out).size === out.length ? out : null
+}
+
 export function DayEditor({ data, setData, dayId, isNew, onBack }) {
   const saved = data.plan.find((d) => d.id === dayId)
   // Se edita una copia: nada cambia en tu plan hasta que pulsas Guardar
@@ -15,6 +30,8 @@ export function DayEditor({ data, setData, dayId, isNew, onBack }) {
   const [picker, setPicker] = useState(false)
   const [ask, setAsk] = useState(false)
   const [openIt, setOpenIt] = useState(null) // ejercicio con sus opciones abiertas
+  // «Otro…»: nombre escrito a mano (también si el que ya tenía no sale de los grupos)
+  const [custom, setCustom] = useState(() => !!saved && !parseName(saved.name))
   const base = saved || { id: dayId, name: 'Nuevo día', weekday: null, items: [] }
   const dirty = JSON.stringify(day) !== JSON.stringify(base)
   editGuard.dirty = dirty
@@ -24,8 +41,18 @@ export function DayEditor({ data, setData, dayId, isNew, onBack }) {
   if (!saved && !isNew) return null
   const patchDay = (p) => setDay((d) => ({ ...d, ...p }))
   const patchItem = (id, p) => setDay((d) => ({ ...d, items: d.items.map((i) => (i.id === id ? { ...i, ...p } : i)) }))
+  const sel = custom ? [] : parseName(day.name) || []
+  const togglePart = (p) => {
+    const next = sel.includes(p) ? sel.filter((x) => x !== p) : [...sel, p]
+    setCustom(false)
+    patchDay({ name: composeName(next) || 'Nuevo día' })
+  }
+  const writeOwn = () => {
+    setCustom(true)
+    if (day.name === 'Nuevo día') patchDay({ name: '' })
+  }
   const save = () => {
-    const fixed = { ...day, items: day.items.map((i) => ({ ...i, sets: Math.max(1, Math.min(50, Number(i.sets) || 1)) })) }
+    const fixed = { ...day, name: day.name.trim() || 'Nuevo día', items: day.items.map((i) => ({ ...i, sets: Math.max(1, Math.min(50, Number(i.sets) || 1)) })) }
     const uni = Object.fromEntries(fixed.items.filter((i) => i.uni != null).map((i) => [i.ex, i.uni]))
     setData((d) => ({
       ...d,
@@ -63,8 +90,31 @@ export function DayEditor({ data, setData, dayId, isNew, onBack }) {
         <Icon name="left" size={18} /> Volver
       </button>
       <h2>{isNew ? 'Nuevo día' : 'Editar día'}</h2>
-      <label className="lbl">Nombre</label>
-      <input className="inp" aria-label="Nombre del día" value={day.name} onChange={(e) => patchDay({ name: e.target.value })} />
+      <label className="lbl" id="day-name-lbl">
+        Nombre
+      </label>
+      <div className="chips wrap day-parts" role="group" aria-labelledby="day-name-lbl">
+        {DAY_PARTS.map((p) => (
+          <button key={p} type="button" className={'chip sm' + (sel.includes(p) ? ' on' : '')} aria-pressed={sel.includes(p)} onClick={() => togglePart(p)}>
+            {p}
+          </button>
+        ))}
+        <button type="button" className={'chip sm' + (custom ? ' on' : '')} aria-pressed={custom} onClick={writeOwn}>
+          Otro…
+        </button>
+      </div>
+      {custom ? (
+        <input
+          className="inp"
+          aria-label="Nombre del día"
+          placeholder="Escribe el nombre"
+          autoFocus={!saved || parseName(saved.name)}
+          value={day.name}
+          onChange={(e) => patchDay({ name: e.target.value })}
+        />
+      ) : (
+        <p className="muted small day-name-prev">{sel.length ? <>Se llamará «{day.name}». Toca más grupos para combinarlos.</> : 'Elige uno o varios grupos, o «Otro…» para escribirlo.'}</p>
+      )}
       <label className="lbl">Día de la semana</label>
       <select
         className="inp"

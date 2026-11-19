@@ -146,8 +146,8 @@ export default function Progress({ data, setData }) {
         </div>
       )}
       {!all && progress.length > 5 && (
-        <button className="link small" onClick={() => setAll(true)}>
-          Ver los {progress.length} ejercicios
+        <button className="link small month-link" onClick={() => setAll(true)}>
+          <Icon name="down" size={15} /> Ver los {progress.length} ejercicios
         </button>
       )}
       <button className="link small month-link" onClick={() => setMonth(true)}>

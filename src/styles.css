@@ -1267,6 +1267,8 @@ textarea.inp {
 .setup-day-body { padding: 0 12px 4px; }
 .setup-day-body .chips { padding-top: 0; }
 .chip.sm { padding: 6px 11px; font-size: var(--fs-sm); }
+.day-parts { padding-bottom: var(--sp-2); }
+.day-name-prev { margin: 0 0 var(--sp-2); }
 .tick {
   width: 26px;
   height: 26px;
@@ -2716,3 +2718,43 @@ button.setn.beat { border-color: var(--ok); color: var(--ok); box-shadow: inset 
 .ai-prop-st.ok { color: var(--ok); }
 .ai-prop-st.no { color: var(--muted); }
 .tw-h .ai-lv { margin-left: auto; font-weight: 600; color: var(--muted); }
+
+/* ===== Acabado de espacios (mejoras) ===== */
+/* margen lateral de la página/hoja en una variable: las filas que se desplazan llegan al borde de la pantalla */
+.page, .sheet-body { --gutter: 18px; }
+@media (max-width: 350px) { .page { --gutter: 14px; } }
+@media (min-width: 640px) { .page { --gutter: 24px; } }
+@media (min-width: 900px) { .page { --gutter: 36px; } }
+.chips.bleed {
+  margin-left: calc(-1 * var(--gutter, 18px));
+  margin-right: calc(-1 * var(--gutter, 18px));
+  padding-left: var(--gutter, 18px);
+  padding-right: var(--gutter, 18px);
+  scroll-padding-left: var(--gutter, 18px);
+  -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
+  mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
+}
+.chips.bleed::after { content: ''; flex: none; width: 4px; }
+/* biblioteca: buscador → grupos → (filtros) → nº → lista con el mismo ritmo */
+.lib-search { margin-bottom: var(--sp-3); }
+.lib-search .icon-btn { height: 48px; min-width: 48px; }
+.lib-groups { padding-bottom: var(--sp-3); }
+.lib-groups .chip { min-height: 36px; padding: 7px 14px; font-size: var(--fs-sm); }
+.lib-filters { margin: 0 0 var(--sp-3); }
+.lib-equip { padding-bottom: var(--sp-3); }
+.lib-filters .seg { margin: 0; }
+.lib-count { margin: 0 0 var(--sp-2); }
+/* etiquetas de campo: aire arriba igual en todas, nada si van primero */
+.lbl { margin: var(--sp-4) 0 var(--sp-2); }
+.lbl:first-child, h2 + .lbl, .card > .lbl:first-child { margin-top: 0; }
+/* editor del día: nombre en 2 líneas como mucho y sin guiones a mitad de palabra */
+.ed-t b { hyphens: none; -webkit-hyphens: none; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.ed-n { width: 12px; }
+.ed-sr { gap: 2px; }
+.ed-sr .inp.sm { height: 40px; width: 36px; }
+.ed-sr .inp.ed-reps { width: 50px; }
+.day-parts { padding-top: 0; }
+/* Progreso: «Va bien» con el icono alineado y enlaces al mismo margen */
+.aim-good { display: flex; align-items: flex-start; gap: 6px; }
+.aim-good svg { flex: none; margin-top: 3px; }
+.link.small.month-link { display: flex !important; width: fit-content; margin: 0 0 var(--sp-1); padding-left: 2px; }

@@ -213,7 +213,7 @@ export function Library({ data, setData, onPick, onClose, inline, title, noCreat
           <Icon name="list" size={18} />
         </button>
       </div>
-      <div className="chips">
+      <div className="chips bleed lib-groups">
         {['Todos', ...(favs.length ? ['★'] : []), ...GROUPS, 'Cardio', 'Estiramientos'].map((g) => (
           <button key={g} className={'chip' + (g === group ? ' on' : '')} onClick={() => setGroup(g)}>
             {g === '★' ? '★ Favoritos' : g}
@@ -222,7 +222,7 @@ export function Library({ data, setData, onPick, onClose, inline, title, noCreat
       </div>
       {more && (
         <div className="lib-filters">
-          <div className="chips wrap">
+          <div className="chips bleed lib-equip">
             {EQ.map((e) => (
               <button key={e} className={'chip sm' + (equipF === e ? ' on' : '')} onClick={() => setEquipF(e)}>
                 {e}
@@ -238,7 +238,7 @@ export function Library({ data, setData, onPick, onClose, inline, title, noCreat
           </div>
         </div>
       )}
-      <p className="muted small mo-b2">{list.length} {list.length === 1 ? 'ejercicio' : 'ejercicios'}</p>
+      <p className="muted small lib-count">{list.length} {list.length === 1 ? 'ejercicio' : 'ejercicios'}</p>
       <div className="list">
         {list.slice(0, limit).map((e) => (
           <button key={e.id} className="row" onClick={() => setOpen(e)}>

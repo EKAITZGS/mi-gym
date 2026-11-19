@@ -93,7 +93,7 @@ with sync_playwright() as p:
     assert 'Igual' in ri, ri
     rp = page.locator('.sheet .cmp', has_text=names[2]).inner_text()
     assert '+1 rep' in rp and '1 rep más con el mismo peso' in rp, rp
-    assert 'Se compara serie a serie' in txt
+    assert 'Cada serie se compara con la misma' in txt
     page.click('text=Listo')
     data = json.loads(page.evaluate("localStorage.getItem('migym.v1')"))
     s = data['sessions'][-1]

@@ -429,7 +429,7 @@ export function Session({ data, setData, onExit, cloud, online }) {
                     {c.tag && (
                       <div className="muted small">
                         Serie a serie: {c.txt}
-                        {c.d ? ` · volumen ${c.d > 0 ? '+' : '−'}${Math.abs(c.d)}\u00a0%` : ''}
+                        {c.sets ? ` · hoy\u00a0${c.sets}` : ''}
                       </div>
                     )}
                     {c.tired && c.kind && (
@@ -450,9 +450,8 @@ export function Session({ data, setData, onExit, cloud, online }) {
                 )
               })}
               <p className="muted small">
-                Se compara serie a serie con la última vez (la 1.ª con la 1.ª…): con el mismo peso cuentan las repeticiones; si cambia el peso, el 1RM
-                estimado. También se tiene en cuenta el orden: no es lo mismo hacer un ejercicio el primero que después de otros que cansan los mismos
-                músculos.
+                Cada serie se compara con la misma de la última vez (con otro peso, por el 1RM estimado) y se tiene en cuenta el orden: después de otros
+                ejercicios de los mismos músculos se rinde menos.
               </p>
             </>
           )}
@@ -546,6 +545,7 @@ export function Session({ data, setData, onExit, cloud, online }) {
         prev: prev && setsTxt(prev.sets),
         d: pv > 0 ? Math.round((setsVol(sets) / pv - 1) * 100) : null,
         kind: c?.n ? c.kind : null,
+        sets: c ? (c.missing ? `${c.missing}\u00a0${c.missing === 1 ? 'serie' : 'series'}\u00a0menos` : c.extra ? `${c.extra}\u00a0${c.extra === 1 ? 'serie' : 'series'}\u00a0más` : '') : '',
         tag: compareTag(c),
         txt: compareTxt(c),
         tired,

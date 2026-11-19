@@ -35,6 +35,12 @@ with sync_playwright() as p:
     # editar un día: cambiar el nombre y guardar
     page.click('.tabbar button:has-text("Rutinas")')
     page.click('button[aria-label="Editar"] >> nth=0')
+    # nombre con los grupos (Pecho + Hombro) y luego escrito a mano con «Otro…»
+    for g in ('Pecho', 'Hombro'):
+        if page.locator(f'.day-parts .chip[aria-pressed="true"]:text-is("{g}")').count() == 0:
+            page.click(f'.day-parts .chip:text-is("{g}")')
+    assert 'Se llamará «Pecho y hombro»' in page.locator('.day-name-prev').inner_text()
+    page.click('.day-parts .chip:has-text("Otro")')
     page.fill('input[aria-label="Nombre del día"]', 'Pecho y hombro')
     page.click('.savebar button:has-text("Guardar")')
     page.wait_for_timeout(300)
