@@ -1,7 +1,11 @@
 // Rangos por músculo (tipo videojuego) a partir de tu fuerza real, no de fotos.
-// Para cada ejercicio hay una referencia de nivel "Oro" (intermedio sólido) (1RM estimado / peso corporal; en mancuernas, por mancuerna).
-// En los de peso corporal se usan repeticiones máximas en una serie.
+// Para cada ejercicio hay una referencia de nivel intermedio (1RM estimado / peso corporal; en mancuernas, por mancuerna),
+// de tablas tipo Strength Level. En los de peso corporal se usan repeticiones máximas en una serie.
+// El rango de un músculo no sale de un solo ejercicio: es la media de tus 3 mejores ejercicios de ese músculo, los de
+// aislamiento (abductores, extensiones, elevaciones…) cuentan la mitad donde hay básicos, y para los rangos altos hacen
+// falta varios ejercicios y algún básico. Todo a la vez: con 40 kg en una máquina de aislamiento no se llega a Diamante.
 import { EX_BY_ID, GROUPS } from './data/exercises'
+import { ISOLATION } from './data/mechanic'
 
 // Grupos del maniquí (los de la biblioteca + antebrazo, que solo se trabaja como secundario)
 export const RANK_GROUPS = [...new Set([...GROUPS, 'Antebrazo'])]
@@ -28,28 +32,38 @@ export function groupsOf(id) {
 import { e1rm, num, todayStr, addDays } from './store'
 import { sexOf, sexFactor } from './sex'
 
+// f = fuerza / referencia intermedia: Oro ≈ cerca de intermedio, Platino por encima, Diamante ≈ avanzado
 export const RANKS = [
   { id: 'hierro', name: 'Hierro', min: 0, color: '#8a8f99' },
   { id: 'bronce', name: 'Bronce', min: 0.4, color: '#cd7f32' },
   { id: 'plata', name: 'Plata', min: 0.6, color: '#d7dee8' },
-  { id: 'oro', name: 'Oro', min: 0.8, color: '#f5c542' },
-  { id: 'platino', name: 'Platino', min: 1.0, color: '#4fe3cf' },
-  { id: 'diamante', name: 'Diamante', min: 1.25, color: '#7fb2ff' },
+  { id: 'oro', name: 'Oro', min: 0.85, color: '#f5c542' },
+  { id: 'platino', name: 'Platino', min: 1.1, color: '#4fe3cf' },
+  { id: 'diamante', name: 'Diamante', min: 1.4, color: '#7fb2ff' },
 ]
+const MIN = Object.fromEntries(RANKS.map((r) => [r.id, r.min]))
+// cuántos ejercicios entran en la nota de un músculo y cuánto pesa cada tipo
+const TOP_N = 3
+const W_COMPOUND = 1
+const W_ISO = 0.5 // aislamiento en un músculo que tiene básicos (pecho, espalda, hombro, pierna)
+const W_SEC = 0.35 // cuando el músculo trabaja de secundario
+// músculos con ejercicios básicos (multiarticulares); en bíceps, tríceps, core y antebrazo casi todo es aislamiento y cuenta entero
+const HAS_COMPOUND = new Set(['Pecho', 'Espalda', 'Hombro', 'Pierna'])
+export const isIsolation = (id) => ISOLATION.has(id)
 
 const REF = {
-  'Barbell_Bench_Press_-_Medium_Grip': 1.15, 'Barbell_Incline_Bench_Press_-_Medium_Grip': 0.98, Dumbbell_Bench_Press: 0.43, Incline_Dumbbell_Press: 0.37,
-  Leverage_Chest_Press: 1.03, Leverage_Incline_Chest_Press: 0.86, Dumbbell_Flyes: 0.17, Incline_Dumbbell_Flyes: 0.15, Butterfly: 0.69, Cable_Crossover: 0.29,
+  'Barbell_Bench_Press_-_Medium_Grip': 1.15, 'Barbell_Incline_Bench_Press_-_Medium_Grip': 0.98, Dumbbell_Bench_Press: 0.5, Incline_Dumbbell_Press: 0.43,
+  Leverage_Chest_Press: 1.03, Leverage_Incline_Chest_Press: 0.86, Dumbbell_Flyes: 0.22, Incline_Dumbbell_Flyes: 0.2, Butterfly: 0.95, Cable_Crossover: 0.35,
   'Wide-Grip_Lat_Pulldown': 0.92, 'Close-Grip_Front_Lat_Pulldown': 0.92, Seated_Cable_Rows: 0.92, Bent_Over_Barbell_Row: 0.98, 'One-Arm_Dumbbell_Row': 0.46,
   Leverage_High_Row: 0.98, 'Straight-Arm_Pulldown': 0.4, Barbell_Deadlift: 1.72,
-  Barbell_Shoulder_Press: 0.71, Dumbbell_Shoulder_Press: 0.29, Machine_Shoulder_Military_Press: 0.63, Side_Lateral_Raise: 0.18, Front_Dumbbell_Raise: 0.18,
+  Barbell_Shoulder_Press: 0.71, Dumbbell_Shoulder_Press: 0.36, Machine_Shoulder_Military_Press: 0.63, Side_Lateral_Raise: 0.21, Front_Dumbbell_Raise: 0.22,
   Reverse_Machine_Flyes: 0.46, Reverse_Flyes: 0.11, Face_Pull: 0.4, Dumbbell_Shrug: 0.52, Barbell_Shrug: 1.15,
-  Barbell_Curl: 0.57, 'EZ-Bar_Curl': 0.55, Dumbbell_Bicep_Curl: 0.23, Hammer_Curls: 0.25, Preacher_Curl: 0.46, Concentration_Curls: 0.2,
-  Standing_Biceps_Cable_Curl: 0.52, Alternate_Incline_Dumbbell_Curl: 0.2,
+  Barbell_Curl: 0.57, 'EZ-Bar_Curl': 0.55, Dumbbell_Bicep_Curl: 0.3, Hammer_Curls: 0.32, Preacher_Curl: 0.46, Concentration_Curls: 0.27,
+  Standing_Biceps_Cable_Curl: 0.52, Alternate_Incline_Dumbbell_Curl: 0.26,
   Triceps_Pushdown: 0.57, 'Triceps_Pushdown_-_Rope_Attachment': 0.48, Cable_Rope_Overhead_Triceps_Extension: 0.46, Lying_Triceps_Press: 0.52,
   Standing_Dumbbell_Triceps_Extension: 0.34, Machine_Triceps_Extension: 0.57, 'Close-Grip_Barbell_Bench_Press': 0.98,
-  Barbell_Squat: 1.44, Leg_Press: 2.88, Hack_Squat: 1.72, Goblet_Squat: 0.52, Dumbbell_Lunges: 0.34, Romanian_Deadlift: 1.26, Leg_Extensions: 0.86,
-  Lying_Leg_Curls: 0.63, Seated_Leg_Curl: 0.69, Barbell_Hip_Thrust: 1.72, Standing_Calf_Raises: 1.49, Seated_Calf_Raise: 1.03, Cable_Crunch: 0.69,
+  Barbell_Squat: 1.44, Leg_Press: 2.88, Hack_Squat: 1.72, Goblet_Squat: 0.52, Dumbbell_Lunges: 0.34, Romanian_Deadlift: 1.26, Leg_Extensions: 1.05,
+  Lying_Leg_Curls: 0.8, Seated_Leg_Curl: 0.85, Barbell_Hip_Thrust: 1.72, Standing_Calf_Raises: 1.65, Seated_Calf_Raise: 1.2, Cable_Crunch: 0.69,
 }
 // Peso corporal: repeticiones de referencia (nivel Oro) en una serie
 const REF_NEW = {
@@ -65,7 +79,7 @@ const REF_NEW = {
   'EZ-Bar_Skullcrusher': 0.5, Dip_Machine: 0.9, 'Smith_Machine_Close-Grip_Bench_Press': 1.0, Tricep_Dumbbell_Kickback: 0.12, Cable_One_Arm_Tricep_Extension: 0.25,
   Reverse_Grip_Triceps_Pushdown: 0.45, Smith_Machine_Squat: 1.3, Front_Barbell_Squat: 1.1, Dumbbell_Squat: 0.45, Plie_Dumbbell_Squat: 0.6, Split_Squat_with_Dumbbells: 0.33,
   One_Leg_Barbell_Squat: 0.7, 'Smith_Single-Leg_Split_Squat': 0.75, Barbell_Walking_Lunge: 0.7, Dumbbell_Rear_Lunge: 0.33, Dumbbell_Step_Ups: 0.3, Sumo_Deadlift: 1.7,
-  'Stiff-Legged_Dumbbell_Deadlift': 0.5, 'Smith_Machine_Stiff-Legged_Deadlift': 1.2, Standing_Leg_Curl: 0.3, Glute_Ham_Raise: 0.3, Thigh_Abductor: 1.0, Thigh_Adductor: 1.0,
+  'Stiff-Legged_Dumbbell_Deadlift': 0.5, 'Smith_Machine_Stiff-Legged_Deadlift': 1.2, Standing_Leg_Curl: 0.4, Glute_Ham_Raise: 0.3, Thigh_Abductor: 1.4, Thigh_Adductor: 1.4,
   Smith_Machine_Calf_Raise: 1.4, Calf_Press_On_The_Leg_Press_Machine: 2.0, Standing_Dumbbell_Calf_Raise: 0.5, Barbell_Glute_Bridge: 1.6, 'One-Legged_Cable_Kickback': 0.35,
   Pull_Through: 0.8, Reverse_Hyperextension: 0.6, 'One-Arm_Kettlebell_Swings': 0.35, Ab_Crunch_Machine: 0.8, Standing_Cable_Wood_Chop: 0.4, Dumbbell_Side_Bend: 0.4,
   'Palms-Up_Barbell_Wrist_Curl_Over_A_Bench': 0.5, 'Palms-Down_Wrist_Curl_Over_A_Bench': 0.35, Cable_Wrist_Curl: 0.4, Farmers_Walk: 0.5,
@@ -107,7 +121,7 @@ export function muscleRanks(data) {
         if (REPS[id]) {
           const refReps = REPS[id] * sexFactor(id, sex, true)
           f = (r / refReps) * (1 + w / bw)
-          val = { reps: r, w, refReps }
+          val = { reps: r, w0: w, refReps }
         } else {
           const ref = (REF[id] ?? BY_EQUIP[ex.equip]) * sexFactor(id, sex)
           if (!ref || w <= 0) continue
@@ -127,22 +141,58 @@ export function muscleRanks(data) {
   for (const g of RANK_GROUPS) {
     const list = Object.values(best)
       .filter((b) => b.g === g)
+      .map((b) => ({ ...b, w: !b.main ? W_SEC : isIsolation(b.id) && HAS_COMPOUND.has(g) ? W_ISO : W_COMPOUND }))
       .sort((a, b) => b.f - a.f)
     if (!list.length) {
-      out[g] = { group: g, f: null, rank: null, top: null }
+      out[g] = { group: g, f: null, rank: null, top: null, used: [] }
       continue
     }
-    const top = list[0]
-    const f = top.f
+    // nota = media (ponderada por tipo) de tus 3 mejores ejercicios de ese músculo
+    const used = list.slice(0, TOP_N)
+    const sw = used.reduce((a, x) => a + x.w, 0)
+    const raw = used.reduce((a, x) => a + x.w * x.f, 0) / sw
+    // todo a la vez: con 1 ejercicio como mucho Oro, con 2 como mucho Platino; Diamante pide 3.
+    // Donde hay básicos, solo con aislamiento (sin ningún básico como principal) no pasas de Plata.
+    const nMain = list.filter((x) => x.main).length
+    const compound = !HAS_COMPOUND.has(g) || list.some((x) => x.main && !isIsolation(x.id))
+    let cap = Infinity
+    let why = null
+    if (nMain < 3) {
+      cap = (nMain < 2 ? MIN.platino : MIN.diamante) - 0.001
+      why = 'count'
+    }
+    if (!compound && MIN.oro - 0.001 < cap) {
+      cap = MIN.oro - 0.001
+      why = 'compound'
+    }
+    const f = Math.min(raw, cap)
+    const rank = rankOf(f)
     const nr = nextRank(f)
-    // cuánto te falta para el siguiente rango en tu mejor ejercicio de ese músculo
+    // qué te falta: si el tope es por pocos ejercicios o sin básicos, eso; si no, subir el más flojo de los que cuentan
     let need = null
-    if (nr && top.ref) need = { rank: nr, e1rm: Math.ceil(((nr.min / top.factor) * top.ref * bw) * 2) / 2 }
-    else if (nr && top.refReps) need = { rank: nr, reps: Math.ceil(((nr.min / top.factor) * top.refReps) / (1 + (top.w || 0) / bw)) }
-    out[g] = { group: g, f, rank: rankOf(f), top, need, progress: nr ? Math.max(0, Math.min(1, (f - rankOf(f).min) / (nr.min - rankOf(f).min))) : 1 }
+    if (nr) {
+      // el siguiente rango está por encima del tope: lo que falta es eso, no más kilos
+      if (nr.min > cap && why === 'count') need = { rank: nr, more: (nMain < 2 ? 2 : 3) - nMain }
+      else if (nr.min > cap && why === 'compound') need = { rank: nr, compound: true }
+      else {
+        // de los que cuentan como principal, el que menos tendrías que subir (en %) para llegar; sin ninguno directo, hacer uno
+        const mains = used.filter((x) => x.main)
+        if (!mains.length) need = { rank: nr, direct: true }
+        else {
+          const up = (x) => x.f + ((nr.min - raw) * sw) / x.w
+          const pick = mains.reduce((m, x) => (up(x) / x.f < up(m) / m.f ? x : m), mains[0])
+          const fNew = up(pick)
+          if (pick.ref) need = { rank: nr, id: pick.id, e1rm: Math.ceil((fNew / pick.factor) * pick.ref * bw * 2) / 2 }
+          else if (pick.refReps) need = { rank: nr, id: pick.id, reps: Math.ceil(((fNew / pick.factor) * pick.refReps) / (1 + (pick.w0 || 0) / bw)) }
+        }
+      }
+    }
+    out[g] = { group: g, f, raw, rank, top: list[0], used, need, progress: nr ? Math.max(0, Math.min(1, (f - rank.min) / (nr.min - rank.min))) : 1 }
   }
-  const have = Object.values(out).filter((x) => x.f != null)
-  const overall = have.length ? rankOf(have.reduce((a, x) => a + Math.min(x.f, 1.6), 0) / have.length) : null
+  // rango general: los 7 músculos a la vez (el que no entrenas cuenta 0)
+  const main7 = RANK_GROUPS.filter((g) => g !== 'Antebrazo')
+  const any = main7.some((g) => out[g].f != null)
+  const overall = any ? rankOf(main7.reduce((a, g) => a + Math.min(out[g].f || 0, MIN.diamante + 0.1), 0) / main7.length) : null
   return { groups: out, overall, bw: bodyWeight(data) }
 }
 

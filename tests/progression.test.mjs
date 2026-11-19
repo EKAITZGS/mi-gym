@@ -155,4 +155,41 @@ assert.doesNotMatch(levelPrompt(lifter(null)), /MUJER/)
 const rk = (sex) => muscleRanks({ ...lifter(sex), sessions: [{ id: 'a', date: new Date().toISOString().slice(0, 10), entries: { [BENCH]: [S(40, 5)] } }] }).groups.Pecho.f
 assert.ok(rk('f') > rk(null) * 1.5)
 
+// --- «Tu personaje»: todo a la vez, no un solo ejercicio de aislamiento ---
+const day = new Date().toISOString().slice(0, 10)
+const ranksOf = (entries, kg = 80) => muscleRanks({ body: { weight: [{ date: day, kg }] }, sessions: [{ id: 'r', date: day, entries }] })
+// 72,5 kg en abductores con 81 kg de peso: antes salía Platino en pierna
+let rg = ranksOf({ Thigh_Abductor: [S(72.5, 7)] }, 81).groups.Pierna
+assert.ok(['hierro', 'bronce', 'plata'].includes(rg.rank.id), rg.rank.id)
+assert.ok(rg.need.compound) // lo que falta: algún básico
+// 40 kg en aductores: lejos de Diamante
+assert.ok(['hierro', 'bronce'].includes(ranksOf({ Thigh_Adductor: [S(40, 10)] }, 81).groups.Pierna.rank.id))
+// un solo ejercicio, aunque sea muy fuerte: como mucho Oro
+rg = ranksOf({ Barbell_Squat: [S(170, 5)] }).groups.Pierna
+assert.equal(rg.rank.id, 'oro')
+assert.ok(rg.raw > rg.f)
+// solo aislamiento (muy fuerte): sin básicos no se pasa de Plata
+rg = ranksOf({ Leg_Extensions: [S(150, 10)], Seated_Leg_Curl: [S(120, 10)], Thigh_Abductor: [S(200, 10)] }).groups.Pierna
+assert.equal(rg.rank.id, 'plata')
+assert.ok(rg.need.compound)
+// tres básicos fuertes a la vez: Diamante
+rg = ranksOf({ Barbell_Squat: [S(170, 5)], Leg_Press: [S(330, 8)], Romanian_Deadlift: [S(150, 8)] }).groups.Pierna
+assert.equal(rg.rank.id, 'diamante')
+assert.equal(rg.used.length, 3)
+// uno flojo entre los que cuentan baja la nota y dice qué subir (uno de los que cuentan, a más de lo que mueves)
+rg = ranksOf({ Barbell_Squat: [S(170, 5)], Leg_Press: [S(330, 8)], Hack_Squat: [S(40, 10)] }).groups.Pierna
+assert.notEqual(rg.rank.id, 'diamante')
+const nu = rg.used.find((u) => u.id === rg.need.id)
+assert.ok(nu && rg.need.e1rm > nu.e)
+// tríceps solo de rebote: lo que falta es un ejercicio directo
+assert.ok(ranksOf({ 'Barbell_Bench_Press_-_Medium_Grip': [S(60, 8)] }).groups.Tríceps.need.direct)
+// el aislamiento pesa la mitad que un básico en pierna
+const lp = ranksOf({ Leg_Press: [S(150, 10)], Leg_Extensions: [S(120, 10)], Lying_Leg_Curls: [S(90, 10)] }).groups.Pierna
+assert.ok(lp.used.find((u) => u.id === 'Leg_Extensions').w === 0.5 && lp.used.find((u) => u.id === 'Leg_Press').w === 1)
+// en bíceps (todo es aislamiento) cuenta entero
+assert.equal(ranksOf({ Barbell_Curl: [S(40, 8)], Hammer_Curls: [S(16, 8)] }).groups.Bíceps.used[0].w, 1)
+// el general cuenta los 7 músculos: solo pierna fuerte no da un general alto
+const ov = ranksOf({ Barbell_Squat: [S(170, 5)], Leg_Press: [S(330, 8)], Romanian_Deadlift: [S(150, 8)] }).overall
+assert.ok(['hierro', 'bronce'].includes(ov.id), ov.id)
+
 console.log('progress: ok')

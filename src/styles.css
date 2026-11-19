@@ -2758,3 +2758,7 @@ button.setn.beat { border-color: var(--ok); color: var(--ok); box-shadow: inset 
 .aim-good { display: flex; align-items: flex-start; gap: 6px; }
 .aim-good svg { flex: none; margin-top: 3px; }
 .link.small.month-link { display: flex !important; width: fit-content; margin: 0 0 var(--sp-1); padding-left: 2px; }
+/* Tu personaje: qué ejercicios cuentan y qué falta */
+.rk-used { margin-top: 2px; }
+.rk-need { margin-top: 2px; color: var(--text); }
+.char-note { text-align: center; margin: -4px 0 var(--sp-3); }
