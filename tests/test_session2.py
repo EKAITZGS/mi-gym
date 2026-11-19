@@ -35,7 +35,9 @@ with sync_playwright() as p:
     inputs = card.locator('.setrow input.inp')
     assert inputs.nth(0).input_value() == '60', inputs.nth(0).input_value()
     assert inputs.nth(1).input_value() == '', 'las reps deben empezar vacías'
-    assert inputs.nth(1).get_attribute('placeholder') == 'reps'
+    # (mejoras) objetivo de reps en gris: la otra vez 60×10 con 8-10 → tope: con 60 kg, igualar (10); con 62,5, 8
+    assert inputs.nth(1).get_attribute('placeholder') == '10', inputs.nth(1).get_attribute('placeholder')
+    assert 'Objetivo hoy' in card.inner_text() and '62,5×8' in card.inner_text(), card.inner_text()
     # cabecera: 0/2 series
     assert '0/2' in page.locator('.ses-stats').inner_text().replace('\n', '')
     # marcar sin reps: no se marca, enfoca reps

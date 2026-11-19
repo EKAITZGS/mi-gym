@@ -14,7 +14,7 @@ import { ORDER, restTxt } from './shared'
 import { Library } from './Library'
 
 /* ---------- Generador de plan (paso a paso) ---------- */
-const FOCUS = ['Pecho', 'Espalda', 'Pierna', 'Hombro', 'Bíceps', 'Tríceps', 'Core']
+const FOCUS = ['Glúteo', 'Pecho', 'Espalda', 'Pierna', 'Hombro', 'Bíceps', 'Tríceps', 'Core']
 // Sustituye el plan con días fijos; conserva los días sin día fijo y no toca el historial
 export function Generator({ data, setData, onClose }) {
   // nivel automático: el mismo que usa el entrenador IA (pesos en los ejercicios básicos y tiempo entrenando)
@@ -201,7 +201,7 @@ export function Generator({ data, setData, onClose }) {
                 value={d.type}
                 onChange={(e) => setTypes((t) => ({ ...t, [d.weekday]: e.target.value }))}
               >
-                {Object.entries(DAY_TYPES).map(([id, t]) => (
+                {Object.entries(DAY_TYPES).filter(([id]) => id !== 'fullg').map(([id, t]) => (
                   <option key={id} value={id}>
                     {t.name}
                   </option>
@@ -238,7 +238,13 @@ export function Generator({ data, setData, onClose }) {
               </button>
             ))}
           </div>
-          {focus && <p className="muted small">{focus}: una serie más en cada ejercicio.</p>}
+          {focus && (
+            <p className="muted small">
+              {focus === 'Glúteo'
+                ? 'Glúteo: los días de pierna se centran en glúteo (hip thrust, peso muerto rumano, búlgaras, abducción, patada en polea), el cuerpo completo empieza por glúteo y sus ejercicios llevan una serie más.'
+                : `${focus}: una serie más en cada ejercicio.`}
+            </p>
+          )}
           <h4>Molestias o limitaciones</h4>
           <div className="chips wrap">
             {ZONES.filter((z) => z.id !== 'Otra').map((z) => {

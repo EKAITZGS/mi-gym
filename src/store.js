@@ -137,7 +137,7 @@ export const setTxt = (s) =>
 export function lastSets(sessions, exId) {
   for (let i = sessions.length - 1; i >= 0; i--) {
     const sets = sessions[i].entries?.[exId]
-    if (sets && sets.some(setFilled)) return { date: sessions[i].date, sets }
+    if (sets && sets.some(setFilled)) return { date: sessions[i].date, sets, ses: sessions[i] }
   }
   return null
 }
@@ -227,6 +227,12 @@ export function lastSession(sessions, exId) {
   return null
 }
 
+// Salto de peso: en polea/máquina el escalón de la pila; en pesos libres nunca más de ~12 % (7 kg → 8 kg, no 9,5)
+export function weightStep(from, equip) {
+  const base = equip === 'Mancuernas' ? (from >= 20 ? 2 : 1) : 2.5
+  return equip === 'Polea' || equip === 'Máquina' ? 2.5 : Math.min(base, Math.max(1, Math.round(from * 0.12 * 2) / 2))
+}
+
 // ¿Toca subir peso? Doble progresión + repeticiones en reserva (rir: 0 = al límite, 2 = 1-2, 3 = 3 o más)
 export function suggestion(sessions, exId, repsTarget, setsPlanned, equip) {
   const ses = lastSession(sessions, exId)
@@ -236,10 +242,7 @@ export function suggestion(sessions, exId, repsTarget, setsPlanned, equip) {
   const sets = ses.entries[exId].filter((x) => !x.warm && num(x.w) > 0 && num(x.r) > 0)
   if (!sets.length) return null
   const from = Math.min(...sets.map((x) => num(x.w)))
-  // Salto de peso: en polea/máquina el escalón de la pila; en pesos libres nunca más de ~12 % (7 kg → 8 kg, no 9,5)
-  const base = equip === 'Mancuernas' ? (from >= 20 ? 2 : 1) : 2.5
-  const inc =
-    equip === 'Polea' || equip === 'Máquina' ? 2.5 : Math.min(base, Math.max(1, Math.round(from * 0.12 * 2) / 2))
+  const inc = weightStep(from, equip)
   const up = (reps, why) => ({ w: Math.round((from + inc) * 100) / 100, reps, from, inc, why, action: 'up' })
   const minReps = Math.min(...sets.map((x) => num(x.r)))
   if (!m) {

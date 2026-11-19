@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { exStats, fmtKg } from './store'
+import { fmtKg } from './store'
 import { EX_BY_ID } from './data/exercises'
 import { Thumb } from './ui'
 import { ExerciseModal } from './workout/Library'
@@ -8,6 +8,7 @@ import BodyCard from './Body'
 import MonthModal from './Month'
 import RankCard from './Rank'
 import { recentPRs, stalled, periodStats, consistency, progressRead } from './stats'
+import { exHistory } from './progression'
 import MuscleMap from './MuscleMap'
 import { Stat, miles, fmtMin, Section } from './ds'
 import { fmtDate } from './store'
@@ -17,7 +18,7 @@ import AimCard from './AimCard'
 // Récords del último mes y ejercicios que llevan 3 entrenos sin mejorar
 function Highlights({ data, onOpen }) {
   const prs = useMemo(() => recentPRs(data.sessions).slice(0, 5), [data.sessions])
-  const stuck = useMemo(() => stalled(data.sessions).filter((x) => EX_BY_ID[x.id]), [data.sessions])
+  const stuck = useMemo(() => stalled(data.sessions, new Date(), data.plan).filter((x) => EX_BY_ID[x.id]), [data.sessions, data.plan])
   if (!prs.length && !stuck.length) return null
   return (
     <div className="card list-card">
@@ -80,13 +81,13 @@ export default function Progress({ data, setData }) {
     const w = new Date(d)
     w.setDate(w.getDate() - ((w.getDay() + 6) % 7))
     return { month: periodStats(data.sessions, m0), week: periodStats(data.sessions, fmtDate(w)), all: periodStats(data.sessions, '0000'), cons: consistency(data.sessions) }
-  }, [data.sessions])
+  }, [data.sessions, data.plan])
 
   const progress = useMemo(() => {
     const ids = [...new Set(data.sessions.flatMap((s) => Object.keys(s.entries || {})))]
     return ids
       .map((id) => {
-        const st = exStats(data.sessions, id)
+        const st = exHistory(data.sessions, id, data.plan)
         if (!st.length || !EX_BY_ID[id]) return null
         return { id, n: st.length, first: st[0].best.e, last: st[st.length - 1].best.e, read: progressRead(st) }
       })

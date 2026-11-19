@@ -33,7 +33,17 @@ export const DAY_TYPES = {
   espalda: { name: 'Espalda y bíceps', slots: [S('Espalda', 'Dorsales', 1), S('Espalda', 'Espalda media', 1), S('Espalda'), S('Bíceps'), S('Espalda'), S('Bíceps'), S('Bíceps'), S('Core')] },
   hombro: { name: 'Hombro y brazos', slots: [S('Hombro', 0, 1), S('Hombro', 0, 0), S('Bíceps'), S('Tríceps'), S('Hombro'), S('Bíceps'), S('Tríceps'), S('Core')] },
   core: { name: 'Core', slots: [S('Core'), S('Core'), S('Core'), S('Espalda', 'Lumbar'), S('Core'), S('Core')] },
+  // glúteo primero: empuje de cadera, bisagra, unilateral, abducción y patada
+  gluteo: { name: 'Glúteo y pierna', slots: [S('Pierna', 'Glúteos', 1), S('Pierna', 'Femorales', 1), S('Pierna', 'Cuádriceps', 1), S('Pierna', 'Abductores'), S('Pierna', 'Glúteos'), S('Pierna', 'Femorales'), S('Core'), S('Pierna', 'Gemelos')] },
+  fullg: { name: 'Cuerpo completo', slots: [S('Pierna', 'Glúteos', 1), S('Espalda', 'Dorsales', 1), S('Pierna', 'Cuádriceps', 1), S('Pecho', 0, 1), S('Pierna', 'Femorales', 1), S('Hombro', 0, 1), S('Pierna', 'Abductores'), S('Espalda', 'Espalda media', 1)] },
 }
+// Foco en glúteo: los días de pierna pasan a ser de glúteo y el cuerpo completo empieza por glúteo
+export const FOCUS_TYPES = { Glúteo: { pierna: 'gluteo', full: 'fullg' } }
+export const typeFor = (type, focus) => FOCUS_TYPES[focus]?.[type] || type
+// con foco en glúteo pesan más (como los favoritos) los ejercicios de glúteo de referencia
+const GLUTE_PREF = ['Barbell_Hip_Thrust', 'Barbell_Glute_Bridge', 'Romanian_Deadlift', 'Split_Squat_with_Dumbbells', 'Thigh_Abductor', 'One-Legged_Cable_Kickback', 'Pull_Through']
+const isGlute = (x) => x.main.includes('Glúteos') || x.main.includes('Abductores')
+const focusHits = (x, focus) => focus === x.group || (focus === 'Glúteo' && isGlute(x))
 
 // Repartos según los días que entrenas; se aplican en ciclo a los días elegidos
 export const SPLITS = [
@@ -78,7 +88,7 @@ export function pickFor(slot, { equip = EQUIP, used = new Set(), avoid = [], exc
 export function prescribe(x, level, focus, goal = 'hyper') {
   const core = x.group === 'Core'
   const c = multi(x) && !core
-  let sets = (level === 'beginner' ? (c ? 3 : 2) : level === 'advanced' ? (c ? 4 : 3) : 3) + (focus === x.group ? 1 : 0)
+  let sets = (level === 'beginner' ? (c ? 3 : 2) : level === 'advanced' ? (c ? 4 : 3) : 3) + (focusHits(x, focus) ? 1 : 0)
   let reps = /Plank/.test(x.id) ? '30-45 s' : core ? '12-15' : c ? (level === 'beginner' ? '10-12' : '6-10') : '10-15'
   let rir = level === 'beginner' ? 3 : c ? 2 : 1
   let rest = core ? 60 : c ? 150 : 75
@@ -107,8 +117,10 @@ export const dayMinutes = (items = []) =>
 export function buildDay(type, opts, used = new Set()) {
   const n = Math.min(opts.n || 6, opts.level === 'beginner' ? 5 : 8)
   const items = []
-  for (const slot of DAY_TYPES[type].slots.slice(0, n)) {
-    const x = pickFor(slot, { ...opts, used, avoid: items.map((i) => i.ex) }) // nunca repite en el mismo día
+  const t = typeFor(type, opts.focus)
+  const prefer = opts.focus === 'Glúteo' ? [...(opts.prefer || []), ...GLUTE_PREF] : opts.prefer
+  for (const slot of DAY_TYPES[t].slots.slice(0, n)) {
+    const x = pickFor(slot, { ...opts, prefer, used, avoid: items.map((i) => i.ex) }) // nunca repite en el mismo día
     if (!x) continue
     used.add(x.id)
     items.push({ id: uid(), ex: x.id, drop: false, ...prescribe(x, opts.level, opts.focus, opts.goal), slot })
@@ -119,13 +131,16 @@ export function buildDay(type, opts, used = new Set()) {
 // days: [{ weekday, type }]. Días e ítems llevan `type`/`slot` para poder regenerarlos; se quitan al guardar (stripSlots).
 export function buildPlan({ days, level = 'intermediate', n = 6, equip = EQUIP, focus = null, goal = 'hyper', exclude = [], prefer = [], rnd }) {
   const used = new Set()
-  return days.map((d) => ({
-    id: uid(),
-    name: DAY_TYPES[d.type].name,
-    weekday: d.weekday,
-    type: d.type,
-    items: buildDay(d.type, { level, n, equip, focus, goal, exclude, prefer, rnd }, used),
-  }))
+  return days.map((d) => {
+    const t = typeFor(d.type, focus)
+    return {
+      id: uid(),
+      name: DAY_TYPES[t].name,
+      weekday: d.weekday,
+      type: t,
+      items: buildDay(t, { level, n, equip, focus, goal, exclude, prefer, rnd }, used),
+    }
+  })
 }
 
 // Análisis de una rutina semanal (días con weekday): volumen efectivo por grupo (directas + ½ indirectas),

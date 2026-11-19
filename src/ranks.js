@@ -26,6 +26,7 @@ export function groupsOf(id) {
   return [{ g: main, main: true }, ...[...sec].map((g) => ({ g, main: false }))]
 }
 import { e1rm, num, todayStr, addDays } from './store'
+import { sexOf, sexFactor } from './sex'
 
 export const RANKS = [
   { id: 'hierro', name: 'Hierro', min: 0, color: '#8a8f99' },
@@ -87,6 +88,8 @@ export function bodyWeight(data) {
 
 export function muscleRanks(data) {
   const bw = bodyWeight(data).kg
+  // mujeres: referencias de mujeres (sexFactor); sin indicar, las de hombre como siempre
+  const sex = sexOf(data)
   const since = addDays(todayStr(), -90)
   const best = {} // por ejercicio
   for (const s of data.sessions || []) {
@@ -102,10 +105,11 @@ export function muscleRanks(data) {
         let f = null
         let val = null
         if (REPS[id]) {
-          f = (r / REPS[id]) * (1 + w / bw)
-          val = { reps: r, w }
+          const refReps = REPS[id] * sexFactor(id, sex, true)
+          f = (r / refReps) * (1 + w / bw)
+          val = { reps: r, w, refReps }
         } else {
-          const ref = REF[id] ?? BY_EQUIP[ex.equip]
+          const ref = (REF[id] ?? BY_EQUIP[ex.equip]) * sexFactor(id, sex)
           if (!ref || w <= 0) continue
           const e = e1rm(w, r)
           f = e / bw / ref
@@ -134,7 +138,7 @@ export function muscleRanks(data) {
     // cuánto te falta para el siguiente rango en tu mejor ejercicio de ese músculo
     let need = null
     if (nr && top.ref) need = { rank: nr, e1rm: Math.ceil(((nr.min / top.factor) * top.ref * bw) * 2) / 2 }
-    else if (nr && REPS[top.id]) need = { rank: nr, reps: Math.ceil(((nr.min / top.factor) * REPS[top.id]) / (1 + (top.w || 0) / bw)) }
+    else if (nr && top.refReps) need = { rank: nr, reps: Math.ceil(((nr.min / top.factor) * top.refReps) / (1 + (top.w || 0) / bw)) }
     out[g] = { group: g, f, rank: rankOf(f), top, need, progress: nr ? Math.max(0, Math.min(1, (f - rankOf(f).min) / (nr.min - rankOf(f).min))) : 1 }
   }
   const have = Object.values(out).filter((x) => x.f != null)

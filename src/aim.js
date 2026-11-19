@@ -118,7 +118,7 @@ export function aimPlan(data, aim = aimOf(data), now = new Date()) {
   if (aim === 'keep') add('info', 'Clave en recomposición', 'Funciona mejor si llevas poco entrenando o vuelves de un parón. Juzga por cintura, fotos y fuerza, no por la báscula.')
   // 6. fuerza
   const prs = recentPRs(data.sessions, 28, now).length
-  const stuck = stalled(data.sessions, now).length
+  const stuck = stalled(data.sessions, now, data.plan).length
   if (prs && !stuck) add('green', `${prs} ${prs === 1 ? 'récord' : 'récords'} en 4 semanas`, aim === 'lose' ? 'Ganar fuerza mientras defines es la mejor señal de que mantienes el músculo.' : 'Estás progresando.', { short: `${prs} ${prs === 1 ? 'récord' : 'récords'}` })
   else if (stuck) add('yellow', `${stuck} ${stuck === 1 ? 'ejercicio estancado' : 'ejercicios estancados'}`, aim === 'lose' ? 'Normal en déficit si no pierdes fuerza. Si bajas mucho, el déficit es muy grande o duermes poco.' : 'Revisa calorías y sueño, o cambia el rango de repeticiones.', { act: 'Revisa kcal y sueño' })
   // 7. sueño

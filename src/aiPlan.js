@@ -3,6 +3,7 @@
 import { EXERCISES, EX_BY_ID } from './data/exercises'
 import { uid, WEEKDAYS } from './store'
 import { clean, norm, diffDay, applyChanges } from './dayDiff'
+import { sexOf, sexFactor, sexPrompt } from './sex'
 
 // ¿La pregunta va de la rutina? Entonces se manda el catálogo y se permite proponer cambios.
 const PLAN_RX =
@@ -56,8 +57,11 @@ export function strengthLevel(data, today = new Date()) {
       }
     }
   }
+  // mujeres: mismos ejercicios con referencias de mujeres (sexFactor: ~60 % arriba, ~75 % pierna)
+  const sex = sexOf(data)
   const lifts = Object.entries(best).map(([id, v]) => {
-    const [lo, hi] = STANDARDS[id] || REP_STANDARDS[id]
+    const k = sexFactor(id, sex, !!REP_STANDARDS[id])
+    const [lo, hi] = (STANDARDS[id] || REP_STANDARDS[id]).map((x) => x * k)
     return { id, v, lv: v >= hi ? 2 : v >= lo ? 1 : 0 }
   })
   if (lifts.length < 2) return null // con un solo ejercicio básico no es fiable
@@ -92,7 +96,8 @@ const LEVEL_RULES = {
 }
 export const levelPrompt = (data) => {
   const lv = levelOf(data)
-  return `Nivel del usuario: ${lv.label} (${lv.why}). Adapta TODO a su nivel. ${LEVEL_RULES[lv.id]}`
+  const sx = sexPrompt(data)
+  return `Nivel del usuario: ${lv.label} (${lv.why}). Adapta TODO a su nivel. ${LEVEL_RULES[lv.id]}${sx ? ' ' + sx : ''}`
 }
 export const LEVEL_MAX_SETS = { beginner: 4, intermediate: 5, advanced: 6 }
 export const LEVEL_RIR = { beginner: 3, intermediate: 2, advanced: 1 }
@@ -167,7 +172,7 @@ Rutina (dia 0=domingo…6=sábado, null=sin día; ej=[ref, id, series, reps]): $
 Ejercicios que puedes usar (ids; SOLO estos o los de su rutina):
 ${catalogForAi(data, groups)}
 ${levelPrompt(data)}
-Reglas: en un día que ya tiene, pon su ref y TODOS los ejercicios con los que queda, en orden (los que se quedan o cambias llevan la ref del original; los nuevos ref null). Día nuevo: ref null, nombre y dia. Con molestia, quita o cambia lo que carga esa zona y di por qué; si es dolor fuerte, que vaya a un profesional. Reps como "8-10" y RIR (repeticiones en reserva, 0-4) según su nivel. En "respuesta" nombra los ejercicios en español y, si es principiante, explica brevemente por qué es así. Si no pide cambios, propuesta null.
+${!groups.length || groups.includes('Pierna') ? 'Para glúteo: Barbell_Hip_Thrust, Romanian_Deadlift, Split_Squat_with_Dumbbells, Thigh_Abductor y One-Legged_Cable_Kickback; glúteo 2-3 días por semana.\n' : ''}Reglas: en un día que ya tiene, pon su ref y TODOS los ejercicios con los que queda, en orden (los que se quedan o cambias llevan la ref del original; los nuevos ref null). Día nuevo: ref null, nombre y dia. Con molestia, quita o cambia lo que carga esa zona y di por qué; si es dolor fuerte, que vaya a un profesional. Reps como "8-10" y RIR (repeticiones en reserva, 0-4) según su nivel. En "respuesta" nombra los ejercicios en español y, si es principiante, explica brevemente por qué es así. Si no pide cambios, propuesta null.
 Propuesta: {"resumen":"1 frase","dias":[{"ref":"d2" o null,"nombre":"...","dia":3,"ejercicios":[{"ref":"d2e1" o null,"id":"...","series":3,"reps":"10-12","rir":2}]}]}`
 }
 

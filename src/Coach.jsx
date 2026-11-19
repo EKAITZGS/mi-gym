@@ -7,7 +7,7 @@ import { improvePlan, recentPains, needsDeload } from './coach'
 import { generatePlan } from './plans'
 import { levelOf } from './aiPlan'
 
-const FOCUS = ['Equilibrado', 'Más pierna', 'Más tren superior', 'Más brazos', 'Más hombro', 'Fuerza']
+const FOCUS = ['Equilibrado', 'Más glúteo', 'Más pierna', 'Más tren superior', 'Más brazos', 'Más hombro', 'Fuerza']
 const ORDER = [1, 2, 3, 4, 5, 6, 0]
 
 export default function Coach({ data, setData, onClose }) {

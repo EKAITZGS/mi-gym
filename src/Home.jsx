@@ -103,9 +103,10 @@ export default function Home({ data, setData, onStart, go, onOpenStart, name }) 
       {welcome === 'goals' && (
         <GoalCalc
           skipLabel="Saltar: lo pondré luego en Ajustes"
+          sex={data.prefs?.sex}
           onClose={() => setWelcome('plan')}
-          onApply={(r) => {
-            setData((d) => ({ ...d, goals: { ...d.goals, kcal: r.kcal, protein: r.protein } }))
+          onApply={(r, sex) => {
+            setData((d) => ({ ...d, goals: { ...d.goals, kcal: r.kcal, protein: r.protein }, prefs: { ...(d.prefs || {}), sex } }))
             setWelcome('plan')
           }}
         />

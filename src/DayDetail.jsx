@@ -5,6 +5,7 @@ import { Modal } from './ui'
 import { setTxt, WEEKDAYS, todayStr } from './store'
 import { EX_BY_ID } from './data/exercises'
 import PolarSession, { HrSpark } from './PolarSession'
+import { sessionOrder } from './progression'
 
 export const hasSet = (x) => !!(x.r || x.s || x.m || x.km || x.min)
 export const doneSessions = (data, date) =>
@@ -56,7 +57,9 @@ export function SessionCard({ s, nameOf, watch = [], onHr, showDate = true, clas
           </span>
         )}
       </div>
-      {Object.entries(s.entries || {}).map(([id, sets]) => {
+      {(sessionOrder(s) || Object.keys(s.entries || {})).map((id) => {
+        // en el orden en que se hicieron (los entrenos guardan `order`; en la nube el orden de las claves se pierde)
+        const sets = s.entries[id] || []
         const done = sets.filter(hasSet)
         if (!done.length) return null
         const rir = s.checkin?.rir?.[id]

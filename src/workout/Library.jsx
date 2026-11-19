@@ -5,6 +5,7 @@ import { uid, exStats, fmtKg, TRACKS, setTxt } from '../store'
 import { Modal, Thumb, LineChart, ExPhoto } from '../ui'
 import { techFor, errorsFor } from '../data/technique'
 import { progressRead } from '../stats'
+import { exHistory } from '../progression'
 import Icon from '../icons'
 import { State, ListRow } from '../ds'
 
@@ -18,7 +19,7 @@ export function ExerciseModal({ ex, data, setData, onClose, onPick, pickLabel, o
   const [allHist, setAllHist] = useState(false)
   const bestAll = stats.reduce((m, x) => (!m || x.best.e > m.e ? x.best : m), null)
   const bestReps = stats.reduce((m, x) => (!m || x.best.r > m.r || (x.best.r === m.r && x.best.w > m.w) ? x.best : m), null)
-  const read = useMemo(() => progressRead(stats), [stats])
+  const read = useMemo(() => progressRead(exHistory(data.sessions, ex.id, data.plan)), [data.sessions, data.plan, ex.id])
   const history = useMemo(() => {
     const out = []
     for (let i = data.sessions.length - 1; i >= 0 && out.length < (allHist ? 200 : 5); i--) {

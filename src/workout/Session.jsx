@@ -11,6 +11,7 @@ import { queueTrainerNote, cloudMeta } from '../cloud'
 import { SyncPill, Badge, fmtMin, IconButton, ListRow } from '../ds'
 import { restTxt, kgIn, repIn, setsVol, setsTxt } from './shared'
 import { ExerciseModal, Library } from './Library'
+import { compareSets, compareTag, compareTxt, preFatigue, liveFatigue, fatigueNote, setTargets, targetsTxt, pairCmp } from '../progression'
 
 /* ---------- Check-in al terminar ---------- */
 function CheckIn({ onSave, onSkip, exercises = [], night }) {
@@ -409,17 +410,50 @@ export function Session({ data, setData, onExit, cloud, online }) {
           {done.cmp?.length > 0 && (
             <>
               <h4>Hoy frente a la última vez</h4>
-              {done.cmp.map((c) => (
-                <div className="cmp" key={c.name}>
-                  <div className="cmp-h">
-                    <b>{c.name}</b>
-                    {c.d != null && <span className={c.d >= 0 ? 'up' : 'down'}>{c.d > 0 ? '+' : ''}{c.d} %</span>}
+              {done.cmp.map((c) => {
+                // con más fatiga que la otra vez, rendir menos no se marca como peor
+                const excused = c.tired?.more && (c.kind === 'down' || c.kind === 'mixed')
+                const tone = excused ? 'tired' : c.kind === 'up' ? 'up' : c.kind === 'down' ? 'down' : 'flat'
+                return (
+                  <div className="cmp" key={c.name}>
+                    <div className="cmp-h">
+                      <b>{c.name}</b>
+                      {c.tag ? (
+                        <span className={tone}>{excused ? 'Con fatiga' : c.tag}</span>
+                      ) : (
+                        c.d != null && <span className={c.d >= 0 ? 'up' : 'down'}>{c.d > 0 ? '+' : ''}{c.d} %</span>
+                      )}
+                    </div>
+                    <div className="muted small">Hoy: {c.now}</div>
+                    <div className="muted small">{c.prev ? `Antes: ${c.prev}` : 'Primera vez que lo registras'}</div>
+                    {c.tag && (
+                      <div className="muted small">
+                        Serie a serie: {c.txt}
+                        {c.d ? ` · volumen ${c.d > 0 ? '+' : '−'}${Math.abs(c.d)}\u00a0%` : ''}
+                      </div>
+                    )}
+                    {c.tired && c.kind && (
+                      <div className="muted small cmp-tired">
+                        Hoy lo hiciste {c.tired.text}
+                        {excused
+                          ? '. Rendir algo menos así es normal: no es un retroceso.'
+                          : c.tired.more
+                            ? c.kind === 'up'
+                              ? ', y aun así mejoraste.'
+                              : ', e igualaste: buen resultado.'
+                            : c.kind === 'up'
+                              ? ': parte de la mejora puede venir de ahí.'
+                              : '.'}
+                      </div>
+                    )}
                   </div>
-                  <div className="muted small">Hoy: {c.now}</div>
-                  <div className="muted small">{c.prev ? `Antes: ${c.prev}` : 'Primera vez que lo registras'}</div>
-                </div>
-              ))}
-              <p className="muted small">El % compara el volumen (kg × reps de todas las series) con el de la última vez.</p>
+                )
+              })}
+              <p className="muted small">
+                Se compara serie a serie con la última vez (la 1.ª con la 1.ª…): con el mismo peso cuentan las repeticiones; si cambia el peso, el 1RM
+                estimado. También se tiene en cuenta el orden: no es lo mismo hacer un ejercicio el primero que después de otros que cansan los mismos
+                músculos.
+              </p>
             </>
           )}
           {done.changed && (
@@ -452,18 +486,15 @@ export function Session({ data, setData, onExit, cloud, online }) {
       </div>
     )
 
+  // `touch` = cuándo empezaste cada ejercicio (primera serie con algo hecho): da el orden real en que los hiciste
   const patchSet = (exId, si, fn) =>
-    setData((d) =>
-      d.active
-        ? {
-            ...d,
-            active: {
-              ...d.active,
-              entries: { ...d.active.entries, [exId]: d.active.entries[exId].map((s, i) => (i === si ? fn(s) : s)) },
-            },
-          }
-        : d
-    )
+    setData((d) => {
+      if (!d.active) return d
+      const list = d.active.entries[exId].map((s, i) => (i === si ? fn(s) : s))
+      const started = list.some((x) => x.done || x.r || x.r2 || x.s || x.m || x.km || x.min)
+      const touch = started && !d.active.touch?.[exId] ? { ...(d.active.touch || {}), [exId]: Date.now() } : d.active.touch
+      return { ...d, active: { ...d.active, entries: { ...d.active.entries, [exId]: list }, ...(touch ? { touch } : {}) } }
+    })
 
   const finish = () => {
     const sid = uid()
@@ -497,11 +528,28 @@ export function Session({ data, setData, onExit, cloud, online }) {
         prs.push({ name: EX_BY_ID[exId]?.name || exId, w: cur.best.w, r: cur.best.r, e: cur.best.e, prev: prevBest })
       }
     }
-    // comparación con la última vez de cada ejercicio (data.sessions aún no incluye el de hoy)
-    const cmp = Object.entries(entries).map(([exId, sets]) => {
+    // orden real en que los hiciste (el primero que empezaste primero; los no tocados, por la lista); se guarda en `order`
+    const touch = a.touch || {}
+    const pos = (k) => items.findIndex((i) => i.ex === k)
+    const order = Object.keys(entries).sort((x, y) => (touch[x] ?? Infinity) - (touch[y] ?? Infinity) || pos(x) - pos(y))
+    const today = { entries, order }
+    // comparación con la última vez de cada ejercicio (data.sessions aún no incluye el de hoy): serie a serie y con la fatiga previa
+    const cmp = order.map((exId) => {
+      const sets = entries[exId]
       const prev = lastSets(data.sessions, exId)
       const pv = prev ? setsVol(prev.sets) : 0
-      return { name: EX_BY_ID[exId]?.name || exId, now: setsTxt(sets), prev: prev && setsTxt(prev.sets), d: pv > 0 ? Math.round((setsVol(sets) / pv - 1) * 100) : null }
+      const c = prev ? compareSets(prev.sets, sets) : null
+      const tired = prev ? fatigueNote(preFatigue(today, exId), preFatigue(prev.ses, exId, data.plan)) : null
+      return {
+        name: EX_BY_ID[exId]?.name || exId,
+        now: setsTxt(sets),
+        prev: prev && setsTxt(prev.sets),
+        d: pv > 0 ? Math.round((setsVol(sets) / pv - 1) * 100) : null,
+        kind: c?.n ? c.kind : null,
+        tag: compareTag(c),
+        txt: compareTxt(c),
+        tired,
+      }
     })
     const notes = {}
     for (const [k, v] of Object.entries(a.notes || {})) if (entries[k] && v.trim()) notes[k] = v.trim()
@@ -527,7 +575,7 @@ export function Session({ data, setData, onExit, cloud, online }) {
     setData((d) => ({
       ...d,
       active: null,
-      sessions: [...d.sessions, { id: sid, date: a.date, dayId: a.dayId, dayName: name, entries, ...(Object.keys(notes).length ? { notes } : {}), ...(min ? { min } : {}) }],
+      sessions: [...d.sessions, { id: sid, date: a.date, dayId: a.dayId, dayName: name, entries, ...(order.length > 1 ? { order } : {}), ...(Object.keys(notes).length ? { notes } : {}), ...(min ? { min } : {}) }],
     }))
     const before = (day?.items || []).map((i) => i.ex).join('|')
     const after = items.map((i) => i.ex).join('|')
@@ -572,8 +620,14 @@ export function Session({ data, setData, onExit, cloud, online }) {
         })()
         const pain = painFor(data.sessions, it.ex)
         const s0 = pain ? null : suggestion(data.sessions, it.ex, it.reps, it.sets, ex?.equip)
-        const sug = s0?.action === 'up' ? s0 : null
+        // fatiga con la que lo haces hoy (por el orden) frente a la última vez: con bastante más, el objetivo es igualar
+        const tired = last ? fatigueNote(liveFatigue(items, a.entries, a.touch, it.ex), preFatigue(last.ses, it.ex, data.plan)) : null
+        const sug = s0?.action === 'up' && !tired?.more ? s0 : null
         const hold = s0?.action === 'hold' ? s0 : null
+        // objetivo de cada serie según lo que hiciste en esa misma serie la otra vez
+        const prevWork = last ? last.sets.filter((x) => !x.warm && num(x.r) > 0) : []
+        const targets = tr === 'reps' && last && !pain ? setTargets(last.sets, it.reps, ex?.equip, { rir: last.ses?.checkin?.rir?.[it.ex], fatigue: tired }) : null
+        const workIdx = (i) => sets.slice(0, i).filter((x) => !x.warm).length
         // referencia: solo el PESO de la última vez. Las reps de hoy empiezan vacías y nunca se copian.
         const phOf = (i) => {
           const b0 = last?.sets[i] || last?.sets[last.sets.length - 1] || {}
@@ -602,6 +656,17 @@ export function Session({ data, setData, onExit, cloud, online }) {
             {last && (
               <div className="ex-last">
                 Última vez ({last.date.slice(8)}/{last.date.slice(5, 7)}): <b>{last.sets.map(setTxt).join(', ')}</b>
+              </div>
+            )}
+            {targets && (
+              <div className="ex-last ex-target">
+                Objetivo hoy: <b>{tired?.more ? 'igualar ' : ''}{targetsTxt(targets)}</b>
+              </div>
+            )}
+            {tired && (
+              <div className="muted small ex-tired">
+                Hoy lo haces {tired.text}
+                {tired.more ? ': igualar ya es buen resultado y la subida de peso puede esperar.' : ': buen día para superarte.'}
               </div>
             )}
             {ex && (
@@ -655,14 +720,23 @@ export function Session({ data, setData, onExit, cloud, online }) {
             )}
             {sets.map((s, i) => {
               const ph = phOf(i)
+              const wi = workIdx(i)
+              const tg = !s.warm ? targets?.[wi] : null
+              // reps objetivo para el peso que tienes puesto: el del objetivo → sus reps; el de la otra vez → igualar o superar
+              const wNow = num(s.w || ph.w)
+              const pv = prevWork[wi]
+              const repPh = !tg ? null : wNow >= tg.w - 0.01 ? tg.r : pv && Math.abs(wNow - num(pv.w)) < 0.01 ? num(pv.r) : null
+              // ¿esta serie ya supera a la misma serie de la otra vez?
+              const rNow = uni && s.r && s.r2 ? Math.min(num(s.r), num(s.r2)) : num(s.r) || num(s.r2)
+              const beat = !s.warm && tr === 'reps' && rNow > 0 && prevWork[wi] && pairCmp(prevWork[wi], { w: s.w || ph.w, r: rNow }) > 0
               return (
                 <div key={i}>
                   <div className={'setrow' + (s.warm ? ' warm' : '')}>
                     <button
                       type="button"
-                      className="setn"
-                      title={s.warm ? 'Calentamiento' : undefined}
-                      aria-label={`Opciones de la serie ${i + 1}${s.warm ? ' (calentamiento)' : ''}`}
+                      className={'setn' + (beat ? ' beat' : '')}
+                      title={s.warm ? 'Calentamiento' : beat ? 'Mejor que la misma serie la última vez' : undefined}
+                      aria-label={`Opciones de la serie ${i + 1}${s.warm ? ' (calentamiento)' : ''}${beat ? ' (mejor que la última vez)' : ''}`}
                       onClick={() => setSetMenu({ ex: it.ex, i })}
                     >
                       {s.warm ? 'C' : i + 1}
@@ -680,8 +754,8 @@ export function Session({ data, setData, onExit, cloud, online }) {
                       className="inp sm"
                       inputMode={T.b[0] === 'min' ? 'decimal' : 'numeric'}
                       data-b
-                      aria-label={uni ? 'Reps izquierdo' : T.b[1]}
-                      placeholder={uni ? 'izq' : T.b[1]}
+                      aria-label={uni ? 'Reps izquierdo' : repPh ? `${T.b[1]} (objetivo ${repPh})` : T.b[1]}
+                      placeholder={uni ? 'izq' : repPh ? String(repPh) : T.b[1]}
                       value={s[T.b[0]] || ''}
                       onChange={(e) => patchSet(it.ex, i, (x) => ({ ...x, [T.b[0]]: T.b[0] === 'min' ? kgIn(e.target.value) : repIn(e.target.value) }))}
                     />

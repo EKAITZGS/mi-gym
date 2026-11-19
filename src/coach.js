@@ -5,6 +5,7 @@ import { nightsOf, muscleLoad, recentPRs, stalled, periodStats, streakWeeks, pro
 import { groupsOf } from './ranks'
 import { wantsPlan, planForAi, planPrompt, parseCoachReply, groupsFor, catalogForAi, levelPrompt, levelOf, LEVEL_MAX_SETS, LEVEL_RIR } from './aiPlan'
 import { exStats } from './store'
+import { exHistory, sessionOrder } from './progression'
 
 // Resumen del reloj Polar de los últimos 7 días (para la revisión y para la IA)
 export function polarWeek(data) {
@@ -153,7 +154,8 @@ export function coachFacts(data, now = new Date()) {
       fecha: s.date,
       dia: s.dayName,
       min: s.min,
-      ejercicios: Object.entries(s.entries || {}).map(([id, sets]) => {
+      ejercicios: (sessionOrder(s, data.plan) || Object.keys(s.entries || {})).map((id) => {
+        const sets = s.entries[id]
         const best = exStats([s], id)[0]?.best
         return `${(EX_BY_ID[id]?.name || id).replace(/ \(.*\)/, '')} ${sets.filter((x) => !x.warm).length} series${best ? ` (mejor ${best.w}×${best.r})` : ''}`
       }),
@@ -163,7 +165,7 @@ export function coachFacts(data, now = new Date()) {
   }
   const ids = [...new Set(ses.slice(-12).flatMap((s) => Object.keys(s.entries || {})))].slice(0, 12)
   const evol = ids.map((id) => {
-    const st = exStats(ses, id)
+    const st = exHistory(ses, id, data.plan)
     if (!st.length) return null
     const r = progressRead(st)
     return { ejercicio: EX_BY_ID[id]?.name || id, sesiones: st.length, ultimo: `${st[st.length - 1].best.w}×${st[st.length - 1].best.r} (${st[st.length - 1].date})`, mejor_1rm: Math.round(Math.max(...st.map((x) => x.best.e))), lectura: r.text }
@@ -175,7 +177,7 @@ export function coachFacts(data, now = new Date()) {
     semana_pasada: week(f(monPrev), f(sunPrev)),
     racha_semanas: streakWeeks(ses, d),
     records_30_dias: recentPRs(ses, 30, d).slice(0, 8).map((p) => `${EX_BY_ID[p.id]?.name || p.id}: ${p.w}×${p.r} el ${p.date}`),
-    estancados: stalled(ses, d).map((x) => EX_BY_ID[x.id]?.name || x.id),
+    estancados: stalled(ses, d, data.plan).map((x) => EX_BY_ID[x.id]?.name || x.id),
     evolucion_por_ejercicio: evol,
     pesajes: w.length ? w.map((x) => `${x.date}: ${x.kg} kg`) : undefined,
     total_entrenos_registrados: ses.length,
@@ -212,6 +214,7 @@ Responde SIEMPRE solo con JSON: {"respuesta":"lo que le dices al usuario","propu
       const facts = coachFacts(data)
       const ctx = { objetivos: data.goals, plan, datos_exactos: facts, ultimos_entrenos: last, reloj_semana: polarWeek(data), sueno_ultimas_noches: nights.length ? nights : undefined }
       system = `${base}
+Al valorar el progreso: los ejercicios de cada entreno van en el orden en que se hicieron; uno hecho después de otros que cargan los mismos músculos rinde menos por fatiga (no lo llames retroceso), y más repeticiones con el mismo peso en cualquier serie también es mejorar.
 Cuando des cifras (entrenos, series, kilos, récords), di de qué periodo son (p. ej. "esta semana, desde el lunes ${facts.esta_semana.desde}") y de dónde salen. Si no hay datos suficientes para responder, dilo claramente en vez de estimar.
 ${levelPrompt(data)}
 Datos del usuario: ${JSON.stringify(ctx)}
@@ -252,7 +255,7 @@ export async function improvePlan(data, { days, focus, notes }) {
   const catalog = catalogForAi(data)
   const { plan, last } = summarize(data)
   const prompt = `Eres un entrenador personal. Mejora la rutina de gimnasio de este usuario.
-Objetivo: perder grasa y ganar músculo. Días por semana que quiere: ${days}. Enfoque: ${focus || 'equilibrado'}.
+Objetivo: perder grasa y ganar músculo. Días por semana que quiere: ${days}. Enfoque: ${focus || 'equilibrado'}.${/gl[uú]teo/i.test(focus || '') ? ' Glúteo 2-3 días por semana con Barbell_Hip_Thrust, Romanian_Deadlift, Split_Squat_with_Dumbbells, Thigh_Abductor y One-Legged_Cable_Kickback; los días de pierna empiezan por glúteo.' : ''}
 ${levelPrompt(data)}
 Notas del usuario: ${notes || 'ninguna'}.
 Rutina actual (dia: 0=domingo,1=lunes...6=sábado): ${JSON.stringify(plan)}

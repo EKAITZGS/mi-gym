@@ -1,4 +1,5 @@
-import { exStats, fmtDate, num, workSets } from './store'
+import { exStats, fmtDate, num, workSets, setTxt } from './store'
+import { exHistory, compareSets, compareTxt, FATIGUE_GAP } from './progression'
 
 const monday = (d) => {
   const x = new Date(d)
@@ -53,18 +54,26 @@ export function recentPRs(sessions, days = 30, now = new Date()) {
   return out.sort((a, b) => (a.date < b.date ? 1 : -1))
 }
 
-// Ejercicios sin mejorar el 1RM estimado en sus últimos 3 entrenos (y hechos en las últimas 3 semanas)
-export function stalled(sessions, now = new Date()) {
+// Ejercicios sin mejorar en sus últimos 3 entrenos comparables (y hechos en las últimas 3 semanas): ni el 1RM estimado
+// de la mejor serie ni la media de sus 3 mejores series (más reps en las series de después también es mejorar).
+// Los entrenos en los que lo hiciste con bastante más fatiga previa de la habitual no cuentan (no es lo mismo el primero que el último).
+export function stalled(sessions, now = new Date(), plan = []) {
   const since = new Date(now)
   since.setDate(since.getDate() - 21)
   const from = fmtDate(since)
   const out = []
   for (const id of ids(sessions)) {
-    const st = exStats(sessions, id)
-    if (st.length < 4 || st[st.length - 1].date < from) continue
-    const before = Math.max(...st.slice(0, -3).map((x) => x.best.e))
-    const last = Math.max(...st.slice(-3).map((x) => x.best.e))
-    if (last <= before + 0.01) out.push({ id, best: before })
+    const all = exHistory(sessions, id, plan)
+    if (all.length < 4 || all[all.length - 1].date < from) continue
+    const pfs = all.map((x) => x.pf).filter((v) => v != null).sort((a, b) => a - b)
+    const usual = pfs.length ? pfs[Math.floor((pfs.length - 1) / 2)] : null
+    const st = all.filter((x) => x.pf == null || usual == null || x.pf - usual < FATIGUE_GAP)
+    if (st.length < 4) continue
+    const max = (l, k) => Math.max(...l.map(k))
+    const before = st.slice(0, -3)
+    const last = st.slice(-3)
+    const bestBefore = max(before, (x) => x.best.e)
+    if (max(last, (x) => x.best.e) <= bestBefore + 0.01 && max(last, (x) => x.top3) <= max(before, (x) => x.top3) + 0.01) out.push({ id, best: bestBefore })
   }
   return out
 }
@@ -221,17 +230,31 @@ export function muscleLoad(sessions, from, groupsOf, to = '9999') {
 
 // Lectura honesta de la evolución de un ejercicio a partir de exStats(): no todo cambio es progreso.
 // → { kind: 'weight' | 'reps' | 'volume' | 'flat' | 'down' | 'few', text }
+// st: exStats o, mejor, exHistory (con la fatiga previa `pf` y las series de cada entreno)
 export function progressRead(st) {
   if (!st || st.length < 3) return { kind: 'few', text: st?.length ? 'Pocos datos aún: con 3 o más entrenos se puede valorar.' : 'Sin datos.' }
   const last = st[st.length - 1]
-  const prev = st.slice(-4, -1) // hasta 3 anteriores
+  const prev0 = st.slice(-4, -1) // hasta 3 anteriores
+  // se compara con los de fatiga previa parecida si los hay (no es lo mismo hacerlo el primero que tras otros del mismo músculo)
+  const like = last.pf != null ? prev0.filter((x) => x.pf != null && Math.abs(x.pf - last.pf) < FATIGUE_GAP) : []
+  const prev = like.length ? like : prev0
   const bestPrev = prev.reduce((m, x) => (x.best.e > m.best.e ? x : m), prev[0])
   const volPrev = prev.reduce((t, x) => t + x.vol, 0) / prev.length
   const dE = last.best.e / bestPrev.best.e - 1
   const sameW = Math.abs(last.best.w - bestPrev.best.w) < 0.01
   if (dE >= 0.01 && last.best.w > bestPrev.best.w && last.best.r >= bestPrev.best.r - 1) return { kind: 'weight', text: `Más peso con repeticiones comparables (${last.best.w} kg × ${last.best.r} frente a ${bestPrev.best.w} × ${bestPrev.best.r}).` }
   if (sameW && last.best.r > bestPrev.best.r) return { kind: 'reps', text: `Mismo peso y más repeticiones (${last.best.r} frente a ${bestPrev.best.r} con ${last.best.w} kg).` }
+  // serie a serie frente a la vez anterior: más reps en las series de después también es mejorar
+  const before = st[st.length - 2]
+  if (last.sets && before.sets && (last.pf == null || before.pf == null || Math.abs(last.pf - before.pf) < FATIGUE_GAP)) {
+    const c = compareSets(before.sets, last.sets)
+    if (c.kind === 'up') return { kind: 'sets', text: `Mejor serie a serie que la vez anterior: ${compareTxt(c)} (${last.sets.map(setTxt).join(', ')} frente a ${before.sets.map(setTxt).join(', ')}).` }
+  }
   if (volPrev > 0 && last.vol / volPrev - 1 >= 0.1) return { kind: 'volume', text: `Más volumen total (${Math.round(last.vol)} kg frente a ~${Math.round(volPrev)} de media en los anteriores).` }
-  if (dE <= -0.05) return { kind: 'down', text: `Por debajo de tu mejor marca reciente (${Math.round(Math.abs(dE) * 100)} % menos de 1RM estimado). Puede ser fatiga, sueño o técnica: no saques conclusiones de un día.` }
+  if (dE <= -0.05) {
+    if (!like.length && last.pf != null && bestPrev.pf != null && last.pf - bestPrev.pf >= FATIGUE_GAP)
+      return { kind: 'fatigue', text: `Por debajo de tu mejor marca, pero esta vez lo hiciste con más fatiga (~${Math.round(last.pf)} series antes que cargan esos músculos, frente a ~${Math.round(bestPrev.pf)}): no es un retroceso. Compáralo con días en que lo hagas en el mismo orden.` }
+    return { kind: 'down', text: `Por debajo de tu mejor marca reciente (${Math.round(Math.abs(dE) * 100)} % menos de 1RM estimado). Puede ser fatiga, sueño o técnica: no saques conclusiones de un día.` }
+  }
   return { kind: 'flat', text: 'Variación normal: ni mejora clara ni bajada. Si pasa 3-4 sesiones así, prueba otro rango de reps o una descarga.' }
 }

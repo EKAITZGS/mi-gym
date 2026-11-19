@@ -5,8 +5,9 @@ import { cloudReady, cloudMeta, signIn, adminCheck, adminUsers, adminUserData, s
 import Icon from '../icons'
 import { SessionCard, fmtDay, hasSet, nameFor } from '../DayDetail'
 import PolarSession, { HrSpark } from '../PolarSession'
-import { exStats, fmtKg, WEEKDAYS, todayStr, addDays } from '../store'
+import { fmtKg, WEEKDAYS, todayStr, addDays } from '../store'
 import { progressRead } from '../stats'
+import { exHistory } from '../progression'
 import { Badge, State } from '../ds'
 
 const dShort = (iso) => (iso ? new Date(iso).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }) : '—')
@@ -391,7 +392,7 @@ function UserDetail({ u, onClose }) {
     const ids = [...new Set(all.flatMap((s) => Object.keys(s.entries || {})))]
     return ids
       .map((id) => {
-        const stt = exStats(all, id)
+        const stt = exHistory(all, id, d?.plan || [])
         if (!stt.length) return null
         const last = stt[stt.length - 1]
         return { id, n: stt.length, best: Math.max(...stt.map((x) => x.best.e)), last, read: progressRead(stt) }

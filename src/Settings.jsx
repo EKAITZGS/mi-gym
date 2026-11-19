@@ -18,9 +18,9 @@ import { ListRow, miles } from './ds'
 import { pushState } from './push'
 import { levelOf, levelAuto } from './aiPlan'
 
-// Calcula kcal y proteína; los datos que pide no se guardan, solo el resultado si lo aceptas
-export function GoalCalc({ onApply, onClose, skipLabel }) {
-  const [f, setF] = useState({ kg: '', cm: '', age: '', male: true, act: 1.375, aim: 'lose' })
+// Calcula kcal y proteína; peso, altura y edad no se guardan, solo el resultado y el sexo (prefs.sex) si lo aceptas
+export function GoalCalc({ onApply, onClose, skipLabel, sex }) {
+  const [f, setF] = useState({ kg: '', cm: '', age: '', male: sex !== 'f', act: 1.375, aim: 'lose' })
   const set = (k, v) => setF((s) => ({ ...s, [k]: v }))
   const r = calcGoals({ ...f, kg: num(f.kg), cm: num(f.cm), age: num(f.age) })
   const numIn = (k, ph) => (
@@ -56,7 +56,7 @@ export function GoalCalc({ onApply, onClose, skipLabel }) {
           como quieres, ajusta unas 150-200 kcal.
         </div>
       )}
-      <button className="btn primary full" disabled={!r} onClick={() => onApply(r)}>
+      <button className="btn primary full" disabled={!r} onClick={() => onApply(r, f.male ? 'm' : 'f')}>
         Usar estos objetivos
       </button>
       {skipLabel && (
@@ -64,7 +64,7 @@ export function GoalCalc({ onApply, onClose, skipLabel }) {
           {skipLabel}
         </button>
       )}
-      <p className="muted small">Tu peso, altura y edad no se guardan; solo las kcal y la proteína. Es orientativo y no sustituye a un profesional de la salud.</p>
+      <p className="muted small">Tu peso, altura y edad no se guardan; solo las kcal, la proteína y si eres hombre o mujer (para comparar tu fuerza con referencias adecuadas; se cambia en Ajustes → Entreno). Es orientativo y no sustituye a un profesional de la salud.</p>
     </Modal>
   )
 }
@@ -76,6 +76,12 @@ export default function Settings({ data, setData, cloud, onBack }) {
   const [sec, setSec] = useState(null) // categoría abierta: train | goals | push | polar | ai | data
   const lv = levelOf(data)
   // nivel en prefs.gen.level (lo mismo que guarda el generador); vacío = automático según los entrenos
+  // sexo en prefs.sex ('m' | 'f'); vacío = sin indicar (referencias de hombre)
+  const setSex = (v) =>
+    setData((d) => {
+      const { sex, ...prefs } = d.prefs || {}
+      return { ...d, prefs: v ? { ...prefs, sex: v } : prefs }
+    })
   const setLevel = (v) =>
     setData((d) => {
       const { level, ...gen } = d.prefs?.gen || {}
@@ -227,6 +233,15 @@ export default function Settings({ data, setData, cloud, onBack }) {
           El entrenador IA, «Mejorar con IA» y el generador de rutinas adaptan ejercicios, series, repeticiones e intensidad a tu nivel.
           {lv.auto ? ` En automático sale de los pesos que mueves en los ejercicios básicos y del tiempo que llevas entrenando (ahora: ${lv.whyMe}).` : ''}
         </p>
+        <label className="lbl">Sexo</label>
+        <select className="inp" aria-label="Sexo" value={data.prefs?.sex || ''} onChange={(e) => setSex(e.target.value)}>
+          <option value="">Sin indicar</option>
+          <option value="m">Hombre</option>
+          <option value="f">Mujer</option>
+        </select>
+        <p className="muted small mb-0">
+          Para comparar tu fuerza con referencias de tu sexo (nivel automático y rangos de «Tu personaje») y que el entrenador IA lo tenga en cuenta. Sin indicar se usan las de hombre.
+        </p>
       </div>
       <div className="card">
         <label className="lbl mt-0">Cuenta atrás de descanso al marcar una serie</label>
@@ -273,9 +288,10 @@ export default function Settings({ data, setData, cloud, onBack }) {
       </div>
       {calc && (
         <GoalCalc
+          sex={data.prefs?.sex}
           onClose={() => setCalc(false)}
-          onApply={(r) => {
-            setData((d) => ({ ...d, goals: { ...d.goals, kcal: r.kcal, protein: r.protein } }))
+          onApply={(r, sex) => {
+            setData((d) => ({ ...d, goals: { ...d.goals, kcal: r.kcal, protein: r.protein }, prefs: { ...(d.prefs || {}), sex } }))
             setCalc(false)
           }}
         />
