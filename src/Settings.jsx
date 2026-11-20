@@ -339,6 +339,16 @@ export default function Settings({ data, setData, cloud, onBack }) {
               </button>
               <button
                 className="btn"
+                title="Vuelve a dar permiso en Polar sin desconectar (no se pierde nada)"
+                onClick={() => {
+                  if (!confirm('Vas a entrar en Polar para volver a dar permiso. No se desconecta ni se borra nada. ¿Seguir?')) return
+                  connectPolar()
+                }}
+              >
+                Volver a conectar
+              </button>
+              <button
+                className="btn"
                 onClick={async () => {
                   if (!confirm('¿Desconectar Polar? La app dejará de recibir datos de tu reloj (lo ya guardado se queda).')) return
                   await disconnectPolar()

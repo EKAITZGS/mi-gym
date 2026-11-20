@@ -9,7 +9,7 @@ import Progress from './Progress'
 import Profile, { initialOf } from './Profile'
 import StartSheet from './StartSheet'
 import Icon from './icons'
-import { readPolarReturn, getPolar, syncPolar } from './polar'
+import { readPolarReturn, getPolar, syncPolar, lastWatch } from './polar'
 import { checkServerAi } from './ai'
 import { syncPush } from './push'
 import { useCloudSync, cloudReady, inbox } from './cloud'
@@ -126,7 +126,10 @@ export default function App() {
       const hadSync = (() => { try { return !!JSON.parse(localStorage.getItem('migym.v1') || '{}').polar?.lastSync } catch { return false } })()
       syncPolar(setData)
         .then((r) => {
-          if (ret?.ok && force) return setNotice(`Polar conectado: ${r.exercises} entrenos de los últimos 30 días.`)
+          if (ret?.ok && force) {
+            const l = lastWatch(r.list)
+            return setNotice(`Polar conectado: ${r.exercises} entrenos de los últimos 30 días${l ? ` (el último, del ${l.date.slice(8)}/${l.date.slice(5, 7)} a las ${l.time})` : ''}.`)
+          }
           const fresh = r.list.filter((e) => !before.has(String(e.id)))
           if (fresh.length && hadSync) {
             const e = fresh.sort((a, b) => (a.date + a.time < b.date + b.time ? 1 : -1))[0]
