@@ -5,7 +5,7 @@ import Icon from './icons'
 import { ProfileModal, logout } from './Account'
 import AccountCard from './Account'
 import { MyTrainer, Students } from './Trainers'
-import { getPolar, syncPolar, connectPolar, lastWatch } from './polar'
+import { getPolar, syncPolar, connectPolar, lastWatch, polarErr, errTxt } from './polar'
 import { fmtDay } from './DayDetail'
 import { cloudReady } from './cloud'
 import Settings from './Settings'
@@ -63,7 +63,7 @@ export default function Profile({ data, setData, cloud, inbox, onInbox, online, 
       const lastTxt = l ? ` Último entreno del reloj: ${fmtDay(l.date)}, ${l.time}.` : ' Polar no tiene entrenos de los últimos 30 días.'
       setSync({ busy: false, msg: (fresh ? `Reloj sincronizado: ${fresh} entreno${fresh === 1 ? '' : 's'} nuevo${fresh === 1 ? '' : 's'}.` : 'Reloj sincronizado: todo al día.') + lastTxt })
     } catch (e) {
-      setSync({ busy: false, msg: e.message === 'AUTH' ? 'Polar ha rechazado el acceso: vuelve a conectarlo en Ajustes.' : 'No se pudo sincronizar ahora. ¿Has sincronizado el reloj con el móvil (Polar Flow)?' })
+      setSync({ busy: false, msg: e.message === 'AUTH' ? 'Polar ha rechazado el acceso: vuelve a conectarlo en Ajustes → Reloj Polar.' : `No se pudo sincronizar: ${errTxt(e.message)}.` })
     }
   }
 
@@ -101,7 +101,15 @@ export default function Profile({ data, setData, cloud, inbox, onInbox, online, 
         <Row
           icon="watch"
           title={polar?.token ? (sync.busy ? 'Sincronizando reloj…' : 'Sincronizar reloj') : sync.busy ? 'Abriendo Polar…' : 'Conectar reloj Polar'}
-          desc={polar?.token ? sync.msg || `Última vez ${ago(data.polar?.lastSync)}` : 'Entras con tu cuenta de Polar y das permiso'}
+          desc={
+            polar?.token
+              ? sync.msg ||
+                `Última vez ${ago(data.polar?.lastSync)}${(() => {
+                  const er = polarErr()
+                  return er && (!data.polar?.lastSync || er.at > data.polar.lastSync) ? ` · el último intento falló: ${errTxt(er.msg)}` : ''
+                })()}`
+              : 'Entras con tu cuenta de Polar y das permiso'
+          }
           onClick={syncWatch}
           busy={sync.busy}
         />

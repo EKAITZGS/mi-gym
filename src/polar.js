@@ -170,7 +170,32 @@ export function parseRecharge(json) {
 const lastN = (obj, n = 120) => Object.fromEntries(Object.entries(obj).sort(([a], [b]) => (a < b ? -1 : 1)).slice(-n))
 
 // Trae entrenos (30 días), actividad diaria (última semana) y sueño (28 noches) y los guarda en data.polar
+// Último fallo al sincronizar (en el móvil): las sincronizaciones automáticas fallaban sin decir nada
+const ERR_KEY = 'migym.polarErr'
+export const polarErr = () => {
+  try {
+    return JSON.parse(localStorage.getItem(ERR_KEY) || 'null')
+  } catch {
+    return null
+  }
+}
+export const errTxt = (msg) =>
+  msg === 'AUTH' ? 'Polar ha rechazado el acceso: vuelve a conectar el reloj' : /^HTTP 5/.test(msg) ? `el servidor del reloj ha fallado (${msg})` : msg === 'Failed to fetch' || /network|load failed/i.test(msg) ? 'sin conexión con el servidor del reloj' : msg
+
 export async function syncPolar(setData) {
+  try {
+    const r = await syncPolarRaw(setData)
+    localStorage.removeItem(ERR_KEY)
+    return r
+  } catch (e) {
+    try {
+      localStorage.setItem(ERR_KEY, JSON.stringify({ at: new Date().toISOString(), msg: String(e.message || e) }))
+    } catch {}
+    throw e
+  }
+}
+
+async function syncPolarRaw(setData) {
   const p = getPolar()
   if (!p?.token) throw new Error('NO_TOKEN')
   let actErr = null

@@ -116,6 +116,7 @@ export default function App() {
       setNotice(ret.ok ? 'Polar conectado. Trayendo los datos del reloj…' : `No se pudo conectar Polar (${ret.error}).`)
     }
     let lastTry = 0
+    let authWarned = false
     const auto = (force) => {
       const p = getPolar()
       if (!p?.token) return
@@ -132,7 +133,14 @@ export default function App() {
             setNotice(`Entreno del reloj recibido: ${e.min} min · ${e.kcal} kcal${e.hrAvg ? ` · ${e.hrAvg} ppm` : ''}`)
           }
         })
-        .catch((e) => ret && setNotice(e.message === 'AUTH' ? 'Polar ha rechazado el acceso. Vuelve a conectar.' : 'No se pudo sincronizar con Polar ahora.'))
+        .catch((e) => {
+          if (ret) return setNotice(e.message === 'AUTH' ? 'Polar ha rechazado el acceso. Vuelve a conectar.' : 'No se pudo sincronizar con Polar ahora.')
+          // la automática también avisa si Polar ha quitado el permiso (si no, los entrenos dejan de llegar sin saber por qué)
+          if (e.message === 'AUTH' && !authWarned) {
+            authWarned = true
+            setNotice('Polar ha rechazado el acceso del reloj: vuelve a conectarlo en Ajustes → Reloj Polar.')
+          }
+        })
     }
     auto(!!ret?.ok)
     // Al volver a la app (iOS la deja dormida en segundo plano) vuelve a mirar si hay entreno nuevo
