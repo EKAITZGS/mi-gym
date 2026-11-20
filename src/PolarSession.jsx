@@ -1,6 +1,9 @@
 import { useId } from 'react'
 import { Modal } from './ui'
 import { groupsOf } from './ranks'
+import { sessionForWatch, hasSetTimes, BEFORE, AFTER } from './hrsets'
+// un color por ejercicio (puntos de las series en la curva y lista de pulso por ejercicio)
+export const EX_COLORS = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)', 'var(--chart-5)', 'var(--chart-6)']
 
 const ZONE_NAMES = ['Muy suave', 'Suave', 'Moderado', 'Intenso', 'Máximo']
 // colores de zona = tokens del sistema de diseño (--z1…--z5 en styles.css)
@@ -160,7 +163,7 @@ export function HrSpark({ hr, w = 72, h = 26 }) {
   )
 }
 
-function HrChart({ hr, zones }) {
+function HrChart({ hr, zones, marks = [] }) {
   const gid = useId().replace(/:/g, '')
   const v = hr.v
   const W = 340
@@ -218,6 +221,12 @@ function HrChart({ hr, zones }) {
         </text>
       ))}
       <path d={d} fill="none" stroke={`url(#${gid})`} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+      {/* cada serie apuntada, a la hora en que la terminaste y a la altura de su pico de pulso */}
+      {marks
+        .filter((m) => m.hr && m.sec >= 0 && m.sec <= v.length * hr.step)
+        .map((m, k) => (
+          <circle key={k} cx={x(m.sec / hr.step)} cy={y(Math.min(hi, Math.max(lo, m.hr)))} r="3.6" fill={m.c} stroke="var(--surface)" strokeWidth="1.5" />
+        ))}
     </svg>
   )
 }
@@ -228,6 +237,12 @@ export default function PolarSession({ ex: raw, data, onClose, them = false }) {
   const peaks = hrPeaks(ex.hr)
   const tips = polarVerdict(ex, data, them)
   const kind = data ? sessionOn(data, ex.date)?.k : null
+  // pulso por ejercicio con la hora de cada serie
+  const match = data && ex.hr ? sessionForWatch(data, ex) : null
+  const color = match ? Object.fromEntries(match.ex.map((x, k) => [x.id, EX_COLORS[k % EX_COLORS.length]])) : {}
+  const marks = match ? match.sets.filter((s) => !s.warm && color[s.id]).map((s) => ({ sec: s.sec, hr: s.hr, c: color[s.id] })) : []
+  const lowHi = match ? [Math.min(...match.ex.map((x) => x.avg)), Math.max(...match.ex.map((x) => x.max))] : null
+  const noTimes = data && ex.hr && !match && (data.sessions || []).some((s) => s.date === ex.date) && !(data.sessions || []).some((s) => s.date === ex.date && hasSetTimes(s))
   return (
     <Modal title={`${ex.sport} · ${ex.min} min`} onClose={onClose}>
       <div className="polar-sum">
@@ -244,9 +259,41 @@ export default function PolarSession({ ex: raw, data, onClose, them = false }) {
       )}
       <h4>Pulso durante el entreno</h4>
       {ex.hr ? (
-        <HrChart hr={ex.hr} zones={ex.zones} />
+        <HrChart hr={ex.hr} zones={ex.zones} marks={marks} />
       ) : (
         <p className="muted small">La curva de pulso aparecerá en los entrenos que sincronices a partir de ahora.</p>
+      )}
+
+      {match && (
+        <>
+          <h4>Pulso por ejercicio</h4>
+          <p className="muted small mo-b2">
+            {match.ex.length > 1
+              ? `Donde más ${them ? 'subió' : 'subes'}: ${match.ex[0].name} (${match.ex[0].avg} ppm). Donde menos: ${match.ex[match.ex.length - 1].name} (${match.ex[match.ex.length - 1].avg} ppm).`
+              : `${match.ex[0].name}: ${match.ex[0].avg} ppm de media en las series.`}
+          </p>
+          {match.ex.map((x) => (
+            <div className="hrx-row" key={x.id}>
+              <span className="hrx-n">
+                <i style={{ background: color[x.id] }} />
+                <span className="hrx-name">{x.name}</span>
+              </span>
+              <span className="zone-bar">
+                <span style={{ width: `${Math.max(6, Math.round(((x.avg - lowHi[0] + 8) / Math.max(1, lowHi[1] - lowHi[0] + 8)) * 100))}%`, background: color[x.id] }} />
+              </span>
+              <span className="hrx-v">
+                <b>{x.avg}</b>
+                <em>máx. {x.max}</em>
+              </span>
+            </div>
+          ))}
+          <p className="muted small">
+            Pico de pulso de cada serie (de {BEFORE} s antes a {AFTER} s después de {them ? 'marcarla' : 'marcarla hecha'}); los puntos de la curva son {them ? 'sus' : 'tus'} series. En pesas manda más el músculo que trabaja: en pierna el pulso sube mucho más que en brazo con el mismo esfuerzo.
+          </p>
+        </>
+      )}
+      {noTimes && !them && (
+        <p className="muted small">Para ver el pulso de cada ejercicio, marca cada serie con ✓ al terminarla: la app guarda la hora y la cruza con el reloj (en los entrenos de antes no estaba).</p>
       )}
 
       {total > 0 && (

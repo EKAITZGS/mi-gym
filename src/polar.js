@@ -190,6 +190,9 @@ export async function syncPolar(setData) {
       id: e.id,
       date: String(e.start_time || '').slice(0, 10),
       time: String(e.start_time || '').slice(11, 16),
+      // hora de inicio con segundos y desfase con UTC: para cruzar el pulso con la hora de cada serie
+      ...(e.start_time ? { start: String(e.start_time).slice(0, 19) } : {}),
+      ...(e.start_time_utc_offset != null ? { off: Number(e.start_time_utc_offset) } : {}),
       min: isoMinutes(e.duration),
       kcal: Math.round(e.calories || 0),
       hrAvg: e.heart_rate?.average || null,

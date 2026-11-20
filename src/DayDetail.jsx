@@ -6,6 +6,7 @@ import { setTxt, WEEKDAYS, todayStr } from './store'
 import { EX_BY_ID } from './data/exercises'
 import PolarSession, { HrSpark } from './PolarSession'
 import { sessionOrder } from './progression'
+import { hrBySet } from './hrsets'
 
 export const hasSet = (x) => !!(x.r || x.s || x.m || x.km || x.min)
 export const doneSessions = (data, date) =>
@@ -44,6 +45,8 @@ export function HrRow({ e, onOpen }) {
 
 // Tarjeta de un entreno apuntado: ejercicios con sus series, RIR, reloj y nota
 export function SessionCard({ s, nameOf, watch = [], onHr, showDate = true, className = '', badge }) {
+  // pulso de cada ejercicio si el reloj grabó el entreno y las series tienen hora
+  const hrx = watch.map((e) => hrBySet(s, e)).find(Boolean)
   return (
     <div className={'sv-card ' + className}>
       {badge && <div className="sv-badge">{badge}</div>}
@@ -60,6 +63,7 @@ export function SessionCard({ s, nameOf, watch = [], onHr, showDate = true, clas
       {(sessionOrder(s) || Object.keys(s.entries || {})).map((id) => {
         // en el orden en que se hicieron (los entrenos guardan `order`; en la nube el orden de las claves se pierde)
         const sets = s.entries[id] || []
+        const hx = hrx?.ex.find((x) => x.id === id)
         const done = sets.filter(hasSet)
         if (!done.length) return null
         const rir = s.checkin?.rir?.[id]
@@ -68,6 +72,11 @@ export function SessionCard({ s, nameOf, watch = [], onHr, showDate = true, clas
             <div className="sv-name">
               {nameOf(id)}
               {rir != null && <span className={'sv-rir' + (rir === 0 ? ' hard' : '')}>RIR {rir}</span>}
+              {hx && (
+                <span className="sv-hrx" title="Pico medio de pulso en sus series (reloj)">
+                  ♥ {hx.avg}
+                </span>
+              )}
             </div>
             <div className="sv-sets">
               {done.map((x, k) => (

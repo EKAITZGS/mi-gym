@@ -489,7 +489,16 @@ export function Session({ data, setData, onExit, cloud, online }) {
   const patchSet = (exId, si, fn) =>
     setData((d) => {
       if (!d.active) return d
-      const list = d.active.entries[exId].map((s, i) => (i === si ? fn(s) : s))
+      // hora de cada serie (`t`, ms): al marcarla hecha (= al terminarla) o, si no la marcas, al apuntar sus reps;
+      // con ella se cruza el pulso del reloj para saber en qué ejercicio subes más
+      const filled = (x) => x.done || x.r || x.r2 || x.s || x.m || x.km || x.min
+      const list = d.active.entries[exId].map((s, i) => {
+        if (i !== si) return s
+        const n = fn(s)
+        if (n.done && !s.done) return { ...n, t: Date.now() }
+        if (!n.t && filled(n) && !filled(s)) return { ...n, t: Date.now() }
+        return n
+      })
       const started = list.some((x) => x.done || x.r || x.r2 || x.s || x.m || x.km || x.min)
       const touch = started && !d.active.touch?.[exId] ? { ...(d.active.touch || {}), [exId]: Date.now() } : d.active.touch
       return { ...d, active: { ...d.active, entries: { ...d.active.entries, [exId]: list }, ...(touch ? { touch } : {}) } }
@@ -507,7 +516,7 @@ export function Session({ data, setData, onExit, cloud, online }) {
         .map((s) => {
           const extra = Object.fromEntries(['s', 'm', 'km', 'min'].filter((k) => s[k]).map((k) => [k, s[k]]))
           const drops = s.drops.filter((x) => own(x) || x.r).map((x) => ({ w: x.w || '', r: x.r || '' }))
-          const base = { w: s.w || '', r: s.r || '', ...extra, drops, ...(s.warm ? { warm: true } : {}) }
+          const base = { w: s.w || '', r: s.r || '', ...extra, drops, ...(s.warm ? { warm: true } : {}), ...(s.t ? { t: s.t } : {}) }
           if (!uni || !(s.r || s.r2)) return base
           // unilateral: cuenta el lado más flojo para progresar; se guardan los dos
           const l = num(s.r), rr = num(s.r2)
@@ -575,7 +584,7 @@ export function Session({ data, setData, onExit, cloud, online }) {
     setData((d) => ({
       ...d,
       active: null,
-      sessions: [...d.sessions, { id: sid, date: a.date, dayId: a.dayId, dayName: name, entries, ...(order.length > 1 ? { order } : {}), ...(Object.keys(notes).length ? { notes } : {}), ...(min ? { min } : {}) }],
+      sessions: [...d.sessions, { id: sid, date: a.date, dayId: a.dayId, dayName: name, entries, ...(order.length > 1 ? { order } : {}), ...(a.start ? { start: a.start } : {}), ...(Object.keys(notes).length ? { notes } : {}), ...(min ? { min } : {}) }],
     }))
     const before = (day?.items || []).map((i) => i.ex).join('|')
     const after = items.map((i) => i.ex).join('|')

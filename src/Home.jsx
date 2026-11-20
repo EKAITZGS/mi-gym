@@ -3,7 +3,7 @@ import { dayTotals, fmtDate, todayStr, DEFAULT, fmtKg } from './store'
 import { EX_BY_ID } from './data/exercises'
 import { Ring, Thumb } from './ui'
 import Icon from './icons'
-import { polarExercisesOn, getPolar, connectPolar } from './polar'
+import { polarExercisesOn, getPolar, connectPolar, syncPolar } from './polar'
 import WeeklyReview from './Review'
 import PolarSession from './PolarSession'
 import { PlanMaker } from './workout/Generator'
@@ -133,9 +133,16 @@ export default function Home({ data, setData, onStart, go, onOpenStart, name }) 
                 <h2>{(doneToday.dayId === d.id ? d.name : doneToday.dayName || d.name).trim()}</h2>
                 <p className="hero-sum">
                   {nEx} {nEx === 1 ? 'ejercicio' : 'ejercicios'} · {sets} {sets === 1 ? 'serie' : 'series'}
-                  {watch ? ` · ${watch.min} min · ${watch.kcal} kcal` : doneToday.min ? ` · ${doneToday.min} min` : ''}
+                  {watch ? ` · ${watch.min}\u00a0min · ${watch.kcal}\u00a0kcal` : doneToday.min ? ` · ${doneToday.min}\u00a0min` : ''}
                 </p>
                 <p className="small hero-note">¡Buen trabajo! Ahora toca comer bien y descansar.</p>
+                {watch ? (
+                  <button className="link small hero-again hero-hr" onClick={() => setPolarEx(watch)}>
+                    <Icon name="heart" size={14} /> Ver el pulso del reloj
+                  </button>
+                ) : (
+                  getPolar()?.token && <WatchWait setData={setData} />
+                )}
                 <button className="link small hero-again" onClick={onOpenStart}>
                   Entrenar otra vez hoy
                 </button>
@@ -296,5 +303,28 @@ export default function Home({ data, setData, onStart, go, onOpenStart, name }) 
       {dayOpen && <DayModal data={data} date={dayOpen} onClose={() => setDayOpen(null)} />}
       {exOpen && <ExerciseModal ex={exOpen} data={data} setData={setData} onClose={() => setExOpen(null)} />}
     </div>
+  )
+}
+
+// Entreno hecho hoy sin entreno del reloj todavía: el reloj tiene que pasar antes por la app Polar Flow
+function WatchWait({ setData }) {
+  const [st, setSt] = useState('')
+  const look = () => {
+    setSt('…')
+    syncPolar(setData)
+      .then((r) => setSt(r.list.some((e) => e.date === todayStr()) ? '' : 'no'))
+      .catch(() => setSt('err'))
+  }
+  return (
+    <p className="small hero-note hero-wait">
+      {st === 'no'
+        ? 'Aún no ha llegado. Abre Polar Flow en el móvil con el reloj cerca para que se sincronice y vuelve a probar.'
+        : st === 'err'
+          ? 'No se pudo hablar con Polar ahora. Prueba en un rato.'
+          : '¿Lo grabaste con el reloj? Sincronízalo con la app Polar Flow y aquí saldrá el pulso de cada ejercicio.'}{' '}
+      <button className="link small" onClick={look} disabled={st === '…'}>
+        {st === '…' ? 'Buscando…' : 'Buscar ahora'}
+      </button>
+    </p>
   )
 }

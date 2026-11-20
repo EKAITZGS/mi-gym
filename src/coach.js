@@ -6,6 +6,7 @@ import { groupsOf } from './ranks'
 import { wantsPlan, planForAi, planPrompt, parseCoachReply, groupsFor, catalogForAi, levelPrompt, levelOf, LEVEL_MAX_SETS, LEVEL_RIR } from './aiPlan'
 import { exStats } from './store'
 import { exHistory, sessionOrder } from './progression'
+import { watchForSession } from './hrsets'
 
 // Resumen del reloj Polar de los últimos 7 días (para la revisión y para la IA)
 export function polarWeek(data) {
@@ -150,16 +151,21 @@ export function coachFacts(data, now = new Date()) {
   const f = (x) => fmtDate(x)
   const week = (from, to) => {
     const p = periodStats(ses, from, to)
-    const list = ses.filter((s) => s.date >= from && s.date <= to).map((s) => ({
-      fecha: s.date,
-      dia: s.dayName,
-      min: s.min,
-      ejercicios: (sessionOrder(s, data.plan) || Object.keys(s.entries || {})).map((id) => {
-        const sets = s.entries[id]
-        const best = exStats([s], id)[0]?.best
-        return `${(EX_BY_ID[id]?.name || id).replace(/ \(.*\)/, '')} ${sets.filter((x) => !x.warm).length} series${best ? ` (mejor ${best.w}×${best.r})` : ''}`
-      }),
-    }))
+    const list = ses.filter((s) => s.date >= from && s.date <= to).map((s) => {
+      // pulso del reloj en las series de cada ejercicio (si el reloj grabó el entreno y las series tienen hora)
+      const hr = watchForSession(data, s)
+      return {
+        fecha: s.date,
+        dia: s.dayName,
+        min: s.min,
+        ejercicios: (sessionOrder(s, data.plan) || Object.keys(s.entries || {})).map((id) => {
+          const sets = s.entries[id]
+          const best = exStats([s], id)[0]?.best
+          const h = hr?.ex.find((x) => x.id === id)
+          return `${(EX_BY_ID[id]?.name || id).replace(/ \(.*\)/, '')} ${sets.filter((x) => !x.warm).length} series${best ? ` (mejor ${best.w}×${best.r})` : ''}${h ? `, pulso en las series ${h.avg} ppm (máx. ${h.max})` : ''}`
+        }),
+      }
+    })
     const load = muscleLoad(ses, from, groupsOf, to)
     return { desde: from, hasta: to, entrenos: p.n, series: p.sets, minutos: p.min, kg_movidos: p.vol, series_por_musculo: Object.fromEntries(Object.entries(load).map(([g, v]) => [g, `${v.eff} efectivas (${v.direct} directas, ${v.indirect} indirectas) en ${v.freq} días`])), sesiones: list }
   }
