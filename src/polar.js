@@ -239,6 +239,9 @@ export async function syncPolar(setData) {
   return { exercises: Object.keys(exercises).length, days: Object.keys(days).length, list: Object.values(exercises) }
 }
 
+// Último entreno que ha devuelto Polar en una sincronización (para decir si ha llegado el de hoy)
+export const lastWatch = (list = []) => [...list].sort((a, b) => (a.date + a.time < b.date + b.time ? 1 : -1))[0] || null
+
 export const polarExercisesOn = (data, date) =>
   Object.values(data.polar?.exercises || {})
     .filter((e) => e.date === date)

@@ -3,7 +3,7 @@ import { dayTotals, fmtDate, todayStr, DEFAULT, fmtKg } from './store'
 import { EX_BY_ID } from './data/exercises'
 import { Ring, Thumb } from './ui'
 import Icon from './icons'
-import { polarExercisesOn, getPolar, connectPolar, syncPolar } from './polar'
+import { polarExercisesOn, getPolar, connectPolar, syncPolar, lastWatch } from './polar'
 import WeeklyReview from './Review'
 import PolarSession from './PolarSession'
 import { PlanMaker } from './workout/Generator'
@@ -309,17 +309,23 @@ export default function Home({ data, setData, onStart, go, onOpenStart, name }) 
 // Entreno hecho hoy sin entreno del reloj todavía: el reloj tiene que pasar antes por la app Polar Flow
 function WatchWait({ setData }) {
   const [st, setSt] = useState('')
+  const [last, setLast] = useState(null)
   const look = () => {
     setSt('…')
     syncPolar(setData)
-      .then((r) => setSt(r.list.some((e) => e.date === todayStr()) ? '' : 'no'))
-      .catch(() => setSt('err'))
+      .then((r) => {
+        setLast(lastWatch(r.list))
+        setSt(r.list.some((e) => e.date === todayStr()) ? '' : 'no')
+      })
+      .catch((e) => setSt(e.message === 'AUTH' ? 'auth' : 'err'))
   }
   return (
     <p className="small hero-note hero-wait">
       {st === 'no'
-        ? 'Aún no ha llegado. Abre Polar Flow en el móvil con el reloj cerca para que se sincronice y vuelve a probar.'
-        : st === 'err'
+        ? `Polar aún no tiene el de hoy${last ? ` (el último que tiene es del ${fmtDay(last.date)}, ${last.time})` : ''}. Abre Polar Flow en el móvil con el reloj cerca, espera a que se sincronice y vuelve a probar.`
+        : st === 'auth'
+          ? 'Polar ha rechazado el acceso: vuelve a conectar el reloj en Perfil.'
+          : st === 'err'
           ? 'No se pudo hablar con Polar ahora. Prueba en un rato.'
           : '¿Lo grabaste con el reloj? Sincronízalo con la app Polar Flow y aquí saldrá el pulso de cada ejercicio.'}{' '}
       <button className="link small" onClick={look} disabled={st === '…'}>
