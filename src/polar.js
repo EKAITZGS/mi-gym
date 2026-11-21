@@ -1,6 +1,24 @@
 // Conexión con Polar (a través del intermediario en Cloudflare).
 // El token de Polar se guarda solo en este móvil, aparte de las copias de seguridad.
 import { todayStr, addDays } from './store'
+import { parseTcx, sameStart } from './tcx'
+
+// Añade entrenos exportados de Polar Flow (TCX); no repite los que ya tienes (misma hora de inicio)
+export async function importTcx(files, setData) {
+  const list = []
+  for (const f of files) list.push(parseTcx(await f.text()))
+  let added = 0
+  setData((d) => {
+    const ex = { ...(d.polar?.exercises || {}) }
+    for (const e of list) {
+      if (Object.values(ex).some((x) => sameStart(x, e))) continue
+      ex[e.id] = e
+      added++
+    }
+    return { ...d, polar: { ...(d.polar || {}), exercises: ex } }
+  })
+  return { read: list, added }
+}
 
 export const POLAR_WORKER = 'https://mi-gym-polar.ekaitzmartinezm.workers.dev'
 const KEY = 'migym.polar'
@@ -251,10 +269,13 @@ async function syncPolarRaw(setData) {
       lastSync: new Date().toISOString(),
       ...(actErr ? { actErr } : {}),
       exercises: Object.fromEntries(
-        Object.entries({ ...(d.polar?.exercises || {}), ...exercises }).map(([k, e]) => {
-          const old = d.polar?.exercises?.[k]
-          return [k, old?.hr && !e.hr ? { ...e, hr: old.hr, zones: e.zones || old.zones } : e]
-        })
+        Object.entries({ ...(d.polar?.exercises || {}), ...exercises })
+          // un entreno importado de un TCX sobra si Polar acaba entregando el mismo
+          .filter(([, e]) => !e.imported || !Object.values(exercises).some((x) => sameStart(x, e)))
+          .map(([k, e]) => {
+            const old = d.polar?.exercises?.[k]
+            return [k, old?.hr && !e.hr ? { ...e, hr: old.hr, zones: e.zones || old.zones } : e]
+          })
       ),
       days: { ...(d.polar?.days || {}), ...days },
       ...(Object.keys(sleep).length || d.polar?.sleep ? { sleep: lastN({ ...(d.polar?.sleep || {}), ...sleep }) } : {}),
