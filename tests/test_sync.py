@@ -115,6 +115,14 @@ with sync_playwright() as p:
     wait_for(lambda: local(A)['goals'].get('protein') == 170, 'A recibe lo de B')
     assert local(A)['goals']['kcal'] == 2100
     print('1) cambios simultáneos: ok', g)
+    # el estado de la sincronización se puede ver en Perfil: lo último que ha hecho
+    Bp.click('button.link:has-text("Ajustes")')   # de Objetivos a Ajustes
+    Bp.click('button.link:has-text("Perfil")')    # de Ajustes a Perfil
+    Bp.click('button[aria-label="Estado de la sincronización"]')
+    Bp.wait_for_selector('text=Últimos movimientos')
+    log = Bp.locator('.sync-log').inner_text()
+    assert 'Juntado' in log and 'Subido' in log, log
+    Bp.keyboard.press('Escape')
 
     # 2) entreno sin conexión en A: series, cerrar la app, reabrir, seguir, terminar
     cloud['down'] = True
@@ -188,6 +196,24 @@ with sync_playwright() as p:
     assert B not in (local(A).get('favEx') or [])
     print('3) borrado que viaja: ok')
     ca.close(); cb.close()
+
+    # 5) iPhone con IndexedDB que no contesta nunca: la subida termina igual y no se queda «Cambios por subir»
+    ch, H = device(b, 'H')
+    H.close()
+    ch.add_init_script("indexedDB.open = () => ({})")   # nunca dispara success ni error
+    H = ch.new_page()
+    pages.append(H)
+    H.on('pageerror', lambda e: errors.append(f'H: {e}'))
+    H.goto(URL)
+    H.evaluate("([m]) => localStorage.setItem('migym.cloud', JSON.stringify(m))", [{**meta, 'synced': cloud['row']['updated_at']}])
+    H.evaluate("([d]) => localStorage.setItem('migym.v1', JSON.stringify(d))", [cloud['row']['data']])
+    H.reload()
+    H.wait_for_selector('.tabbar')
+    set_goal(H, 0, 1999)
+    wait_for(lambda: cloud['row']['data']['goals']['kcal'] == 1999, 'subida sin IndexedDB', secs=30)
+    wait_for(lambda: json.loads(H.evaluate("localStorage.getItem('migym.cloud')"))['dirty'] is False, 'sin «Cambios por subir»', secs=30)
+    print('5) IndexedDB colgado: sube igual y no queda pendiente: ok')
+    ch.close()
 
     # 4) PWA: tras la primera visita, la app abre sin conexión (service worker) con los datos del móvil
     cw = b.new_context(viewport={'width': 390, 'height': 844}, locale='es-ES')

@@ -9,7 +9,7 @@ import PushCard from './PushCard'
 import AccountCard from './Account'
 import { MyTrainer, Students } from './Trainers'
 import { cloudReady, CLEAN } from './cloud'
-import { getPolar, connectPolar, syncPolar, disconnectPolar } from './polar'
+import { getPolar, connectPolar, syncPolar, disconnectPolar, polarDiagnose } from './polar'
 import { Modal } from './ui'
 import LegalModal from './Legal'
 import { deleteAccount } from './cloud'
@@ -372,6 +372,7 @@ export default function Settings({ data, setData, cloud, onBack }) {
         )}
         {ps.msg && <div className="advice green sm">{ps.msg}</div>}
       </div>
+      {polar?.token && <PolarDiag />}
 
           </>
         )}
@@ -511,6 +512,95 @@ export default function Settings({ data, setData, cloud, onBack }) {
         Fotos de ejercicios: free-exercise-db (dominio público). Productos de súper: Open Food Facts. Los valores de
         la lista de alimentos son aproximados.
       </p>
+    </div>
+  )
+}
+
+// Diagnóstico de Polar: respuesta en bruto de lo que tiene Polar para tu cuenta (sin guardar nada ni enseñar el token)
+const fmtPT = (d) => {
+  const m = String(d || '').match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:([\d.]+)S)?/)
+  return m ? `${(+m[1] || 0) * 60 + (+m[2] || 0)} min` : ''
+}
+const fmtT = (s) => (s ? String(s).replace('T', ' ').slice(0, 16) : '—')
+function PolarDiag() {
+  const [st, setSt] = useState({ busy: false, out: null, err: '', copied: false })
+  const run = async () => {
+    setSt({ busy: true, out: null, err: '', copied: false })
+    try {
+      setSt({ busy: false, out: await polarDiagnose(), err: '', copied: false })
+    } catch (e) {
+      setSt({ busy: false, out: null, err: String(e.message || e), copied: false })
+    }
+  }
+  const o = st.out
+  const ex = o?.exercises
+  const ck = o?.check
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(o, null, 2))
+      setSt((s) => ({ ...s, copied: true }))
+    } catch {}
+  }
+  return (
+    <div className="card">
+      <div className="card-h">
+        <h3>Diagnóstico de Polar</h3>
+      </div>
+      <p className="muted small mt-0">Pregunta a Polar qué entrenos tiene para tu cuenta y lo enseña tal cual. No guarda ni cambia nada.</p>
+      <button className="btn full" disabled={st.busy} onClick={run}>
+        {st.busy ? 'Preguntando a Polar…' : 'Ver lo que devuelve Polar'}
+      </button>
+      {st.err && <div className="advice yellow sm">{st.err}</div>}
+      {ex && (
+        <div className="diag">
+          <div className="mo-h">Entrenos (/exercises)</div>
+          {ex.error ? (
+            <p className="small hint-warn">Sin respuesta: {ex.error}</p>
+          ) : (
+            <p className="small">
+              Respuesta {ex.status} · <b>{ex.count ?? '—'}</b> entrenos{ex.body ? ` · ${typeof ex.body === 'string' ? ex.body : JSON.stringify(ex.body)}` : ''}
+            </p>
+          )}
+          {(ex.list || []).map((e) => (
+            <div className="diag-row" key={e.id}>
+              <b>{fmtT(e.start_time)}</b>
+              <span className="muted small">
+                subido {fmtT(e.upload_time)} · {e.sport || '?'} · {fmtPT(e.duration)}
+              </span>
+            </div>
+          ))}
+          <div className="mo-h">Registro y entrenos pendientes (/polar/check)</div>
+          {!ck && <p className="muted small">Sin id de usuario de Polar en este móvil: vuelve a conectar.</p>}
+          {ck?.missing && <p className="muted small">Esta prueba aún no está en el servidor (Worker). Cuando esté publicada, saldrá aquí.</p>}
+          {ck?.error && <p className="small hint-warn">Sin respuesta: {ck.error}</p>}
+          {ck && !ck.missing && !ck.error && (
+            <>
+              <p className="small">
+                Usuario en Polar: {ck.user?.status} {ck.user?.registered ? `· registrado${ck.user['registration-date'] ? ` el ${fmtT(ck.user['registration-date'])}` : ''}` : '· NO registrado'}
+              </p>
+              <p className="small">
+                Transacción: {ck.transaction?.status} {ck.transaction?.meaning ? `· ${ck.transaction.meaning}` : ''}
+                {ck.transaction?.count != null ? ` · ${ck.transaction.count} entrenos` : ''}
+              </p>
+              {(ck.transaction?.exercises || []).map((e, i) => (
+                <div className="diag-row" key={i}>
+                  <b>{fmtT(e['start-time'])}</b>
+                  <span className="muted small">
+                    subido {fmtT(e['upload-time'])} · {e.sport || '?'}
+                  </span>
+                </div>
+              ))}
+              {ck.exercises?.rateLimit && Object.keys(ck.exercises.rateLimit).length > 0 && (
+                <p className="muted small">Límites de Polar: {Object.entries(ck.exercises.rateLimit).map(([k, v]) => `${k}: ${v}`).join(' · ')}</p>
+              )}
+            </>
+          )}
+          <button className="btn full" onClick={copy}>
+            {st.copied ? 'Copiado' : 'Copiar resultado'}
+          </button>
+          <p className="muted small">El resultado no lleva tu token ni tus contraseñas: puedes pegarlo en el chat.</p>
+        </div>
+      )}
     </div>
   )
 }

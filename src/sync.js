@@ -117,23 +117,37 @@ export function merge3(base, local, remote) {
 const DB = 'migym-sync'
 const STORE = 'kv'
 const hasIdb = () => typeof indexedDB !== 'undefined'
+// En iPhone, IndexedDB a veces no contesta nunca (al volver de segundo plano): todo lleva tiempo máximo
+// para que la sincronización no se quede esperando para siempre.
+const IDB_MS = 4000
+const late = (ms) => new Promise((_, rej) => setTimeout(() => rej(new Error('idb_timeout')), ms))
 function open() {
   return new Promise((res, rej) => {
     const r = indexedDB.open(DB, 1)
     r.onupgradeneeded = () => r.result.createObjectStore(STORE)
     r.onsuccess = () => res(r.result)
     r.onerror = () => rej(r.error)
+    r.onblocked = () => rej(new Error('idb_blocked'))
   })
 }
 async function kv(mode, fn) {
-  const db = await open()
-  return new Promise((res, rej) => {
-    const t = db.transaction(STORE, mode)
-    const req = fn(t.objectStore(STORE))
-    t.oncomplete = () => res(req?.result)
-    t.onerror = () => rej(t.error)
-    t.onabort = () => rej(t.error)
-  })
+  const db = await Promise.race([open(), late(IDB_MS)])
+  try {
+    return await Promise.race([
+      new Promise((res, rej) => {
+        const t = db.transaction(STORE, mode)
+        const req = fn(t.objectStore(STORE))
+        t.oncomplete = () => res(req?.result)
+        t.onerror = () => rej(t.error)
+        t.onabort = () => rej(t.error)
+      }),
+      late(IDB_MS),
+    ])
+  } finally {
+    try {
+      db.close()
+    } catch {}
+  }
 }
 // Versión común guardada para esta cuenta (null si no hay o es de otra cuenta)
 export async function getBase(uid) {

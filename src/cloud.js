@@ -154,6 +154,27 @@ async function pushIf(uid, data, prevAt) {
   return { at: updated_at }
 }
 const sameAt = (a, b) => !!a && !!b && Date.parse(a) === Date.parse(b)
+// tiempo máximo de cada llamada a la nube: si no contesta, se suelta y se reintenta (no se queda «subiendo» para siempre)
+const NET_MS = 20000
+const timed = (p, what) =>
+  Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error(`La nube no responde (${what}). Se reintentará.`)), NET_MS))])
+
+// Registro de la sincronización (Perfil → tocar el estado): las últimas 20 cosas que ha hecho, para saber qué pasa
+const LOG = 'migym.synclog'
+export function syncLog() {
+  try {
+    return JSON.parse(localStorage.getItem(LOG) || '[]')
+  } catch {
+    return []
+  }
+}
+function logSync(t, msg = '') {
+  try {
+    const l = syncLog()
+    l.unshift({ at: new Date().toISOString(), t, msg: String(msg).slice(0, 160) })
+    localStorage.setItem(LOG, JSON.stringify(l.slice(0, 20)))
+  } catch {}
+}
 
 // Junta lo de este móvil con lo de la nube. Con versión común (base): fusión a tres bandas, registro a registro.
 // Sin base: si aquí no hay cambios pendientes manda la nube; si los hay, se une todo sin borrar nada.
@@ -312,7 +333,8 @@ export async function resolve(choice, cloud, local, setData) {
 // cambiado en otro móvil. Devuelve el estado para enseñarlo en Ajustes.
 export function useCloudSync(data, setData) {
   const [state, setState] = useState(() => ({ meta: cloudMeta(), busy: false, error: '', recovery: false }))
-  const applying = useRef(false)
+  // último dato que ha puesto la sincronización (no cuenta como cambio tuyo)
+  const appliedRef = useRef(null)
   const first = useRef(true)
   const dataRef = useRef(data)
   dataRef.current = data
@@ -338,31 +360,35 @@ export function useCloudSync(data, setData) {
   }, [])
 
   const expired = async () => {
-    if (await hasSession()) return false
+    if (await timed(hasSession(), 'sesión')) return false
+    logSync('sesión', 'caducada')
     setState((s) => ({ ...s, busy: false, error: 'Tu sesión ha caducado: vuelve a entrar en tu cuenta.' }))
     setMeta(null)
     return true
   }
 
-  // aplica en pantalla lo fusionado (sin que cuente como un cambio nuevo del usuario)
-  const apply = (next) => {
-    if (same(next, dataRef.current)) return
-    applying.current = true
-    dataRef.current = next
-    setData(next)
+  // Aplica lo fusionado. `from` = lo que había aquí cuando empezó la fusión: si mientras tanto has cambiado algo,
+  // se junta también (tu último cambio no se pierde).
+  const apply = (next, from) => {
+    const cur = dataRef.current
+    const res = cur === from ? next : merge3(from, cur, next).data
+    if (same(res, cur)) return
+    appliedRef.current = res
+    dataRef.current = res
+    setData((c) => (c === cur ? res : merge3(cur, c, res).data))
   }
-  const uploading = useRef(false)
+  const uploading = useRef(0) // hora de inicio de la subida en curso (0 = ninguna)
   const again = useRef(false)
 
   const upload = async () => {
     let m = cloudMeta()
     if (!m?.uid || m.pending) return
-    // una subida cada vez; si llega otra mientras, se repite al terminar
-    if (uploading.current) {
+    // una subida cada vez; si llega otra mientras, se repite al terminar (y una subida colgada se suelta al minuto)
+    if (uploading.current && Date.now() - uploading.current < 60000) {
       again.current = true
       return
     }
-    uploading.current = true
+    uploading.current = Date.now()
     setState((s) => ({ ...s, busy: true }))
     let err = ''
     try {
@@ -372,31 +398,36 @@ export function useCloudSync(data, setData) {
       }
       for (let i = 0; i < 4; i++) {
         const sent = dataRef.current
-        const r = await pushIf(m.uid, sent, m.synced)
+        const r = await timed(pushIf(m.uid, sent, m.synced), 'subir')
         if (r.at) {
           await setBase(m.uid, sent)
           patchMeta({ synced: r.at, dirty: dataRef.current !== sent })
+          logSync('subida', `${Math.round(JSON.stringify(sent).length / 1024)} KB`)
           return
         }
         // otro dispositivo guardó antes: se trae lo suyo, se fusiona con lo de aquí y se vuelve a intentar
-        const row = await pull(m.uid)
+        const row = await timed(pull(m.uid), 'traer')
         if (!row) {
           m = { ...m, synced: null }
           continue
         }
-        const merged = await mergeWithCloud(m.uid, dataRef.current, row, true)
+        const local = dataRef.current
+        const merged = await mergeWithCloud(m.uid, local, row, true)
         await setBase(m.uid, migrate(row.data))
         patchMeta({ synced: row.updated_at })
-        apply(merged.data)
+        apply(merged.data, local)
+        logSync('fusión', `otro dispositivo había guardado antes${merged.conflicts.length ? ` · ${merged.conflicts.length} dato(s) cambiados en los dos: gana este` : ''}`)
         m = cloudMeta()
       }
       err = 'No se pudo guardar en tu cuenta (cambios a la vez en otro dispositivo). Se reintentará.'
     } catch (e) {
       err = e.message
     } finally {
-      uploading.current = false
+      if (err) logSync('error', err)
+      uploading.current = 0
       setState((s) => ({ ...s, busy: false, error: err }))
-      if (again.current) {
+      // si mientras subía cambiaste algo, se sube enseguida (no se queda «Cambios por subir»)
+      if (again.current || (!err && cloudMeta()?.dirty)) {
         again.current = false
         setTimeout(upload, 300)
       }
@@ -411,22 +442,26 @@ export function useCloudSync(data, setData) {
       fetchProfile(m.uid)
         .then((p) => p && (p.role !== m.role || p.name !== m.name) && patchMeta({ role: p.role, name: p.name }))
         .catch(() => {})
-      const row = await pull(m.uid)
+      const row = await timed(pull(m.uid), 'traer')
       if (!row) return upload()
       if (sameAt(row.updated_at, m.synced)) {
         // la nube sigue como la dejamos: esa es la versión común
         await setBase(m.uid, migrate(row.data))
-        return m.dirty ? upload() : null
+        return cloudMeta()?.dirty ? upload() : null
       }
       // ha cambiado en otro dispositivo: se fusiona (si aquí no había nada pendiente, simplemente se baja)
-      const merged = await mergeWithCloud(m.uid, dataRef.current, row, !!m.dirty)
+      const local = dataRef.current
+      const dirty = !!cloudMeta()?.dirty
+      const merged = await mergeWithCloud(m.uid, local, row, dirty)
       await setBase(m.uid, migrate(row.data))
-      const pending = !same(merged.data, row.data)
+      apply(merged.data, local)
+      const pending = !same(dataRef.current, migrate(row.data))
       patchMeta({ synced: row.updated_at, dirty: pending })
-      apply(merged.data)
+      logSync('bajada', `cambios de otro dispositivo${pending ? ' · se juntan con los de aquí' : ''}`)
       if (pending) upload()
       setState((s) => ({ ...s, error: '' }))
     } catch (e) {
+      logSync('error', e.message)
       setState((s) => ({ ...s, error: e.message }))
     }
   }
@@ -438,12 +473,12 @@ export function useCloudSync(data, setData) {
       first.current = false
       return
     }
-    if (applying.current) {
-      applying.current = false
-      return
-    }
     const m = cloudMeta()
     if (!m?.uid || m.pending) return
+    // lo que acaba de poner la sincronización no es un cambio tuyo; pero si hay algo pendiente, se sube igualmente
+    const fromCloud = data === appliedRef.current
+    // si lo puso una subida o bajada en marcha, esa misma se encarga de subirlo
+    if (fromCloud && (!m.dirty || uploading.current)) return
     if (!m.dirty) patchMeta({ dirty: true })
     const t = setTimeout(upload, 3000)
     return () => clearTimeout(t)

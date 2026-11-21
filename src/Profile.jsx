@@ -7,7 +7,7 @@ import AccountCard from './Account'
 import { MyTrainer, Students } from './Trainers'
 import { getPolar, syncPolar, connectPolar, lastWatch, polarErr, errTxt } from './polar'
 import { fmtDay } from './DayDetail'
-import { cloudReady } from './cloud'
+import { cloudReady, syncLog } from './cloud'
 import Settings from './Settings'
 import { SyncPill } from './ds'
 
@@ -90,7 +90,13 @@ export default function Profile({ data, setData, cloud, inbox, onInbox, online, 
           {m.email && <div className="prof-sub">{m.email}</div>}
           <div className="prof-sub mt-2">
             {hasAccount && <span className="badge mr-2">{trainer ? 'Entrenador' : 'Usuario'}</span>}
-            <SyncPill cloud={cloud} online={online} />
+            {hasAccount ? (
+              <button className="pill-btn" onClick={() => setSub('sync')} aria-label="Estado de la sincronización">
+                <SyncPill cloud={cloud} online={online} />
+              </button>
+            ) : (
+              <SyncPill cloud={cloud} online={online} />
+            )}
           </div>
         </div>
       </div>
@@ -121,6 +127,7 @@ export default function Profile({ data, setData, cloud, inbox, onInbox, online, 
 
 
       {sub === 'profile' && <ProfileModal email={m.email} onClose={() => setSub(null)} />}
+      {sub === 'sync' && <SyncInfo cloud={cloud} online={online} onClose={() => setSub(null)} />}
       {sub === 'coach' && (
         <Modal title={trainer ? 'Tus alumnos' : 'Entrenador'} onClose={() => setSub(null)}>
           {trainer ? (
@@ -131,5 +138,49 @@ export default function Profile({ data, setData, cloud, inbox, onInbox, online, 
         </Modal>
       )}
     </div>
+  )
+}
+
+// Estado de la sincronización con tu cuenta: qué hay pendiente, el último error y lo último que ha hecho
+const T = { subida: 'Subido', bajada: 'Traído', fusión: 'Juntado', error: 'Error', sesión: 'Sesión' }
+function SyncInfo({ cloud, online, onClose }) {
+  const [, tick] = useState(0)
+  const m = cloud.meta || {}
+  const log = syncLog()
+  const when = (iso) => new Date(iso).toLocaleString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  const run = async (fn) => {
+    await fn()
+    tick((x) => x + 1)
+  }
+  return (
+    <Modal title="Sincronización" onClose={onClose}>
+      <SyncPill cloud={cloud} online={online} />
+      <p className="muted small">
+        {m.dirty ? 'Hay cambios de este móvil sin subir.' : 'Todo lo de este móvil está en tu cuenta.'}
+        {m.synced ? ` Versión de la nube: ${when(m.synced)}.` : ''}
+        {!online ? ' Sin conexión: se subirá al volver.' : ''}
+      </p>
+      {cloud.error && <div className="advice yellow sm">{cloud.error}</div>}
+      <div className="btns">
+        <button className="btn primary" disabled={cloud.busy || !online} onClick={() => run(cloud.upload)}>
+          {cloud.busy ? 'Subiendo…' : 'Subir ahora'}
+        </button>
+        <button className="btn" disabled={cloud.busy || !online} onClick={() => run(cloud.download)}>
+          Traer de la nube
+        </button>
+      </div>
+      <h4>Últimos movimientos</h4>
+      {!log.length && <p className="muted small">Aún no hay nada registrado en este móvil.</p>}
+      <div className="sync-log">
+        {log.map((e, i) => (
+          <div key={i} className={'sync-ev' + (e.t === 'error' ? ' bad' : '')}>
+            <b>{T[e.t] || e.t}</b>
+            <span className="muted small">{when(e.at)}</span>
+            {e.msg && <span className="small">{e.msg}</span>}
+          </div>
+        ))}
+      </div>
+      <p className="muted small">Nunca se pierde nada: si cambias cosas en dos dispositivos se juntan, y antes de juntar se guarda una copia.</p>
+    </Modal>
   )
 }

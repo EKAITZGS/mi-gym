@@ -282,3 +282,43 @@ export async function disconnectPolar() {
   }
   setPolar(null)
 }
+
+// Diagnóstico (Ajustes → Reloj Polar): lo que devuelve Polar tal cual, sin guardar nada.
+// El token se usa para llamar al Worker desde este móvil, pero no se enseña ni se copia.
+const exBrief = (e) => ({
+  id: e.id,
+  start_time: e.start_time || e['start-time'],
+  upload_time: e.upload_time || e['upload-time'],
+  sport: e.detailed_sport_info || e['detailed-sport-info'] || e.sport,
+  duration: e.duration,
+  device: e.device,
+})
+export async function polarDiagnose() {
+  const p = getPolar()
+  if (!p?.token) throw new Error('NO_TOKEN')
+  const H = { Authorization: `Bearer ${p.token}` }
+  const out = { at: new Date().toISOString(), polarUser: p.user || null, connectedSince: p.since || null }
+  try {
+    const r = await fetch(POLAR_WORKER + '/exercises', { headers: H })
+    const t = await r.text()
+    let j = null
+    try {
+      j = JSON.parse(t)
+    } catch {}
+    out.exercises = Array.isArray(j)
+      ? { status: r.status, count: j.length, list: j.map(exBrief).sort((a, b) => String(b.start_time).localeCompare(String(a.start_time))) }
+      : { status: r.status, body: j ?? t.slice(0, 300) }
+  } catch (e) {
+    out.exercises = { error: String(e.message || e) }
+  }
+  if (p.user) {
+    try {
+      const r = await fetch(`${POLAR_WORKER}/polar/check?user=${encodeURIComponent(p.user)}`, { headers: H })
+      const j = await r.json().catch(() => null)
+      out.check = r.status === 404 && j?.error === 'no_encontrado' ? { missing: true } : { status: r.status, ...(j || {}) }
+    } catch (e) {
+      out.check = { error: String(e.message || e) }
+    }
+  }
+  return out
+}

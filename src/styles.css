@@ -2776,3 +2776,14 @@ button.setn.beat { border-color: var(--ok); color: var(--ok); box-shadow: inset 
 .hero-again.hero-hr { display: flex !important; width: fit-content; align-items: center; gap: 6px; margin: var(--sp-2) 0 var(--sp-1); color: var(--hr); font-weight: 700; text-decoration: none; }
 .hero-wait { margin-top: var(--sp-2); }
 .hero-wait .link.small { padding: 0; font-weight: 700; }
+
+/* Perfil: estado de la sincronización (se puede tocar) */
+.pill-btn { background: none; border: 0; padding: 0; font: inherit; color: inherit; cursor: pointer; }
+.sync-log { display: flex; flex-direction: column; }
+.sync-ev { display: grid; grid-template-columns: auto 1fr; gap: 0 var(--sp-2, 8px); padding: var(--sp-2, 8px) 0; border-top: 1px solid var(--line); }
+.sync-ev > :nth-child(3) { grid-column: 1 / -1; color: var(--text2); }
+.sync-ev.bad b { color: var(--danger); }
+
+/* Diagnóstico de Polar */
+.diag .mo-h { margin-top: var(--sp-4, 16px); }
+.diag-row { display: flex; flex-direction: column; padding: var(--sp-1, 4px) 0; border-top: 1px solid var(--line); }

@@ -19,7 +19,8 @@ if (url.pathname === '/callback') return callback(url, env, redirectUri);
 const auth = req.headers.get('Authorization') || '';
 if (url.pathname === '/exercises' || url.pathname === '/activities' || url.pathname === '/exercise' || url.pathname === '/sleep' || url.pathname === '/recharge') return data(url, auth);
 if (url.pathname === '/polar/off') return polarOff(url, auth);
-if (url.pathname === '/') return new Response('Mi Gym - Polar OK v7', { headers: cors });
+if (url.pathname === '/polar/check') return polarCheck(url, auth);
+if (url.pathname === '/') return new Response('Mi Gym - Polar OK v8', { headers: cors });
 return json({ error: 'no_encontrado' }, 404);
 }
 // IA sin clave: la clave de Groq es el secreto GROQ_KEY. Solo desde la app, 30 usos por persona (IP) y día.
@@ -71,6 +72,46 @@ const r = await fetch(target, { headers: { Authorization: auth, Accept: 'applica
 if (r.status === 204) return json([]);
 const body = await r.text();
 return new Response(body || '[]', { status: r.status, headers: { ...cors, 'Content-Type': 'application/json' } });
+}
+// Diagnóstico de Polar (solo lectura, desde Ajustes → Reloj Polar): ¿qué devuelve /v3/exercises, está el usuario
+// registrado y hay entrenos pendientes en una transacción? NUNCA hace commit (no consume ni borra nada) ni DELETE.
+async function polarCheck(url, auth) {
+if (!auth.startsWith('Bearer ')) return json({ error: 'sin_token' }, 401);
+const id = url.searchParams.get('user') || '';
+if (!/^[0-9]{1,20}$/.test(id)) return json({ error: 'usuario_no_valido' }, 400);
+const H = { Authorization: auth, Accept: 'application/json' };
+const rl = (r) => Object.fromEntries([...r.headers].filter(([k]) => /ratelimit|retry-after/i.test(k)));
+const read = async (r) => { const t = await r.text(); try { return t ? JSON.parse(t) : null; } catch { return t.slice(0, 300); } };
+const brief = (e) => ({ id: e.id, start_time: e.start_time || e['start-time'], upload_time: e.upload_time || e['upload-time'], sport: e.detailed_sport_info || e['detailed-sport-info'] || e.sport, duration: e.duration });
+const out = {};
+// 1) lista de entrenos sin muestras (la misma de la app, más ligera)
+const ex = await fetch(API + '/exercises', { headers: H });
+const exb = await read(ex);
+out.exercises = { status: ex.status, rateLimit: rl(ex), count: Array.isArray(exb) ? exb.length : null, ...(Array.isArray(exb) ? { list: exb.map(brief) } : { body: exb }) };
+// 2) ¿estoy registrado en este cliente de AccessLink?
+const us = await fetch(API + '/users/' + id, { headers: H });
+const usb = await read(us);
+out.user = { status: us.status, rateLimit: rl(us), registered: us.status === 200, ...(usb && typeof usb === 'object' ? { 'member-id': usb['member-id'], 'registration-date': usb['registration-date'] } : { body: usb }) };
+// 3) transacción de entrenos SIN commit: 201 = hay datos, 204 = nada nuevo, 403 = falta un consentimiento
+const tx = await fetch(API + '/users/' + id + '/exercise-transactions', { method: 'POST', headers: H });
+const txb = await read(tx);
+const MEAN = { 201: 'hay entrenos pendientes', 204: 'no hay nada nuevo', 403: 'falta un consentimiento', 404: 'usuario no encontrado', 409: 'ya hay una transacción abierta' };
+out.transaction = { status: tx.status, rateLimit: rl(tx), meaning: MEAN[tx.status] || '', ...(txb && typeof txb === 'object' && txb['transaction-id'] ? { 'transaction-id': txb['transaction-id'] } : {}) };
+if (tx.status === 201 && txb && txb['transaction-id']) {
+  // qué entrenos trae (solo lectura de la lista y del resumen de cada uno; sin commit)
+  const lr = await fetch(API + '/users/' + id + '/exercise-transactions/' + txb['transaction-id'], { headers: H });
+  const lb = await read(lr);
+  const urls = (lb && Array.isArray(lb.exercises) ? lb.exercises : []).filter((u) => String(u).startsWith(API + '/'));
+  out.transaction.count = urls.length;
+  out.transaction.exercises = [];
+  for (const u of urls.slice(0, 10)) {
+    const er = await fetch(u, { headers: H });
+    const eb = await read(er);
+    out.transaction.exercises.push({ status: er.status, ...(eb && typeof eb === 'object' ? brief(eb) : {}) });
+  }
+}
+out.note = 'Sin commit: la transacción caduca sola en Polar y no se consume ni se borra ningún entreno.';
+return json(out);
 }
 // Desconectar: da de baja al usuario en Polar AccessLink (deja de compartir datos con la app)
 async function polarOff(url, auth) {
