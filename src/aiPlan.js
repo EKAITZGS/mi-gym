@@ -1,7 +1,7 @@
 // Entrenador IA: propuestas de cambios en la rutina (crear un día, cambiar ejercicios por una molestia, mover un día).
 // La IA solo propone; el usuario acepta o rechaza en el chat. Puro (sin React ni red) para probarlo con npm test.
 import { EXERCISES, EX_BY_ID } from './data/exercises'
-import { uid, WEEKDAYS } from './store'
+import { uid, WEEKDAYS, TRACKS } from './store'
 import { clean, norm, diffDay, applyChanges } from './dayDiff'
 import { sexOf, sexFactor, sexPrompt } from './sex'
 
@@ -203,7 +203,9 @@ export function buildProposal(p, data, map) {
       const rir = intIn(e.rir, 0, 4)
       // si se queda el mismo ejercicio, conserva lo suyo (descanso, RIR, unilateral…)
       const keep = src && src.ex === ex ? clean(src) : null
-      items.push({ ...(keep || {}), ...it, ...(rir != null ? { rir } : keep?.rir != null ? {} : { rir: LEVEL_RIR[lv] }), ...(src ? { fromId: src.id } : {}) })
+      // drop set y tipo de medida solo si la propuesta los dice (Claude/ChatGPT); si no, lo de antes
+      const extra = { ...(typeof e.drop === 'boolean' ? { drop: e.drop } : {}), ...(e.track && TRACKS[e.track] ? { track: e.track } : {}) }
+      items.push({ ...(keep || {}), ...it, ...extra, ...(rir != null ? { rir } : keep?.rir != null ? {} : { rir: LEVEL_RIR[lv] }), ...(src ? { fromId: src.id } : {}) })
       if (items.length >= 10) break
     }
     if (!items.length) continue

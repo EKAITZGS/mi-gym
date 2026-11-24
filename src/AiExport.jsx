@@ -194,7 +194,7 @@ export default function AiExport({ data, setData, kind: kind0 = 'plan', onClose 
                   Se han quitado {res.unknown.length === 1 ? 'un ejercicio que no está' : `${res.unknown.length} ejercicios que no están`} en la app: {res.unknown.join(', ')}.
                 </p>
               )}
-              {res?.proposal && <AiProposal p={res.proposal} data={data} setData={setData} status={st} onDecide={setSt} />}
+              {res?.proposal && <AiProposal p={res.proposal} data={data} setData={setData} status={st} onDecide={setSt} restDays />}
             </>
           )}
         </div>

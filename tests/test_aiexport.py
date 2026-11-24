@@ -8,7 +8,8 @@ SHOTS = os.path.join(os.path.dirname(__file__), 'shots')
 B = 'Barbell_Bench_Press_-_Medium_Grip'
 seed = {
     'v': 2, 'setupDone': True, 'goals': {'kcal': 2200, 'protein': 150},
-    'plan': [{'id': 'd1', 'name': 'Pecho', 'weekday': 1, 'items': [{'id': 'i1', 'ex': B, 'sets': 3, 'reps': '8-10', 'drop': False}]}],
+    'plan': [{'id': 'd1', 'name': 'Pecho', 'weekday': 1, 'items': [{'id': 'i1', 'ex': B, 'sets': 3, 'reps': '8-10', 'drop': True}]},
+             {'id': 'd2', 'name': 'Pierna', 'weekday': 3, 'items': [{'id': 'i2', 'ex': 'Leg_Press', 'sets': 3, 'reps': '10', 'drop': False}]}],
     'active': None,
     'sessions': [{'id': 's1', 'date': '2026-11-20', 'dayId': 'd1', 'dayName': 'Pecho', 'entries': {B: [{'w': '60', 'r': '10'}, {'w': '60', 'r': '9'}]}}],
     'food': {}, 'myFoods': [], 'myExercises': [],
@@ -53,11 +54,16 @@ with sync_playwright() as p:
     page.wait_for_selector('.ai-prop')
     page.locator('.ax-open').screenshot(path=os.path.join(SHOTS, 'aiexport-open.png'))
     page.locator('.ai-prop').screenshot(path=os.path.join(SHOTS, 'aiexport-prop.png'))
+    # el drop set que se quita sale en los cambios; el día que no toca, con la opción de quitarlo del calendario
+    assert '+ drop' in page.locator('.ai-prop').inner_text()
+    assert page.locator('.ai-free:has-text("Pierna")').count() == 1
+    page.click('.ai-free:has-text("Pierna") input')
     page.click('.ai-prop button:has-text("Aplicar")')
     page.wait_for_selector('text=Aplicado')
     page.wait_for_timeout(300)
     items = data()['plan'][0]['items']
-    assert [(i['ex'], i['sets'], i['reps']) for i in items] == [(B, 4, '6-8'), ('Incline_Dumbbell_Press', 3, '10-12')], items
+    assert [(i['ex'], i['sets'], i['reps'], i['drop']) for i in items] == [(B, 4, '6-8', False), ('Incline_Dumbbell_Press', 3, '10-12', False)], items
+    assert data()['plan'][1]['weekday'] is None and len(data()['plan'][1]['items']) == 1
     # sin formato → aviso
     page.fill('textarea[aria-label="Respuesta de Claude o ChatGPT"]', 'Haz más series de pecho.')
     page.click('button:has-text("Ver cambios")')

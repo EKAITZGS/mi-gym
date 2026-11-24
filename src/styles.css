@@ -2808,3 +2808,7 @@ button.setn.beat { border-color: var(--ok); color: var(--ok); box-shadow: inset 
 .tile2.tile-row .tile-txt { display: flex; flex-direction: column; min-width: 0; flex: 1; }
 .tile2.tile-row .tile2-s { white-space: normal; }
 .ax-open a.btn { display: flex; align-items: center; justify-content: center; color: var(--text); text-decoration: none; font-weight: 700; }
+.ai-free { display: flex; align-items: center; gap: var(--sp-2); padding: var(--sp-2) 0; border-top: 1px solid var(--line); font-size: var(--fs-sm); cursor: pointer; }
+.ai-free:first-of-type { border-top: 0; }
+.ai-free input { width: 18px; height: 18px; flex: none; accent-color: var(--accent); }
+.ai-rest .small.muted.m-0 { margin-bottom: var(--sp-1); }

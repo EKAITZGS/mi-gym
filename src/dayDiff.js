@@ -26,7 +26,7 @@ export function diffDay(day) {
     const b = it.fromId && base.find((x) => x.id === it.fromId)
     if (!b) out.push({ t: 'add', ex: it.ex, sr: sr(it) })
     else if (b.ex !== it.ex) out.push({ t: 'swap', from: b.ex, ex: it.ex, sr: sr(it) })
-    else if (sr(b) !== sr(it)) out.push({ t: 'sets', ex: it.ex, from: sr(b), sr: sr(it) })
+    else if (sr(b) !== sr(it) || !!b.drop !== !!it.drop) out.push({ t: 'sets', ex: it.ex, from: sr(b) + (b.drop ? ' + drop' : ''), sr: sr(it) + (it.drop ? ' + drop' : '') })
   }
   for (const b of base) if (!items.some((it) => it.fromId === b.id)) out.push({ t: 'del', ex: b.ex })
   return out

@@ -80,4 +80,14 @@ assert.equal(out.find((d) => d.name === 'Pierna').weekday, 5)
 assert.equal(readReply(`{“propuesta”: {“dias”: [{“ref”: null, “nombre”: “Core”, “dia”: 6, “ejercicios”: [{“id”: “Plank”, “series”: 3, “reps”: “30”}]}]}}`, data).error, null)
 assert.equal(readReply('Sin bloque', data).error, 'nojson')
 assert.equal(readReply('{"dias":[]}', data).error, 'empty')
+// sin "drop": true el drop set se quita (y se ve en los cambios); "30-45s" = serie por tiempo
+const withDrop = { ...data, plan: [{ ...data.plan[0], items: [{ ...data.plan[0].items[0], drop: true }] }, data.plan[1]] }
+const r2 = readReply(JSON.stringify({ dias: [{ ref: 'd1', nombre: 'Pecho', dia: 1, ejercicios: [{ ref: 'd1e1', id: B, series: 3, reps: '8-10' }, { ref: null, id: 'Plank', series: 3, reps: '30-45s' }] }] }), withDrop)
+assert.deepEqual(r2.proposal.days[0].changes.find((c) => c.t === 'sets'), { t: 'sets', ex: B, from: '3×8-10 + drop', sr: '3×8-10' })
+const out2 = applyAiProposal(withDrop.plan, r2.proposal).find((d) => d.id === 'd1').items
+assert.equal(out2[0].drop, false)
+assert.deepEqual([out2[1].reps, out2[1].track], ['30-45', 'time'])
+const r3 = readReply(JSON.stringify({ dias: [{ ref: 'd1', dia: 1, ejercicios: [{ ref: 'd1e1', id: B, series: 3, reps: '8-10', drop: true }] }] }), withDrop)
+assert.equal(r3.error, 'empty', 'mismo ejercicio, mismas series y con drop: no cambia nada')
+assert.match(plan, /"drop": true solo en los ejercicios que quieras con drop set/)
 console.log('aiexport ok')

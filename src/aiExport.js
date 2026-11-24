@@ -192,7 +192,8 @@ Reglas del bloque:
 - Día que ya tengo: su "ref" (d1, d2…) y TODOS los ejercicios con los que queda, en orden. Los que se quedan o sustituyes llevan la "ref" del original (d1e2…); los nuevos, "ref": null.
 - Día nuevo: "ref": null, con "nombre" y "dia". Los días que no cambian no los pongas.
 - "id": SOLO ids del catálogo de abajo o de mi rutina, copiados tal cual (en inglés). En tu explicación nómbralos en español.
-- "series" de 1 a 6, "reps" como texto ("8-10"), "rir" de 0 a 4.
+- "series" de 1 a 6, "reps" como texto ("8-10"), "rir" de 0 a 4. En ejercicios por tiempo, "reps" en segundos con s ("30-45s").
+- "drop": true solo en los ejercicios que quieras con drop set; si no lo pones, va sin drop set.
 - La app no borra días: si sobra alguno, dímelo en el texto.
 
 ## Catálogo de ejercicios (ids por grupo)
@@ -311,7 +312,9 @@ export function readReply(text, data) {
       ejercicios: (Array.isArray(d?.ejercicios) ? d.ejercicios : []).map((e) => {
         const id = resolveEx(e?.id, data) || resolveEx(e?.nombre || e?.name, data)
         if (!id) unknown.push(String(e?.id || e?.nombre || '?'))
-        return { ...e, id }
+        // "30-45s" → 30-45 segundos (la serie se apunta por tiempo); sin "drop": true, sin drop set (así lo pide el formato)
+        const secs = String(e?.reps ?? '').match(/^\s*(\d+)(?:\s*[-–]\s*(\d+))?\s*(?:s|seg|segs|segundos|")\s*$/i)
+        return { ...e, id, drop: e?.drop === true, ...(secs ? { reps: secs[2] ? `${secs[1]}-${secs[2]}` : secs[1], track: 'time' } : {}) }
       }),
     })),
   }

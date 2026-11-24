@@ -12,12 +12,21 @@ import { applyChanges } from './dayDiff'
 import { applyAiProposal, proposalTxt, exNameOf, levelOf, LEVEL_TXT } from './aiPlan'
 
 // Propuesta del entrenador IA en el chat: se enseña qué cambia y el usuario la aplica o no (nunca se aplica sola)
-export function AiProposal({ p, data, setData, status, onDecide }) {
+// restDays = enseña los días que la propuesta no toca y deja quitarlos del calendario (rutinas enteras de Claude/ChatGPT)
+export function AiProposal({ p, data, setData, status, onDecide, restDays }) {
   const nameOf = exNameOf(data)
   const [pick, setPick] = useState({})
+  const [free, setFree] = useState({}) // días que no toca y se quedan sin día fijo
   const wdOf = (d, i) => (pick[i] !== undefined ? pick[i] : d.weekday)
+  // días que la propia propuesta cambia de día: no "se quedan sin día" aunque hoy ocupen el que se pide
+  const moved = new Set(p.days.filter((d) => d.kind === 'edit' && d.weekday !== undefined).map((d) => d.day.baseId))
+  const holder = (wd, self) => (wd == null ? null : data.plan.find((x) => x.weekday === wd && x.id !== self && !moved.has(x.id)))
+  // días con día fijo que la propuesta no menciona ni desplaza
+  const touched = new Set(p.days.filter((d) => d.kind === 'edit').map((d) => d.day.baseId))
+  const targets = new Set(p.days.map((d, i) => (d.kind === 'edit' ? (d.weekday !== undefined ? d.weekday : data.plan.find((x) => x.id === d.day.baseId)?.weekday) : wdOf(d, i))).filter((w) => w != null))
+  const rest = restDays ? data.plan.filter((x) => x.weekday != null && !touched.has(x.id) && !targets.has(x.weekday)) : []
   const apply = () => {
-    setData((dd) => ({ ...dd, plan: applyAiProposal(dd.plan, p, pick) }))
+    setData((dd) => ({ ...dd, plan: applyAiProposal(dd.plan, p, pick).map((x) => (free[x.id] ? { ...x, weekday: null } : x)) }))
     onDecide('ok')
   }
   return (
@@ -45,7 +54,7 @@ export function AiProposal({ p, data, setData, status, onDecide }) {
                     <span className="dl-tag">Día</span>
                     <span className="grow">
                       {cur.weekday != null ? WEEKDAYS[cur.weekday] : 'Sin día'} → <b>{d.weekday != null ? WEEKDAYS[d.weekday] : 'Sin día'}</b>
-                      {d.weekday != null && data.plan.some((x) => x.weekday === d.weekday && x.id !== cur.id) ? <span className="muted"> · {data.plan.find((x) => x.weekday === d.weekday).name.trim()} se queda sin día</span> : null}
+                      {holder(d.weekday, cur.id) ? <span className="muted"> · {holder(d.weekday, cur.id).name.trim()} se queda sin día</span> : null}
                     </span>
                   </div>
                 </div>
@@ -62,7 +71,7 @@ export function AiProposal({ p, data, setData, status, onDecide }) {
           )
         }
         const wd = wdOf(d, i)
-        const taken = wd != null ? data.plan.find((x) => x.weekday === wd) : null
+        const taken = holder(wd, null)
         return (
           <div className="ai-day" key={i}>
             <b>Día nuevo: {d.name}</b>
@@ -89,6 +98,21 @@ export function AiProposal({ p, data, setData, status, onDecide }) {
           </div>
         )
       })}
+      {rest.length > 0 && status == null && (
+        <div className="ai-day ai-rest">
+          <b>No los toca</b>
+          <p className="small muted m-0">Siguen igual y en su día. Si ya no los quieres en tu semana, márcalos: se quedan sin día fijo (no se borran).</p>
+          {rest.map((x) => (
+            <label className="ai-free" key={x.id}>
+              <input type="checkbox" checked={!!free[x.id]} onChange={(e) => setFree((f) => ({ ...f, [x.id]: e.target.checked }))} />
+              <span className="grow">
+                {x.name.trim()} <span className="muted">· {WEEKDAYS[x.weekday]}</span>
+              </span>
+              <span className="small muted">Quitar del calendario</span>
+            </label>
+          ))}
+        </div>
+      )}
       {status == null ? (
         setData ? (
           <div className="btns">
