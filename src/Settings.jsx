@@ -9,7 +9,7 @@ import PushCard from './PushCard'
 import AccountCard from './Account'
 import { MyTrainer, Students } from './Trainers'
 import { cloudReady, CLEAN } from './cloud'
-import { getPolar, connectPolar, syncPolar, disconnectPolar, polarDiagnose } from './polar'
+import { getPolar, connectPolar, syncPolar, disconnectPolar, polarDiagnose, importTcx } from './polar'
 import { Modal } from './ui'
 import LegalModal from './Legal'
 import { deleteAccount } from './cloud'
@@ -372,6 +372,7 @@ export default function Settings({ data, setData, cloud, onBack }) {
         )}
         {ps.msg && <div className="advice green sm">{ps.msg}</div>}
       </div>
+      <PolarImport setData={setData} />
       {polar?.token && <PolarDiag />}
 
           </>
@@ -522,6 +523,38 @@ const fmtPT = (d) => {
   return m ? `${(+m[1] || 0) * 60 + (+m[2] || 0)} min` : ''
 }
 const fmtT = (s) => (s ? String(s).replace('T', ' ').slice(0, 16) : '—')
+// Entrenos que Polar no entrega a la app: se exportan en Polar Flow (entreno → Exportar → TCX) y se suben aquí
+function PolarImport({ setData }) {
+  const [msg, setMsg] = useState(null)
+  const pick = async (ev) => {
+    const files = [...(ev.target.files || [])]
+    ev.target.value = ''
+    if (!files.length) return
+    try {
+      const r = await importTcx(files, setData)
+      const days = r.read.map((e) => `${e.date.slice(8, 10)}-${e.date.slice(5, 7)} ${e.time}`).join(', ')
+      setMsg({ ok: true, txt: r.added ? `Añadido: ${days}.` : `Ya los tenías (${days}).` })
+    } catch (e) {
+      setMsg({ ok: false, txt: `No se pudo leer: ${e.message}` })
+    }
+  }
+  return (
+    <div className="card">
+      <div className="card-h">
+        <h3>Importar entreno de Polar Flow</h3>
+      </div>
+      <p className="muted small mt-0">
+        Si un entreno está en Polar Flow pero no llega a la app: en flow.polar.com abre el entreno → Exportar → TCX, y elige aquí el archivo.
+      </p>
+      <label className="btn full">
+        Elegir archivo TCX
+        <input type="file" accept=".tcx,application/vnd.garmin.tcx+xml,application/xml,text/xml" multiple hidden onChange={pick} />
+      </label>
+      {msg && <div className={`advice ${msg.ok ? 'green' : 'yellow'} sm`}>{msg.txt}</div>}
+    </div>
+  )
+}
+
 function PolarDiag() {
   const [st, setSt] = useState({ busy: false, out: null, err: '', copied: false })
   const run = async () => {
