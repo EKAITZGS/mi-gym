@@ -15,12 +15,14 @@ import { ExerciseModal, Library } from './workout/Library'
 import { PlanMaker } from './workout/Generator'
 import { DayEditor } from './workout/DayEditor'
 import { Session } from './workout/Session'
+import AiExport from './AiExport'
 
 /* ---------- Pantalla Entreno ---------- */
 export default function Workout({ data, setData, view, setView, onStart, onStartFree, mode = 'train', onOpenStart, goTab, cloud, online }) {
   const [maker, setMaker] = useState(false)
   const [chat, setChat] = useState(false)
   const [coach, setCoach] = useState(false)
+  const [ax, setAx] = useState(false)
   const [flash, setFlash] = useState(null)
   const [dayOpen, setDayOpen] = useState(null)
   const [exOpen, setExOpen] = useState(null)
@@ -169,9 +171,18 @@ export default function Workout({ data, setData, view, setView, onStart, onStart
             <span className="tile2-t">Mejorar con IA</span>
             <span className="tile2-s">Ajusta tu rutina</span>
           </button>
+          <button className="tile2 tile-row" onClick={() => setAx(true)}>
+            <span className="tile2-ic"><Icon name="chat" size={18} /></span>
+            <span className="tile-txt">
+              <span className="tile2-t">Plan con Claude o ChatGPT</span>
+              <span className="tile2-s">Copia tus datos, pégalos allí y aplica aquí lo que te proponga</span>
+            </span>
+            <Icon name="right" size={16} className="muted" />
+          </button>
         </div>
         {maker && <PlanMaker data={data} setData={setData} onClose={() => setMaker(false)} />}
         {coach && <Coach data={data} setData={setData} onClose={() => setCoach(false)} />}
+        {ax && <AiExport data={data} setData={setData} kind="plan" onClose={() => setAx(false)} />}
       </div>
     )
 

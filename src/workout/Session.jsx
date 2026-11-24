@@ -11,6 +11,7 @@ import { queueTrainerNote, cloudMeta } from '../cloud'
 import { SyncPill, Badge, fmtMin, IconButton, ListRow } from '../ds'
 import { restTxt, kgIn, repIn, setsVol, setsTxt } from './shared'
 import { ExerciseModal, Library } from './Library'
+import AiExport from '../AiExport'
 import { compareSets, compareTag, compareTxt, preFatigue, liveFatigue, fatigueNote, setTargets, targetsTxt, pairCmp } from '../progression'
 
 /* ---------- Check-in al terminar ---------- */
@@ -252,6 +253,7 @@ export function Session({ data, setData, onExit, cloud, online }) {
   const name = a?.name || day?.name || 'Entreno'
   const [detail, setDetail] = useState(null)
   const [picker, setPicker] = useState(null) // { mode: 'add' } | { mode: 'swap', itemId }
+  const [ax, setAx] = useState(false)
   const [done, setDone] = useState(null) // { prs, changed, items, dayId, name } al terminar
   const [exMenu, setExMenu] = useState(null) // id del ejercicio con su menú abierto
   const [setMenu, setSetMenu] = useState(null) // { ex, i } serie con su menú abierto
@@ -469,9 +471,13 @@ export function Session({ data, setData, onExit, cloud, online }) {
             </div>
           )}
           {done.saved && <p className="toast">Guardado en tu plan.</p>}
+          <button className="link small month-link" onClick={() => setAx(true)}>
+            <Icon name="chat" size={15} /> Pedir opinión a Claude o ChatGPT
+          </button>
           <button className="btn primary full" onClick={onExit}>
             Listo
           </button>
+          {ax && <AiExport data={data} setData={setData} kind="last" onClose={() => setAx(false)} />}
         </Modal>
       </div>
     )

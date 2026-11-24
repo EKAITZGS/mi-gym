@@ -12,7 +12,7 @@ import { applyChanges } from './dayDiff'
 import { applyAiProposal, proposalTxt, exNameOf, levelOf, LEVEL_TXT } from './aiPlan'
 
 // Propuesta del entrenador IA en el chat: se enseña qué cambia y el usuario la aplica o no (nunca se aplica sola)
-function AiProposal({ p, data, setData, status, onDecide }) {
+export function AiProposal({ p, data, setData, status, onDecide }) {
   const nameOf = exNameOf(data)
   const [pick, setPick] = useState({})
   const wdOf = (d, i) => (pick[i] !== undefined ? pick[i] : d.weekday)

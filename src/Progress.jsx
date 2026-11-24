@@ -14,6 +14,7 @@ import { Stat, miles, fmtMin, Section } from './ds'
 import { fmtDate } from './store'
 import SleepCard from './Sleep'
 import AimCard from './AimCard'
+import AiExport from './AiExport'
 
 // Récords del último mes y ejercicios que llevan 3 entrenos sin mejorar
 function Highlights({ data, onOpen }) {
@@ -74,6 +75,7 @@ const KIND = { weight: 'Más peso', reps: 'Más reps', volume: 'Más volumen', f
 export default function Progress({ data, setData }) {
   const [open, setOpen] = useState(null)
   const [month, setMonth] = useState(false)
+  const [ax, setAx] = useState(false)
   const [all, setAll] = useState(false)
   const head = useMemo(() => {
     const d = new Date()
@@ -154,6 +156,11 @@ export default function Progress({ data, setData }) {
         <Icon name="calendar" size={15} /> Ver resumen del mes
       </button>
       {data.sessions.length > 0 && (
+        <button className="link small month-link" onClick={() => setAx(true)}>
+          <Icon name="chat" size={15} /> Analizar con Claude o ChatGPT
+        </button>
+      )}
+      {data.sessions.length > 0 && (
         <details className="card rank-fold">
           <summary>
             <span className="card-h m-0">
@@ -176,6 +183,7 @@ export default function Progress({ data, setData }) {
       </div>
       </div>
       {month && <MonthModal data={data} onClose={() => setMonth(false)} />}
+      {ax && <AiExport data={data} setData={setData} kind="progress" onClose={() => setAx(false)} />}
       {open && <ExerciseModal ex={open} data={data} setData={setData} onClose={() => setOpen(null)} />}
     </div>
   )
